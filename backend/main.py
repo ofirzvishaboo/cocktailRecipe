@@ -40,9 +40,9 @@ cocktail_memory: Dict[int, CocktailRecipe] = {
 }
 
 
-@app.get("/cocktail-recipes", response_model=List[CocktailRecipe])
+@app.get("/cocktail-recipes", response_model=List[Dict])
 def get_cocktail_recipes():
-    return list(cocktail_memory.values())
+    return [{"id": id, **recipe.dict()} for id, recipe in cocktail_memory.items()]
 
 
 @app.get("/cocktail-recipes/{cocktail_id}", response_model=CocktailRecipe)
@@ -54,6 +54,22 @@ def get_cocktail_recipe(cocktail_id: int):
 def post_cocktail_recipe(cocktail: CocktailRecipe, cocktail_id: int):
     cocktail_memory[cocktail_id] = cocktail
     return cocktail
+
+
+@app.put("/cocktail-recipes/{cocktail_id}", response_model=CocktailRecipe)
+def update_cocktail_recipe(cocktail: CocktailRecipe, cocktail_id: int):
+    if cocktail_id in cocktail_memory:
+        cocktail_memory[cocktail_id] = cocktail
+        return cocktail
+    return {"error": "Cocktail not found"}
+
+
+@app.delete("/cocktail-recipes/{cocktail_id}")
+def delete_cocktail_recipe(cocktail_id: int):
+    if cocktail_id in cocktail_memory:
+        del cocktail_memory[cocktail_id]
+        return {"message": "Cocktail deleted successfully"}
+    return {"error": "Cocktail not found"}
 
 
 if __name__ == "__main__":
