@@ -3,6 +3,14 @@ import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from schemas import CocktailRecipe, Ingredient
 from typing import List, Dict
+from db.database import create_db_and_tables, get_async_session, CocktailRecipe, Ingredient, CocktailIngredient
+from sqlalchemy.ext.asyncio import AsyncSession
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await create_db_and_tables()
+    yield
 
 app = FastAPI(
     title="API",
@@ -10,6 +18,7 @@ app = FastAPI(
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
