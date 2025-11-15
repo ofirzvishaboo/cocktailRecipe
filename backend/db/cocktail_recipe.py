@@ -19,15 +19,6 @@ class CocktailRecipe(Base):
         cascade="all, delete-orphan"
     )
 
-    # Property to easily access ingredients list
-    @property
-    def ingredients(self):
-        """Get list of ingredients with their ml amounts for this recipe"""
-        return [
-            {"id": ci.ingredient.id, "name": ci.ingredient.name, "ml": ci.ml}
-            for ci in self.cocktail_ingredients
-        ]
-
     # Property to convert model to schema dictionary
     @property
     def to_schema(self):

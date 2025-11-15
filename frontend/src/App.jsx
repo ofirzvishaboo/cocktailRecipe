@@ -98,7 +98,7 @@ function App() {
                         Edit
                       </button>
                       <button
-                        onClick={() => removeCocktail(c.id || idx)}
+                        onClick={() => removeCocktail(c.id)}
                         style={{ color: 'red' }}
                       >
                         Remove

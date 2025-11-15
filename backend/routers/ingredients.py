@@ -34,6 +34,13 @@ async def get_ingredient(ingredient_id: UUID, db: AsyncSession = Depends(get_asy
 @router.post("/", response_model=Dict, status_code=status.HTTP_201_CREATED)
 async def create_ingredient(ingredient: IngredientCreate, db: AsyncSession = Depends(get_async_session)):
     """Create a new ingredient"""
+    # Check if ingredient already exists
+    result = await db.execute(select(IngredientModel).where(IngredientModel.name == ingredient.name))
+    existing_ingredient = result.scalar_one_or_none()
+    if existing_ingredient:
+        return existing_ingredient.to_schema
+
+    # Create new ingredient
     ingredient_model = IngredientModel(name=ingredient.name)
     db.add(ingredient_model)
     await db.commit()

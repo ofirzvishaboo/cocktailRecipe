@@ -53,9 +53,9 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
             if (isEdit) {
                 await api.put(`/cocktail-recipes/${id}`, newCocktail)
             } else {
-                await api.post(`/cocktail-recipes/${id}`, newCocktail)
+                await api.post(`/cocktail-recipes/`, newCocktail)
             }
-            
+
             AddCocktail(cocktailData)
             setForm({ name: '', ingredientsMap: {}, newIngredientName: '', newIngredientMl: '', submitting: false })
         } finally {
