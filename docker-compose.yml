@@ -18,6 +18,26 @@ services:
       timeout: 5s
       retries: 5
 
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cocktail-api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_USER: user
+      DATABASE_PASSWORD: password
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: cocktaildb
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
 volumes:
   postgres_data:
 
