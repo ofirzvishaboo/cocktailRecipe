@@ -1,0 +1,43 @@
+import uuid
+from sqlalchemy import Column, String
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+from .database import Base
+
+
+class CocktailRecipe(Base):
+    """CocktailRecipe model - recipes with unique id, name, and ingredients with ml amounts"""
+    __tablename__ = "cocktail_recipes"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+
+    # Relationship through association object to access ingredients with ml amounts
+    cocktail_ingredients = relationship(
+        "CocktailIngredient",
+        back_populates="cocktail",
+        cascade="all, delete-orphan"
+    )
+
+    # Property to easily access ingredients list
+    @property
+    def ingredients(self):
+        """Get list of ingredients with their ml amounts for this recipe"""
+        return [
+            {"id": ci.ingredient.id, "name": ci.ingredient.name, "ml": ci.ml}
+            for ci in self.cocktail_ingredients
+        ]
+
+    # Property to convert model to schema dictionary
+    @property
+    def to_schema(self):
+        """Convert CocktailRecipe model to schema dictionary format"""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "ingredients": [
+                {"name": ci.ingredient.name, "ml": ci.ml}
+                for ci in self.cocktail_ingredients
+            ]
+        }
+

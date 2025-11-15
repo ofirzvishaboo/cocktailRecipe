@@ -1,8 +1,10 @@
 from pydantic import BaseModel
 from typing import List
-from . import Ingredient, IngredientCreate, IngredientUpdate, IngredientDelete
+from uuid import UUID
+from .ingredient import Ingredient, IngredientCreate, IngredientUpdate
 
 class CocktailRecipe(BaseModel):
+    id: UUID
     name: str
     ingredients: List[Ingredient]
 
@@ -15,4 +17,4 @@ class CocktailRecipeUpdate(BaseModel):
     ingredients: List[IngredientUpdate]
 
 class CocktailRecipeDelete(BaseModel):
-    id: int
+    id: UUID
