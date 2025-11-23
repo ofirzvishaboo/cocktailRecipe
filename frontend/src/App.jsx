@@ -136,7 +136,14 @@ function App() {
                 {cocktails.map((c, idx) => (
                   <li key={`${c.name}-${idx}`}>
                     <div className="cocktail-item">
-                      <strong>{c.name}</strong>
+                      <div>
+                        <strong>{c.name}</strong>
+                        {c.created_at && (
+                          <span className="created-at">
+                            Created: {new Date(c.created_at).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
                       <div>
                         <button
                           onClick={() => editCocktail(c)}

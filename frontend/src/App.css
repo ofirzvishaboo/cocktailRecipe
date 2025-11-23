@@ -122,9 +122,22 @@
   margin-bottom: 1rem;
 }
 
+.cocktail-item > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .cocktail-item strong {
   font-size: 1.25rem;
   color: #333;
+}
+
+.created-at {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-weight: normal;
+  font-style: italic;
 }
 
 .cocktails-list ul ul {

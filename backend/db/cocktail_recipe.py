@@ -1,5 +1,6 @@
 import uuid
-from sqlalchemy import Column, String
+from datetime import datetime
+from sqlalchemy import Column, String, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from .database import Base
@@ -11,6 +12,7 @@ class CocktailRecipe(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationship through association object to access ingredients with ml amounts
     cocktail_ingredients = relationship(
@@ -26,6 +28,7 @@ class CocktailRecipe(Base):
         return {
             "id": self.id,
             "name": self.name,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
             "ingredients": [
                 {"name": ci.ingredient.name, "ml": ci.ml}
                 for ci in self.cocktail_ingredients
