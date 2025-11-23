@@ -11,4 +11,6 @@ dependencies = [
     "python-dotenv>=1.1.1",
     "sqlalchemy>=2.0.44",
     "uvicorn>=0.37.0",
+    "imagekitio>=3.3.0",
+    "python-multipart>=0.0.6",
 ]

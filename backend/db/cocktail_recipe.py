@@ -13,7 +13,7 @@ class CocktailRecipe(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    image_url = Column(String, nullable=True)  # Store base64 image or URL
+    image_url = Column(String, nullable=True)  # ImageKit URL
 
     # Relationship through association object to access ingredients with ml amounts
     cocktail_ingredients = relationship(

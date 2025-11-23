@@ -19,12 +19,12 @@ class CocktailRecipe(BaseModel):
 class CocktailRecipeCreate(BaseModel):
     name: str
     ingredients: List[CocktailIngredientInput]
-    image_url: Optional[str] = None  # Base64 encoded image or URL
+    image_url: Optional[str] = None  # ImageKit URL
 
 class CocktailRecipeUpdate(BaseModel):
     name: str
     ingredients: List[CocktailIngredientInput]
-    image_url: Optional[str] = None  # Base64 encoded image or URL
+    image_url: Optional[str] = None  # ImageKit URL
 
 class CocktailRecipeDelete(BaseModel):
     id: UUID

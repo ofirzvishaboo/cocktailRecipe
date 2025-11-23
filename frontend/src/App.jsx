@@ -16,6 +16,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editingCocktail, setEditingCocktail] = useState(null)
+  const [failedImages, setFailedImages] = useState(new Set())
 
   // Listen for hash changes (browser back/forward buttons)
   useEffect(() => {
@@ -75,7 +76,8 @@ function App() {
     const load = async () => {
       try {
         setLoading(true)
-        const res = await api.get('/cocktail-recipes')
+        const res = await api.get('/cocktail-recipes/')
+        console.log('Loaded cocktails:', res.data)
         setCocktails(res.data || [])
       } catch (e) {
         setError('Failed to load cocktails')
@@ -139,12 +141,21 @@ function App() {
                   <li key={`${c.name}-${idx}`}>
                     <div className="cocktail-item">
                       <div className="cocktail-info">
-                        {c.image_url && (
+                        {c.image_url && !failedImages.has(c.id) ? (
                           <img
                             src={c.image_url}
                             alt={c.name}
                             className="cocktail-image"
+                            onError={(e) => {
+                              console.error('Failed to load image:', c.image_url, 'for cocktail:', c.name)
+                              setFailedImages(prev => new Set(prev).add(c.id))
+                            }}
+                            onLoad={() => console.log('Image loaded successfully:', c.image_url)}
                           />
+                        ) : (
+                          <div className="cocktail-image-placeholder">
+                            {c.image_url ? 'Invalid Image' : 'No Image'}
+                          </div>
                         )}
                         <div className="cocktail-details">
                           <strong>{c.name}</strong>

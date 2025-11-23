@@ -37,7 +37,7 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
         })
     }
 
-    const handleImageChange = (e) => {
+    const handleImageChange = async (e) => {
         const file = e.target.files[0]
         if (file) {
             // Validate file type
@@ -45,21 +45,59 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 alert('Please select an image file')
                 return
             }
-            // Validate file size (max 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                alert('Image size should be less than 5MB')
+            // Validate file size (min 100 bytes, max 10MB)
+            if (file.size < 100) {
+                alert('Image file appears to be corrupted or too small')
                 return
             }
-            const reader = new FileReader()
-            reader.onloadend = () => {
-                const base64String = reader.result
+            if (file.size > 10 * 1024 * 1024) {
+                alert('Image size should be less than 10MB')
+                return
+            }
+
+            try {
+                // Show preview immediately
+                const reader = new FileReader()
+                reader.onloadend = () => {
+                    setForm(prev => ({
+                        ...prev,
+                        imagePreview: reader.result
+                    }))
+                }
+                reader.readAsDataURL(file)
+
+                // Upload to ImageKit via backend
+                const formData = new FormData()
+                formData.append('file', file)
+
+                const response = await api.post('/images/upload', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                })
+
+                console.log('ImageKit upload response:', response.data)
+
+                if (response.data && response.data.url) {
+                    // Update with ImageKit URL
+                    setForm(prev => ({
+                        ...prev,
+                        imageUrl: response.data.url,
+                        imagePreview: response.data.url
+                    }))
+                } else {
+                    throw new Error('No URL returned from ImageKit upload')
+                }
+            } catch (error) {
+                console.error('Failed to upload image:', error)
+                alert('Failed to upload image. Please try again.')
+                // Reset image selection
                 setForm(prev => ({
                     ...prev,
-                    imageUrl: base64String,
-                    imagePreview: base64String
+                    imageUrl: '',
+                    imagePreview: ''
                 }))
             }
-            reader.readAsDataURL(file)
         }
     }
 

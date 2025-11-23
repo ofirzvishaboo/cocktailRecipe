@@ -5,6 +5,7 @@ from db.database import create_db_and_tables
 from routers.cocktails import router as cocktails_router
 from routers.ingredients import router as ingredients_router
 from routers.cocktail_ingredient import router as cocktail_ingredient_router
+from routers.images import router as images_router
 from contextlib import asynccontextmanager
 
 
@@ -32,8 +33,11 @@ app.add_middleware(
 )
 
 
+# Image upload routes
+app.include_router(images_router, prefix="/images", tags=["images"])
+
+# Cocktail recipe routes
 app.include_router(cocktail_ingredient_router, prefix="/cocktail-ingredients", tags=["cocktail-ingredients"])
-# Include routers
 app.include_router(cocktails_router, prefix="/cocktail-recipes", tags=["cocktails"])
 app.include_router(ingredients_router, prefix="/ingredients", tags=["ingredients"])
 
