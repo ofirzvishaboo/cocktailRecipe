@@ -85,15 +85,17 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
         try {
             setForm(prev => ({ ...prev, submitting: true }))
             const id = isEdit ? initialCocktail.id : Date.now()
-            const cocktailData = { ...newCocktail, id }
 
             if (isEdit) {
-                await api.put(`/cocktail-recipes/${id}`, newCocktail)
+                const response = await api.put(`/cocktail-recipes/${id}`, newCocktail)
+                // Use the API response which includes all fields (created_at, image_url, etc.)
+                AddCocktail(response.data)
             } else {
-                await api.post(`/cocktail-recipes/`, newCocktail)
+                const response = await api.post(`/cocktail-recipes/`, newCocktail)
+                // Use the API response which includes all fields (created_at, image_url, etc.)
+                AddCocktail(response.data)
             }
 
-            AddCocktail(cocktailData)
             setForm({ name: '', ingredientsMap: {}, newIngredientName: '', newIngredientMl: '', imageUrl: '', imagePreview: '', submitting: false })
         } finally {
             setForm(prev => ({ ...prev, submitting: false }))

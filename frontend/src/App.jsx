@@ -56,8 +56,10 @@ function App() {
 
   const updateCocktail = async (updatedCocktail) => {
     try {
-      await api.put(`/cocktail-recipes/${updatedCocktail.id}`, updatedCocktail)
-      setCocktails(cocktails.map(c => c.id === updatedCocktail.id ? updatedCocktail : c))
+      const response = await api.put(`/cocktail-recipes/${updatedCocktail.id}`, updatedCocktail)
+      // Use the API response which includes all fields (created_at, image_url, etc.)
+      const updatedCocktailFromApi = response.data
+      setCocktails(cocktails.map(c => c.id === updatedCocktailFromApi.id ? updatedCocktailFromApi : c))
       setEditingCocktail(null)
     } catch (e) {
       setError('Failed to update cocktail')
