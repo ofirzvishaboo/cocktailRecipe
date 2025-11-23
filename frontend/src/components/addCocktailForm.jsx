@@ -10,6 +10,8 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
         }, {}) || {},
         newIngredientName: '',
         newIngredientMl: '',
+        imageUrl: initialCocktail?.image_url || '',
+        imagePreview: initialCocktail?.image_url || '',
         submitting: false,
     })
 
@@ -35,6 +37,40 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
         })
     }
 
+    const handleImageChange = (e) => {
+        const file = e.target.files[0]
+        if (file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file')
+                return
+            }
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Image size should be less than 5MB')
+                return
+            }
+            const reader = new FileReader()
+            reader.onloadend = () => {
+                const base64String = reader.result
+                setForm(prev => ({
+                    ...prev,
+                    imageUrl: base64String,
+                    imagePreview: base64String
+                }))
+            }
+            reader.readAsDataURL(file)
+        }
+    }
+
+    const removeImage = () => {
+        setForm(prev => ({
+            ...prev,
+            imageUrl: '',
+            imagePreview: ''
+        }))
+    }
+
     const handleSubmit = async (e) => {
         e.preventDefault()
         const ingredientsArray = Object.values(form.ingredientsMap)
@@ -42,7 +78,8 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
 
         const newCocktail = {
             name: form.name,
-            ingredients: ingredientsArray
+            ingredients: ingredientsArray,
+            image_url: form.imageUrl || null
         }
 
         try {
@@ -57,7 +94,7 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
             }
 
             AddCocktail(cocktailData)
-            setForm({ name: '', ingredientsMap: {}, newIngredientName: '', newIngredientMl: '', submitting: false })
+            setForm({ name: '', ingredientsMap: {}, newIngredientName: '', newIngredientMl: '', imageUrl: '', imagePreview: '', submitting: false })
         } finally {
             setForm(prev => ({ ...prev, submitting: false }))
         }
@@ -102,6 +139,28 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                         Add ingredient
                     </button>
                 </div>
+            </div>
+            <div className="form-group">
+                <label htmlFor="form-image">Cocktail Image</label>
+                <input
+                    type="file"
+                    id="form-image"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="form-input"
+                />
+                {form.imagePreview && (
+                    <div className="image-preview-container">
+                        <img src={form.imagePreview} alt="Preview" className="image-preview" />
+                        <button
+                            type="button"
+                            onClick={removeImage}
+                            className="button-remove-small"
+                        >
+                            Remove Image
+                        </button>
+                    </div>
+                )}
             </div>
             {Object.values(form.ingredientsMap).length > 0 && (
                 <div className="ingredients-preview">

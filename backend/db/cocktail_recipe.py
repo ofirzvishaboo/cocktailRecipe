@@ -13,6 +13,7 @@ class CocktailRecipe(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    image_url = Column(String, nullable=True)  # Store base64 image or URL
 
     # Relationship through association object to access ingredients with ml amounts
     cocktail_ingredients = relationship(
@@ -29,6 +30,7 @@ class CocktailRecipe(Base):
             "id": self.id,
             "name": self.name,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+            "image_url": self.image_url,
             "ingredients": [
                 {"name": ci.ingredient.name, "ml": ci.ml}
                 for ci in self.cocktail_ingredients

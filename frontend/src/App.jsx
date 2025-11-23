@@ -136,13 +136,22 @@ function App() {
                 {cocktails.map((c, idx) => (
                   <li key={`${c.name}-${idx}`}>
                     <div className="cocktail-item">
-                      <div>
-                        <strong>{c.name}</strong>
-                        {c.created_at && (
-                          <span className="created-at">
-                            Created: {new Date(c.created_at).toLocaleString()}
-                          </span>
+                      <div className="cocktail-info">
+                        {c.image_url && (
+                          <img
+                            src={c.image_url}
+                            alt={c.name}
+                            className="cocktail-image"
+                          />
                         )}
+                        <div className="cocktail-details">
+                          <strong>{c.name}</strong>
+                          {c.created_at && (
+                            <span className="created-at">
+                              Created: {new Date(c.created_at).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <button

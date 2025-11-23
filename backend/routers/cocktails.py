@@ -54,7 +54,10 @@ async def create_cocktail_recipe(
     """Create a new cocktail recipe"""
     try:
         # Create cocktail recipe
-        cocktail_model = CocktailRecipeModel(name=cocktail.name)
+        cocktail_model = CocktailRecipeModel(
+            name=cocktail.name,
+            image_url=cocktail.image_url
+        )
         db.add(cocktail_model)
         await db.flush()  # Flush to get the ID
 
@@ -117,8 +120,9 @@ async def update_cocktail_recipe(
         )
 
     try:
-        # Update cocktail name
+        # Update cocktail name and image
         cocktail_model.name = cocktail.name
+        cocktail_model.image_url = cocktail.image_url
 
         # Delete existing associations
         delete_result = await db.execute(
