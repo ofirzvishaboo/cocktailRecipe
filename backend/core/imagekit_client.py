@@ -6,12 +6,25 @@ from io import BytesIO
 import tempfile
 import os
 
-# Initialize ImageKit client
-imagekit = ImageKit(
-    public_key=settings.imagekit_public_key,
-    private_key=settings.imagekit_private_key,
-    url_endpoint=settings.imagekit_url_endpoint
-)
+# Lazy initialization of ImageKit client
+_imagekit_client = None
+
+
+def get_imagekit_client() -> ImageKit:
+    """Get or initialize the ImageKit client."""
+    global _imagekit_client
+    if _imagekit_client is None:
+        if not settings.imagekit_public_key or not settings.imagekit_private_key or not settings.imagekit_url_endpoint:
+            raise ValueError(
+                "ImageKit credentials not configured. Please set IMAGEKIT_PUBLIC_KEY, "
+                "IMAGEKIT_PRIVATE_KEY, and IMAGEKIT_URL_ENDPOINT environment variables."
+            )
+        _imagekit_client = ImageKit(
+            public_key=settings.imagekit_public_key,
+            private_key=settings.imagekit_private_key,
+            url_endpoint=settings.imagekit_url_endpoint
+        )
+    return _imagekit_client
 
 
 async def upload_image_to_imagekit(file_data: bytes, filename: str, folder: str = "cocktails") -> dict:
@@ -64,6 +77,7 @@ async def upload_image_to_imagekit(file_data: bytes, filename: str, folder: str 
                     raise ValueError(f"Temporary file size mismatch: expected {len(file_data)} bytes, got {file_size} bytes")
 
                 # Upload to ImageKit
+                imagekit = get_imagekit_client()
                 upload = imagekit.upload_file(
                     file=file_obj,
                     file_name=filename,
@@ -129,6 +143,7 @@ async def delete_image_from_imagekit(file_id: str) -> bool:
         True if successful
     """
     try:
+        imagekit = get_imagekit_client()
         imagekit.delete_file(file_id)
         return True
     except Exception as e:
