@@ -158,7 +158,7 @@ function App() {
                           </div>
                         )}
                         <div className="cocktail-details">
-                          <strong>{c.name}</strong>
+                      <strong>{c.name}</strong>
                           {c.created_at && (
                             <span className="created-at">
                               Created: {new Date(c.created_at).toLocaleString()}
