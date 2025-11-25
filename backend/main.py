@@ -1,6 +1,8 @@
-from fastapi import FastAPI
-import uvicorn
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 from db.database import create_db_and_tables
 from routers.cocktails import router as cocktails_router
 from routers.ingredients import router as ingredients_router
@@ -9,6 +11,7 @@ from routers.images import router as images_router
 from core.auth import fastapi_users, auth_backend
 from contextlib import asynccontextmanager
 from schemas.users import UserRead, UserCreate, UserUpdate
+import traceback
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,12 +28,27 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS configuration
+# Note: When allow_credentials=True, you cannot use allow_origins=["*"]
+# You must specify exact origins
+cors_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "http://localhost:5174",  # Alternative Vite port
+]
+
+# CORS middleware must be added before routes
+# This ensures CORS headers are sent even on errors
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 
@@ -48,6 +66,23 @@ app.include_router(images_router, prefix="/images", tags=["images"])
 app.include_router(cocktail_ingredient_router, prefix="/cocktail-ingredients", tags=["cocktail-ingredients"])
 app.include_router(cocktails_router, prefix="/cocktail-recipes", tags=["cocktails"])
 app.include_router(ingredients_router, prefix="/ingredients", tags=["ingredients"])
+
+
+# Global exception handler to ensure CORS headers are sent even on errors
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Handle all unhandled exceptions and ensure CORS headers are included"""
+    print(f"Unhandled exception: {exc}")
+    print(traceback.format_exc())
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": f"Internal server error: {str(exc)}"},
+        headers={
+            "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
+            "Access-Control-Allow-Credentials": "true",
+        }
+    )
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

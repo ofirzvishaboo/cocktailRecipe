@@ -26,6 +26,11 @@
   align-items: center;
 }
 
+.navbar-title-link {
+  text-decoration: none;
+  cursor: pointer;
+}
+
 .navbar-title {
   margin: 0;
   font-size: 1.5rem;
@@ -64,6 +69,28 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.nav-link {
+  text-decoration: none;
+}
+
+.navbar-user {
+  padding: 0.75rem 1.5rem;
+  color: #666;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.logout-button {
+  background: #dc3545 !important;
+  color: white !important;
+}
+
+.logout-button:hover {
+  background: #bb2d3b !important;
 }
 
 /* Main Content */
@@ -172,6 +199,13 @@
   color: #6c757d;
   font-weight: normal;
   font-style: italic;
+}
+
+.created-by {
+  font-size: 0.85rem;
+  color: #667eea;
+  font-weight: 500;
+  margin-top: 0.25rem;
 }
 
 .cocktails-list ul ul {

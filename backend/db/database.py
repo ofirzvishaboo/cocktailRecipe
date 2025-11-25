@@ -42,6 +42,11 @@ async def create_db_and_tables():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+    # Run migrations
+    from .migrations import add_missing_user_columns, add_user_id_column_if_missing
+    await add_missing_user_columns(engine)
+    await add_user_id_column_if_missing(engine)
+
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         yield session

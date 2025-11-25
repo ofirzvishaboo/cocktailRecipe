@@ -16,9 +16,16 @@ router = APIRouter()
 @router.get("/", response_model=List[Dict])
 async def get_ingredients(db: AsyncSession = Depends(get_async_session)):
     """Get all ingredients"""
-    result = await db.execute(select(IngredientModel))
-    ingredients = result.scalars().all()
-    return [ingredient.to_schema for ingredient in ingredients]
+    try:
+        result = await db.execute(select(IngredientModel))
+        ingredients = result.scalars().all()
+        return [ingredient.to_schema for ingredient in ingredients]
+    except Exception as e:
+        print(f"Error fetching ingredients: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch ingredients: {str(e)}"
+        )
 
 @router.get("/{ingredient_id}", response_model=Dict)
 async def get_ingredient(ingredient_id: UUID, db: AsyncSession = Depends(get_async_session)):

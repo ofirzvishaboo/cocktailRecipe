@@ -4,9 +4,10 @@ from .database import Base
 
 
 class User(SQLAlchemyBaseUserTableUUID, Base):
-    cocktail = relationship("CocktailRecipe", back_populates="user")
     __tablename__ = "users"
-    
+
+    cocktails = relationship("CocktailRecipe", back_populates="user", cascade="all, delete-orphan")
+
 
     @property
     def to_schema(self):

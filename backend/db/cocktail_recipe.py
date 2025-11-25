@@ -12,7 +12,7 @@ class CocktailRecipe(Base):
     __tablename__ = "cocktail_recipes"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     name = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     image_url = Column(String, nullable=True)  # ImageKit URL
@@ -24,7 +24,7 @@ class CocktailRecipe(Base):
         cascade="all, delete-orphan"
     )
 
-    user = relationship("User", back_populates="cocktail")
+    user = relationship("User", back_populates="cocktails")
 
     # Property to convert model to schema dictionary
     @property
