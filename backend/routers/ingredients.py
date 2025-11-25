@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from schemas.ingredient import IngredientCreate, IngredientUpdate
 from db.database import (
     get_async_session,
@@ -8,7 +8,8 @@ from db.database import (
 )
 from typing import List, Dict
 from uuid import UUID
-
+from core.auth import current_active_user
+from db.users import User
 
 router = APIRouter()
 
@@ -32,15 +33,19 @@ async def get_ingredient(ingredient_id: UUID, db: AsyncSession = Depends(get_asy
     return ingredient.to_schema
 
 @router.post("/", response_model=Dict, status_code=status.HTTP_201_CREATED)
-async def create_ingredient(ingredient: IngredientCreate, db: AsyncSession = Depends(get_async_session)):
+async def create_ingredient(ingredient: IngredientCreate, user: User = Depends(current_active_user), db: AsyncSession = Depends(get_async_session)):
     """Create a new ingredient"""
-    # Check if ingredient already exists
-    result = await db.execute(select(IngredientModel).where(IngredientModel.name == ingredient.name))
+    # Check if ingredient already exists (case-insensitive)
+    result = await db.execute(
+        select(IngredientModel).where(
+            func.lower(IngredientModel.name) == ingredient.name.lower()
+        )
+    )
     existing_ingredient = result.scalar_one_or_none()
     if existing_ingredient:
         return existing_ingredient.to_schema
 
-    # Create new ingredient
+    # Create new ingredient (preserve original casing)
     ingredient_model = IngredientModel(name=ingredient.name)
     db.add(ingredient_model)
     await db.commit()
@@ -48,8 +53,13 @@ async def create_ingredient(ingredient: IngredientCreate, db: AsyncSession = Dep
     return ingredient_model.to_schema
 
 @router.put("/{ingredient_id}", response_model=Dict)
-async def update_ingredient(ingredient_id: UUID, ingredient: IngredientUpdate, db: AsyncSession = Depends(get_async_session)):
+async def update_ingredient(ingredient_id: UUID, ingredient: IngredientUpdate, user: User = Depends(current_active_user), db: AsyncSession = Depends(get_async_session)):
     """Update an existing ingredient"""
+    if not user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not allowed to update this ingredient"
+        )
     result = await db.execute(select(IngredientModel).where(IngredientModel.id == ingredient_id))
     ingredient_model = result.scalar_one_or_none()
     if not ingredient_model:
@@ -63,14 +73,25 @@ async def update_ingredient(ingredient_id: UUID, ingredient: IngredientUpdate, d
     return ingredient_model.to_schema
 
 @router.delete("/{ingredient_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_ingredient(ingredient_id: UUID, db: AsyncSession = Depends(get_async_session)):
+async def delete_ingredient(ingredient_id: UUID, user: User = Depends(current_active_user), db: AsyncSession = Depends(get_async_session)):
     """Delete an existing ingredient"""
+    if not user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not allowed to delete this ingredient"
+        )
     result = await db.execute(select(IngredientModel).where(IngredientModel.id == ingredient_id))
     ingredient_model = result.scalar_one_or_none()
     if not ingredient_model:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Ingredient with id {ingredient_id} not found"
+        )
+    # Only superusers can delete ingredients (ingredients are shared resources)
+    if not user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not allowed to delete this ingredient"
         )
     await db.delete(ingredient_model)
     await db.commit()

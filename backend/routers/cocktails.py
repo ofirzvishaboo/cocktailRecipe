@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from schemas.cocktails import CocktailRecipe, CocktailRecipeCreate, CocktailRecipeUpdate
 from db.database import (
@@ -11,7 +11,8 @@ from db.database import (
 )
 from typing import List, Dict
 from uuid import UUID
-
+from core.auth import current_active_user
+from db.users import User
 
 router = APIRouter()
 
@@ -21,7 +22,10 @@ async def get_cocktails(db: AsyncSession = Depends(get_async_session)):
     """Get all cocktail recipes"""
     result = await db.execute(
         select(CocktailRecipeModel)
-        .options(selectinload(CocktailRecipeModel.cocktail_ingredients).selectinload(CocktailIngredientModel.ingredient))
+        .options(
+            selectinload(CocktailRecipeModel.cocktail_ingredients).selectinload(CocktailIngredientModel.ingredient),
+            selectinload(CocktailRecipeModel.user)
+        )
     )
     cocktails = result.scalars().all()
     return [cocktail.to_schema for cocktail in cocktails]
@@ -32,7 +36,10 @@ async def get_cocktail_recipe(cocktail_id: UUID, db: AsyncSession = Depends(get_
     """Get a single cocktail recipe by ID"""
     result = await db.execute(
         select(CocktailRecipeModel)
-        .options(selectinload(CocktailRecipeModel.cocktail_ingredients).selectinload(CocktailIngredientModel.ingredient))
+        .options(
+            selectinload(CocktailRecipeModel.cocktail_ingredients).selectinload(CocktailIngredientModel.ingredient),
+            selectinload(CocktailRecipeModel.user)
+        )
         .where(CocktailRecipeModel.id == cocktail_id)
     )
     cocktail = result.scalar_one_or_none()
@@ -49,6 +56,7 @@ async def get_cocktail_recipe(cocktail_id: UUID, db: AsyncSession = Depends(get_
 @router.post("/", response_model=Dict, status_code=status.HTTP_201_CREATED)
 async def create_cocktail_recipe(
     cocktail: CocktailRecipeCreate,
+    user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_async_session)
 ):
     """Create a new cocktail recipe"""
@@ -56,20 +64,24 @@ async def create_cocktail_recipe(
         # Create cocktail recipe
         cocktail_model = CocktailRecipeModel(
             name=cocktail.name,
-            image_url=cocktail.image_url
+            image_url=cocktail.image_url,
+            user_id=user.id
         )
         db.add(cocktail_model)
         await db.flush()  # Flush to get the ID
 
         # Process ingredients
         for ingredient_data in cocktail.ingredients:
-            # Get or create ingredient
+            # Get or create ingredient (case-insensitive check)
             ingredient_result = await db.execute(
-                select(IngredientModel).where(IngredientModel.name == ingredient_data.name)
+                select(IngredientModel).where(
+                    func.lower(IngredientModel.name) == ingredient_data.name.lower()
+                )
             )
             ingredient = ingredient_result.scalar_one_or_none()
 
             if not ingredient:
+                # Use the original name from the request (preserve casing)
                 ingredient = IngredientModel(name=ingredient_data.name)
                 db.add(ingredient)
                 await db.flush()
@@ -87,7 +99,10 @@ async def create_cocktail_recipe(
         # Reload the model with relationships
         result = await db.execute(
             select(CocktailRecipeModel)
-            .options(selectinload(CocktailRecipeModel.cocktail_ingredients).selectinload(CocktailIngredientModel.ingredient))
+            .options(
+                selectinload(CocktailRecipeModel.cocktail_ingredients).selectinload(CocktailIngredientModel.ingredient),
+                selectinload(CocktailRecipeModel.user)
+            )
             .where(CocktailRecipeModel.id == cocktail_model.id)
         )
         cocktail_model = result.scalar_one()
@@ -105,6 +120,7 @@ async def create_cocktail_recipe(
 async def update_cocktail_recipe(
     cocktail_id: UUID,
     cocktail: CocktailRecipeUpdate,
+    user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_async_session)
 ):
     """Update an existing cocktail recipe"""
@@ -112,11 +128,15 @@ async def update_cocktail_recipe(
         select(CocktailRecipeModel).where(CocktailRecipeModel.id == cocktail_id)
     )
     cocktail_model = result.scalar_one_or_none()
-
     if not cocktail_model:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Cocktail with id {cocktail_id} not found"
+        )
+    if cocktail_model.user_id != user.id and not user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not allowed to update this cocktail"
         )
 
     try:
@@ -138,13 +158,16 @@ async def update_cocktail_recipe(
 
         # Create new associations
         for ingredient_data in cocktail.ingredients:
-            # Get or create ingredient
+            # Get or create ingredient (case-insensitive check)
             ingredient_result = await db.execute(
-                select(IngredientModel).where(IngredientModel.name == ingredient_data.name)
+                select(IngredientModel).where(
+                    func.lower(IngredientModel.name) == ingredient_data.name.lower()
+                )
             )
             ingredient = ingredient_result.scalar_one_or_none()
 
             if not ingredient:
+                # Use the original name from the request (preserve casing)
                 ingredient = IngredientModel(name=ingredient_data.name)
                 db.add(ingredient)
                 await db.flush()
@@ -162,7 +185,10 @@ async def update_cocktail_recipe(
         # Reload the model with relationships
         result = await db.execute(
             select(CocktailRecipeModel)
-            .options(selectinload(CocktailRecipeModel.cocktail_ingredients).selectinload(CocktailIngredientModel.ingredient))
+            .options(
+                selectinload(CocktailRecipeModel.cocktail_ingredients).selectinload(CocktailIngredientModel.ingredient),
+                selectinload(CocktailRecipeModel.user)
+            )
             .where(CocktailRecipeModel.id == cocktail_id)
         )
         cocktail_model = result.scalar_one()
@@ -179,6 +205,7 @@ async def update_cocktail_recipe(
 @router.delete("/{cocktail_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_cocktail_recipe(
     cocktail_id: UUID,
+    user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_async_session)
 ):
     """Delete a cocktail recipe by ID"""
@@ -191,6 +218,13 @@ async def delete_cocktail_recipe(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Cocktail with id {cocktail_id} not found"
+        )
+
+    # Allow users to delete their own cocktails, or superusers to delete any
+    if cocktail_model.user_id != user.id and not user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not allowed to delete this cocktail"
         )
 
     try:

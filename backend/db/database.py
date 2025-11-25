@@ -2,8 +2,11 @@ from collections.abc import AsyncGenerator
 import os
 from urllib.parse import quote_plus
 from dotenv import load_dotenv
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+from fastapi_users.db import SQLAlchemyUserDatabase
+from uuid import UUID
 
 load_dotenv()
 
@@ -24,12 +27,13 @@ class Base(DeclarativeBase):
 
 # Import all models to ensure they're registered with Base.metadata
 # This must be done after Base is defined to avoid circular imports
-from . import cocktail_ingredient, ingredient, cocktail_recipe
+from . import cocktail_ingredient, ingredient, cocktail_recipe, users
 
 # Re-export models for backward compatibility
 from .cocktail_ingredient import CocktailIngredient
 from .ingredient import Ingredient
 from .cocktail_recipe import CocktailRecipe
+from .users import User
 
 engine = create_async_engine(DATABASE_URL)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
@@ -41,3 +45,6 @@ async def create_db_and_tables():
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         yield session
+
+async def get_user_db(session: AsyncSession = Depends(get_async_session)) -> SQLAlchemyUserDatabase[User, UUID]:
+    yield SQLAlchemyUserDatabase(session, User)

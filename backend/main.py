@@ -6,8 +6,9 @@ from routers.cocktails import router as cocktails_router
 from routers.ingredients import router as ingredients_router
 from routers.cocktail_ingredient import router as cocktail_ingredient_router
 from routers.images import router as images_router
+from core.auth import fastapi_users, auth_backend
 from contextlib import asynccontextmanager
-
+from schemas.users import UserRead, UserCreate, UserUpdate
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -32,6 +33,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# Authentication routes (fastapi-users)
+app.include_router(fastapi_users.get_auth_router(auth_backend), prefix="/auth/jwt", tags=["auth"],)
+app.include_router(fastapi_users.get_register_router(UserRead, UserCreate), prefix="/auth", tags=["auth"])
+app.include_router(fastapi_users.get_reset_password_router(), prefix="/auth", tags=["auth"])
+app.include_router(fastapi_users.get_verify_router(UserRead), prefix="/auth", tags=["auth"])
+app.include_router(fastapi_users.get_users_router(UserRead, UserUpdate), prefix="/users", tags=["users"])
 
 # Image upload routes
 app.include_router(images_router, prefix="/images", tags=["images"])

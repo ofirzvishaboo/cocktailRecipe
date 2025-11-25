@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
@@ -9,12 +9,25 @@ class CocktailIngredientInput(BaseModel):
     name: str
     ml: int
 
+# User info for cocktail responses
+class CocktailUser(BaseModel):
+    id: UUID
+    email: EmailStr
+
+    class Config:
+        from_attributes = True
+
 class CocktailRecipe(BaseModel):
     id: UUID
+    user_id: UUID  # ID of the user who created this cocktail
+    user: CocktailUser  # User information (name/email)
     name: str
     created_at: Optional[datetime] = None
     image_url: Optional[str] = None
     ingredients: List[Ingredient]
+
+    class Config:
+        from_attributes = True
 
 class CocktailRecipeCreate(BaseModel):
     name: str
