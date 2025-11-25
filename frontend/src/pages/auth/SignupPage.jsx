@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import './Auth.css'
+import { useAuth } from '../../contexts/AuthContext'
+import '../../styles/auth.css'
 
-const Signup = () => {
+const SignupPage = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -98,5 +98,5 @@ const Signup = () => {
   )
 }
 
-export default Signup
+export default SignupPage
 

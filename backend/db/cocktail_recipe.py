@@ -14,6 +14,7 @@ class CocktailRecipe(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     name = Column(String, nullable=False)
+    description = Column(String, nullable=True)  # Optional description
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     image_url = Column(String, nullable=True)  # ImageKit URL
 
@@ -42,6 +43,7 @@ class CocktailRecipe(Base):
             "user_id": self.user_id,
             "user": user_data,
             "name": self.name,
+            "description": self.description,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "image_url": self.image_url,
             "ingredients": [

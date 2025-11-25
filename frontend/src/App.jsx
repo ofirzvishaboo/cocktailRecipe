@@ -1,64 +1,32 @@
-import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
-import './App.css'
-import Login from './components/Login'
-import Signup from './components/Signup'
+import './styles/App.css'
+import Navbar from './components/layout/Navbar'
+import LoginPage from './pages/auth/LoginPage'
+import SignupPage from './pages/auth/SignupPage'
 import CocktailsPage from './pages/CocktailsPage'
-import Ingredients from './components/Ingredients'
+import CocktailDetailPage from './pages/CocktailDetailPage'
+import CreateCocktailPage from './pages/CreateCocktailPage'
+import IngredientsPage from './pages/IngredientsPage'
 
 function App() {
-  const { isAuthenticated, user, logout } = useAuth()
-  const location = useLocation()
+  const { isAuthenticated } = useAuth()
 
   return (
     <>
-      {/* Professional Navbar */}
-      <nav className="navbar">
-        <div className="navbar-container">
-          <Link to="/" className="navbar-title-link">
-            <h1 className="navbar-title">🍹 Cocktail Recipe Manager</h1>
-          </Link>
-          <div className="navbar-links">
-            <Link
-              to="/"
-              className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
-            >
-              Cocktails
-            </Link>
-            <Link
-              to="/ingredients"
-              className={`nav-link ${location.pathname === '/ingredients' ? 'active' : ''}`}
-            >
-              Ingredients
-            </Link>
-            {isAuthenticated && user ? (
-              <>
-                <span className="navbar-user">Welcome, {user.email}</span>
-                <button onClick={logout} className="nav-link logout-button">
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" className="nav-link">Login</Link>
-                <Link to="/signup" className="nav-link">Sign Up</Link>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
+      <Navbar />
       <main className="main-content">
         <Routes>
           <Route path="/login" element={
-            isAuthenticated ? <Navigate to="/" replace /> : <Login />
+            isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
           } />
           <Route path="/signup" element={
-            isAuthenticated ? <Navigate to="/" replace /> : <Signup />
+            isAuthenticated ? <Navigate to="/" replace /> : <SignupPage />
           } />
           <Route path="/" element={<CocktailsPage />} />
-          <Route path="/ingredients" element={<Ingredients />} />
+          <Route path="/cocktails/:id" element={<CocktailDetailPage />} />
+          <Route path="/create-cocktail" element={<CreateCocktailPage />} />
+          <Route path="/ingredients" element={<IngredientsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

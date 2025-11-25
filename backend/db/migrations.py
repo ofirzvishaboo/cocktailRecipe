@@ -153,3 +153,26 @@ async def add_user_id_column_if_missing(engine: AsyncEngine):
         else:
             print("user_id column already exists in cocktail_recipes table")
 
+        # Add description column if it doesn't exist
+        desc_result = await conn.execute(
+            text("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'cocktail_recipes'
+                AND column_name = 'description'
+            """)
+        )
+        desc_exists = desc_result.scalar() is not None
+
+        if not desc_exists:
+            print("Adding description column to cocktail_recipes table...")
+            await conn.execute(
+                text("""
+                    ALTER TABLE cocktail_recipes
+                    ADD COLUMN description TEXT
+                """)
+            )
+            print("Successfully added description column to cocktail_recipes table")
+        else:
+            print("description column already exists in cocktail_recipes table")
+

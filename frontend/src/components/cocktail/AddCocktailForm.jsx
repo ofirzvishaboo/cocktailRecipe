@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import api from '../api'
+import api from '../../api'
 
 function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = false }) {
+    const [showAddIngredientForm, setShowAddIngredientForm] = useState(false)
     const [form, setForm] = useState({
         name: initialCocktail?.name || '',
+        description: initialCocktail?.description || '',
         ingredientsMap: initialCocktail?.ingredients?.reduce((acc, ing) => {
             acc[ing.name] = { name: ing.name, ml: ing.ml }
             return acc
@@ -27,6 +29,10 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
             newIngredientName: '',
             newIngredientMl: '',
         }))
+        // Close the form after adding ingredient in edit mode
+        if (isEdit) {
+            setShowAddIngredientForm(false)
+        }
     }
 
     const removeIngredientByName = (ingredientName) => {
@@ -116,6 +122,7 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
 
         const newCocktail = {
             name: form.name,
+            description: form.description.trim() || null,
             ingredients: ingredientsArray,
             image_url: form.imageUrl || null
         }
@@ -134,7 +141,7 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 AddCocktail(response.data)
             }
 
-            setForm({ name: '', ingredientsMap: {}, newIngredientName: '', newIngredientMl: '', imageUrl: '', imagePreview: '', submitting: false })
+            setForm({ name: '', description: '', ingredientsMap: {}, newIngredientName: '', newIngredientMl: '', imageUrl: '', imagePreview: '', submitting: false })
         } finally {
             setForm(prev => ({ ...prev, submitting: false }))
         }
@@ -151,34 +158,19 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                     value={form.name}
                     onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
                     className="form-input"
+                    required
                 />
             </div>
             <div className="form-group">
-                <label htmlFor="form-ingredient-name">Ingredient name</label>
-                <div className="form-row">
-                    <input
-                        type="text"
-                        placeholder="Ingredient name"
-                        id="form-ingredient-name"
-                        value={form.newIngredientName}
-                        onChange={(e) => setForm(prev => ({ ...prev, newIngredientName: e.target.value }))}
-                        className="form-input"
-                    />
-                    <input
-                        type="number"
-                        placeholder="ml"
-                        value={form.newIngredientMl}
-                        onChange={(e) => setForm(prev => ({ ...prev, newIngredientMl: e.target.value }))}
-                        className="form-input form-input-small"
-                    />
-                    <button
-                        type="button"
-                        onClick={addIngredient}
-                        className="button-secondary"
-                    >
-                        Add ingredient
-                    </button>
-                </div>
+                <label htmlFor="form-description">Description (optional)</label>
+                <textarea
+                    id="form-description"
+                    placeholder="Add a description for this cocktail..."
+                    value={form.description}
+                    onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
+                    className="form-input form-textarea"
+                    rows={4}
+                />
             </div>
             <div className="form-group">
                 <label htmlFor="form-image">Cocktail Image</label>
@@ -202,9 +194,61 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                     </div>
                 )}
             </div>
-            {Object.values(form.ingredientsMap).length > 0 && (
-                <div className="ingredients-preview">
+            <div className="ingredients-preview">
+                <div className="ingredients-preview-header">
                     <h4>Ingredients:</h4>
+                    {isEdit && !showAddIngredientForm && (
+                        <button
+                            type="button"
+                            onClick={() => setShowAddIngredientForm(true)}
+                            className="button-secondary"
+                        >
+                            Add Ingredient
+                        </button>
+                    )}
+                </div>
+                {(!isEdit || showAddIngredientForm) && (
+                    <div className="form-group" style={{ marginTop: '1rem', marginBottom: '1rem' }}>
+
+                        <div className="form-row">
+                            <input
+                                type="text"
+                                placeholder="Ingredient name"
+                                id="form-ingredient-name"
+                                value={form.newIngredientName}
+                                onChange={(e) => setForm(prev => ({ ...prev, newIngredientName: e.target.value }))}
+                                className="form-input"
+                            />
+                            <input
+                                type="number"
+                                placeholder="ml"
+                                value={form.newIngredientMl}
+                                onChange={(e) => setForm(prev => ({ ...prev, newIngredientMl: e.target.value }))}
+                                className="form-input form-input-small"
+                            />
+                            <button
+                                type="button"
+                                onClick={addIngredient}
+                                className="button-secondary"
+                            >
+                                Add ingredient
+                            </button>
+                            {isEdit && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowAddIngredientForm(false)
+                                        setForm(prev => ({ ...prev, newIngredientName: '', newIngredientMl: '' }))
+                                    }}
+                                    className="button-secondary"
+                                >
+                                    Cancel
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+                {Object.values(form.ingredientsMap).length > 0 ? (
                     <ul className="ingredients-preview-list">
                         {Object.values(form.ingredientsMap).map((ing) => (
                             <li key={ing.name} className="ingredient-preview-item">
@@ -219,8 +263,10 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                             </li>
                         ))}
                     </ul>
-                </div>
-            )}
+                ) : (
+                    <p className="empty-state">No ingredients added yet.</p>
+                )}
+            </div>
             <div className="form-actions">
                 <button
                     type="submit"
@@ -244,3 +290,4 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
 }
 
 export default AddCocktailForm
+

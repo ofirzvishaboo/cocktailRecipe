@@ -1,24 +1,62 @@
 import { useState, useEffect } from 'react'
-import AddCocktailForm from '../components/addCocktailForm'
+import { Link, useNavigate } from 'react-router-dom'
+import AddCocktailForm from '../components/cocktail/AddCocktailForm'
 import api from '../api'
 import { useAuth } from '../contexts/AuthContext'
 
 const CocktailsPage = () => {
   const { user, isAuthenticated } = useAuth()
+  const navigate = useNavigate()
   const [cocktails, setCocktails] = useState([])
+  const [filteredCocktails, setFilteredCocktails] = useState([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editingCocktail, setEditingCocktail] = useState(null)
   const [failedImages, setFailedImages] = useState(new Set())
 
-  const AddCocktail = (cocktail) => {
-    setCocktails([...cocktails, cocktail])
-  }
-
   const removeCocktail = async (cocktailId) => {
     try {
       await api.delete(`/cocktail-recipes/${cocktailId}`)
-      setCocktails(cocktails.filter(c => c.id !== cocktailId))
+      const updatedCocktails = cocktails.filter(c => c.id !== cocktailId)
+      setCocktails(updatedCocktails)
+      // Re-apply search filter
+      if (!searchQuery.trim()) {
+        setFilteredCocktails(updatedCocktails)
+      } else {
+        const query = searchQuery.toLowerCase().trim()
+
+        // Check if query contains commas (multiple ingredient search)
+        if (query.includes(',')) {
+          const ingredientQueries = query.split(',').map(q => q.trim()).filter(q => q.length > 0)
+
+          const filtered = updatedCocktails.filter(cocktail => {
+            if (!cocktail.ingredients || !Array.isArray(cocktail.ingredients) || cocktail.ingredients.length === 0) {
+              return false
+            }
+
+            return ingredientQueries.every(ingQuery => {
+              return cocktail.ingredients.some(ing => {
+                if (!ing || !ing.name) return false
+                return ing.name.toLowerCase().startsWith(ingQuery)
+              })
+            })
+          })
+          setFilteredCocktails(filtered)
+        } else {
+          // Search by cocktail name OR single ingredient
+          const filtered = updatedCocktails.filter(cocktail => {
+            const nameMatch = cocktail.name && cocktail.name.toLowerCase().startsWith(query)
+            const ingredientMatch = cocktail.ingredients && Array.isArray(cocktail.ingredients) &&
+              cocktail.ingredients.some(ing => {
+                if (!ing || !ing.name) return false
+                return ing.name.toLowerCase().startsWith(query)
+              })
+            return nameMatch || ingredientMatch
+          })
+          setFilteredCocktails(filtered)
+        }
+      }
     } catch (e) {
       setError('Failed to delete cocktail')
       console.error('Failed to delete cocktail', e)
@@ -37,8 +75,46 @@ const CocktailsPage = () => {
     try {
       const response = await api.put(`/cocktail-recipes/${updatedCocktail.id}`, updatedCocktail)
       const updatedCocktailFromApi = response.data
-      setCocktails(cocktails.map(c => c.id === updatedCocktailFromApi.id ? updatedCocktailFromApi : c))
+      const updatedCocktails = cocktails.map(c => c.id === updatedCocktailFromApi.id ? updatedCocktailFromApi : c)
+      setCocktails(updatedCocktails)
       setEditingCocktail(null)
+      // Re-apply search filter
+      if (!searchQuery.trim()) {
+        setFilteredCocktails(updatedCocktails)
+      } else {
+        const query = searchQuery.toLowerCase().trim()
+
+        // Check if query contains commas (multiple ingredient search)
+        if (query.includes(',')) {
+          const ingredientQueries = query.split(',').map(q => q.trim()).filter(q => q.length > 0)
+
+          const filtered = updatedCocktails.filter(cocktail => {
+            if (!cocktail.ingredients || !Array.isArray(cocktail.ingredients) || cocktail.ingredients.length === 0) {
+              return false
+            }
+
+            return ingredientQueries.every(ingQuery => {
+              return cocktail.ingredients.some(ing => {
+                if (!ing || !ing.name) return false
+                return ing.name.toLowerCase().startsWith(ingQuery)
+              })
+            })
+          })
+          setFilteredCocktails(filtered)
+        } else {
+          // Search by cocktail name OR single ingredient
+          const filtered = updatedCocktails.filter(cocktail => {
+            const nameMatch = cocktail.name && cocktail.name.toLowerCase().startsWith(query)
+            const ingredientMatch = cocktail.ingredients && Array.isArray(cocktail.ingredients) &&
+              cocktail.ingredients.some(ing => {
+                if (!ing || !ing.name) return false
+                return ing.name.toLowerCase().startsWith(query)
+              })
+            return nameMatch || ingredientMatch
+          })
+          setFilteredCocktails(filtered)
+        }
+      }
     } catch (e) {
       setError('Failed to update cocktail')
       console.error('Failed to update cocktail', e)
@@ -56,6 +132,7 @@ const CocktailsPage = () => {
         const res = await api.get('/cocktail-recipes/')
         console.log('Loaded cocktails:', res.data)
         setCocktails(res.data || [])
+        setFilteredCocktails(res.data || [])
       } catch (e) {
         setError('Failed to load cocktails')
         console.error('Failed to load cocktails', e)
@@ -66,6 +143,54 @@ const CocktailsPage = () => {
     load()
   }, [])
 
+  // Filter cocktails based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredCocktails(cocktails)
+    } else {
+      const query = searchQuery.toLowerCase().trim()
+
+      // Check if query contains commas (multiple ingredient search)
+      if (query.includes(',')) {
+        // Split by comma and filter out empty strings
+        const ingredientQueries = query.split(',').map(q => q.trim()).filter(q => q.length > 0)
+
+        const filtered = cocktails.filter(cocktail => {
+          // Skip cocktails without ingredients
+          if (!cocktail.ingredients || !Array.isArray(cocktail.ingredients) || cocktail.ingredients.length === 0) {
+            return false
+          }
+
+          // Check if all ingredient queries match (using startsWith)
+          // Each query must match at least one ingredient
+          return ingredientQueries.every(ingQuery => {
+            return cocktail.ingredients.some(ing => {
+              if (!ing || !ing.name) return false
+              return ing.name.toLowerCase().startsWith(ingQuery)
+            })
+          })
+        })
+        setFilteredCocktails(filtered)
+      } else {
+        // Search by cocktail name OR single ingredient
+        const filtered = cocktails.filter(cocktail => {
+          // Check if name matches
+          const nameMatch = cocktail.name && cocktail.name.toLowerCase().startsWith(query)
+
+          // Check if any ingredient matches
+          const ingredientMatch = cocktail.ingredients && Array.isArray(cocktail.ingredients) &&
+            cocktail.ingredients.some(ing => {
+              if (!ing || !ing.name) return false
+              return ing.name.toLowerCase().startsWith(query)
+            })
+
+          return nameMatch || ingredientMatch
+        })
+        setFilteredCocktails(filtered)
+      }
+    }
+  }, [searchQuery, cocktails])
+
   // Check if the current user owns this cocktail
   const isOwner = (cocktail) => {
     return isAuthenticated && user && cocktail.user_id === user.id
@@ -73,8 +198,7 @@ const CocktailsPage = () => {
 
   return (
     <div className="card">
-      {isAuthenticated ? (
-        editingCocktail ? (
+      {editingCocktail ? (
         <div>
           <h3>Edit Cocktail</h3>
           <AddCocktailForm
@@ -85,24 +209,44 @@ const CocktailsPage = () => {
           />
         </div>
       ) : (
-        <AddCocktailForm AddCocktail={AddCocktail} />
-        )
-      ) : (
-        <div className="info-message">
-          <p>Please <a href="/login">log in</a> to create and manage your own cocktail recipes.</p>
-        </div>
-      )}
-      <div className="cocktails-list">
-        <h3>All Cocktails</h3>
+        <>
+          <div className="cocktails-header">
+            <div className="search-container">
+              <input
+                type="text"
+                placeholder="Search by name or ingredients (e.g., vodka, lime)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="search-input"
+              />
+            </div>
+            {isAuthenticated && (
+              <button
+                onClick={() => navigate('/create-cocktail')}
+                className="button-primary"
+              >
+                Create Cocktail
+              </button>
+            )}
+          </div>
+
+          <div className="cocktails-list">
+            <h3>All Cocktails</h3>
         {loading && <div>Loading...</div>}
         {error && <div className="error-message">{error}</div>}
         {!loading && !error && (
           <>
-            {cocktails.length === 0 ? (
-              <p>No cocktails found. {!isAuthenticated && 'Log in to create the first one!'}</p>
+            {filteredCocktails.length === 0 ? (
+              <p>
+                {searchQuery.trim()
+                  ? `No cocktails found matching "${searchQuery}"`
+                  : cocktails.length === 0
+                    ? `No cocktails found. ${!isAuthenticated ? 'Log in to create the first one!' : ''}`
+                    : 'No cocktails match your search.'}
+              </p>
             ) : (
           <ul>
-            {cocktails.map((c, idx) => (
+            {filteredCocktails.map((c, idx) => (
               <li key={`${c.name}-${idx}`}>
                 <div className="cocktail-item">
                   <div className="cocktail-info">
@@ -123,7 +267,9 @@ const CocktailsPage = () => {
                       </div>
                     )}
                     <div className="cocktail-details">
+                      <Link to={`/cocktails/${c.id}`} className="cocktail-name-link">
                       <strong>{c.name}</strong>
+                      </Link>
                       {c.user && (
                         <span className="created-by">
                           Created by: {c.user.email}
@@ -166,6 +312,8 @@ const CocktailsPage = () => {
           </>
         )}
       </div>
+        </>
+      )}
     </div>
   )
 }

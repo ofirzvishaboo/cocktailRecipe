@@ -22,6 +22,7 @@ class CocktailRecipe(BaseModel):
     user_id: UUID  # ID of the user who created this cocktail
     user: CocktailUser  # User information (name/email)
     name: str
+    description: Optional[str] = None  # Optional description
     created_at: Optional[datetime] = None
     image_url: Optional[str] = None
     ingredients: List[Ingredient]
@@ -31,11 +32,13 @@ class CocktailRecipe(BaseModel):
 
 class CocktailRecipeCreate(BaseModel):
     name: str
+    description: Optional[str] = None  # Optional description
     ingredients: List[CocktailIngredientInput]
     image_url: Optional[str] = None  # ImageKit URL
 
 class CocktailRecipeUpdate(BaseModel):
     name: str
+    description: Optional[str] = None  # Optional description
     ingredients: List[CocktailIngredientInput]
     image_url: Optional[str] = None  # ImageKit URL
 

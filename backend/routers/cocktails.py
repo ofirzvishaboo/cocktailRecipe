@@ -64,6 +64,7 @@ async def create_cocktail_recipe(
         # Create cocktail recipe
         cocktail_model = CocktailRecipeModel(
             name=cocktail.name,
+            description=cocktail.description,
             image_url=cocktail.image_url,
             user_id=user.id
         )
@@ -140,8 +141,9 @@ async def update_cocktail_recipe(
         )
 
     try:
-        # Update cocktail name and image
+        # Update cocktail name, description, and image
         cocktail_model.name = cocktail.name
+        cocktail_model.description = cocktail.description
         cocktail_model.image_url = cocktail.image_url
 
         # Delete existing associations
