@@ -107,6 +107,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     isAuthenticated: !!user,
+    isAdmin: user?.is_superuser || false,
     login,
     signup,
     logout,

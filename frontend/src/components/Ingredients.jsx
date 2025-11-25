@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import api from '../api'
+import { useAuth } from '../contexts/AuthContext'
 
 function Ingredients() {
+  const { isAdmin } = useAuth()
   const [ingredients, setIngredients] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -84,33 +86,39 @@ function Ingredients() {
     <div className="card">
       <h2 className="section-title">Ingredients Management</h2>
 
-      <form onSubmit={handleSubmit} className="ingredient-form">
-        <div className="form-row">
-          <input
-            type="text"
-            placeholder="Ingredient name"
-            value={form.name}
-            onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-            className="form-input"
-          />
-          <button
-            type="submit"
-            disabled={form.submitting || !form.name.trim()}
-            className="button-primary"
-          >
-            {editingIngredient ? 'Update' : 'Add'} Ingredient
-          </button>
-          {editingIngredient && (
+      {isAdmin ? (
+        <form onSubmit={handleSubmit} className="ingredient-form">
+          <div className="form-row">
+            <input
+              type="text"
+              placeholder="Ingredient name"
+              value={form.name}
+              onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+              className="form-input"
+            />
             <button
-              type="button"
-              onClick={cancelEdit}
-              className="button-secondary"
+              type="submit"
+              disabled={form.submitting || !form.name.trim()}
+              className="button-primary"
             >
-              Cancel
+              {editingIngredient ? 'Update' : 'Add'} Ingredient
             </button>
-          )}
+            {editingIngredient && (
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="button-secondary"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </form>
+      ) : (
+        <div className="info-message">
+          <p>Only administrators can add, edit, or remove ingredients.</p>
         </div>
-      </form>
+      )}
 
       {error && <div className="error-message">{error}</div>}
 
@@ -120,26 +128,30 @@ function Ingredients() {
         {!loading && (
           <ul>
             {ingredients.length === 0 ? (
-              <li className="empty-state">No ingredients yet. Add one above!</li>
+              <li className="empty-state">
+                No ingredients yet. {!isAdmin && 'Only administrators can add ingredients.'}
+              </li>
             ) : (
               ingredients.map((ing) => (
                 <li key={ing.id} className="ingredient-item">
                   <div className="ingredient-item-content">
                     <strong>{ing.name}</strong>
-                    <div>
-                      <button
-                        onClick={() => editIngredient(ing)}
-                        className="button-edit"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => removeIngredient(ing.id)}
-                        className="button-remove"
-                      >
-                        Remove
-                      </button>
-                    </div>
+                    {isAdmin && (
+                      <div>
+                        <button
+                          onClick={() => editIngredient(ing)}
+                          className="button-edit"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => removeIngredient(ing.id)}
+                          className="button-remove"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </li>
               ))
