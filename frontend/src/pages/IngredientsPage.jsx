@@ -128,7 +128,7 @@ function IngredientsPage() {
   return (
     <div className="card">
       <div className="ingredients-header">
-        <div className="search-container">
+        <div className={`search-container ${!isAdmin ? 'search-container-full' : ''}`}>
           <input
             type="text"
             placeholder="Search ingredients..."

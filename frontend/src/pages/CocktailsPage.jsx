@@ -211,7 +211,7 @@ const CocktailsPage = () => {
       ) : (
         <>
           <div className="cocktails-header">
-            <div className="search-container">
+            <div className={`search-container ${!isAuthenticated ? 'search-container-full' : ''}`}>
               <input
                 type="text"
                 placeholder="Search by name or ingredients (e.g., vodka, lime)..."

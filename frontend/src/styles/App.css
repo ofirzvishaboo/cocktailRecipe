@@ -785,6 +785,11 @@
   max-width: 500px;
 }
 
+.search-container-full {
+  max-width: 100%;
+  flex: 1;
+}
+
 .search-input {
   width: 100%;
   padding: 12px 16px;
