@@ -24,6 +24,12 @@ const Navbar = () => {
           >
             Ingredients
           </Link>
+          <Link
+            to="/cocktail-scaler"
+            className={`nav-link ${location.pathname === '/cocktail-scaler' ? 'active' : ''}`}
+          >
+            Cocktail Scaler
+          </Link>
           {isAuthenticated && user ? (
             <>
               <span className="navbar-user">Welcome, {user.email}</span>

@@ -8,6 +8,7 @@ import CocktailsPage from './pages/CocktailsPage'
 import CocktailDetailPage from './pages/CocktailDetailPage'
 import CreateCocktailPage from './pages/CreateCocktailPage'
 import IngredientsPage from './pages/IngredientsPage'
+import CocktailScaler from './pages/cocktailScaler'
 
 function App() {
   const { isAuthenticated } = useAuth()
@@ -24,6 +25,7 @@ function App() {
             isAuthenticated ? <Navigate to="/" replace /> : <SignupPage />
           } />
           <Route path="/" element={<CocktailsPage />} />
+          <Route path="/cocktail-scaler" element={<CocktailScaler />} />
           <Route path="/cocktails/:id" element={<CocktailDetailPage />} />
           <Route path="/create-cocktail" element={<CreateCocktailPage />} />
           <Route path="/ingredients" element={<IngredientsPage />} />
