@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import '../styles/cocktailScaler.css';
 import api from '../api';
+import IngredientInputs from '../components/cocktail/IngredientInputs';
 
 export default function CocktailScaler() {
     const [recipeName, setRecipeName] = useState('');
@@ -149,7 +150,7 @@ export default function CocktailScaler() {
                                 className="search-input-selector"
                             />
                         </div>
-                        <div className="cocktails-list-selector">
+                    <div className="cocktails-list-selector">
                             {filteredCocktails.length === 0 ? (
                                 <p>
                                     {searchQuery.trim()
@@ -158,8 +159,8 @@ export default function CocktailScaler() {
                                             ? 'No cocktails available. Create some cocktails first!'
                                             : 'No cocktails match your search.'}
                                 </p>
-                            ) : (
-                                <ul className="cocktail-selector-list">
+                        ) : (
+                            <ul className="cocktail-selector-list">
                                     {filteredCocktails.map((cocktail) => (
                                     <li key={cocktail.id} className="cocktail-selector-item">
                                         <div className="cocktail-selector-info">
@@ -178,10 +179,10 @@ export default function CocktailScaler() {
                                             Add
                                         </button>
                                     </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
                     </>
                 )}
             </div>
@@ -213,38 +214,14 @@ export default function CocktailScaler() {
             </div>
 
             <div className="sections-container">
-                <div className="ingredients-section">
-                    <h3>Ingredients</h3>
-                    {ingredients.map((ingredient, index) => (
-                        <div key={index} className="ingredient-row">
-                            <input
-                                type="text"
-                                placeholder="Ingredient name"
-                                value={ingredient.name}
-                                onChange={(e) => handleIngredientChange(index, 'name', e.target.value)}
-                            />
-                            <input
-                                type="number"
-                                placeholder="Amount (ml)"
-                                value={ingredient.amount}
-                                onChange={(e) => handleIngredientChange(index, 'amount', e.target.value)}
-                                min="0"
-                                step="0.1"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => removeIngredient(index)}
-                                className="remove-btn"
-                                disabled={ingredients.length === 1}
-                            >
-                                Remove
-                            </button>
-                        </div>
-                    ))}
-                    <button type="button" onClick={addIngredient} className="add-btn">
-                        Add Ingredient
-                    </button>
-                </div>
+                <IngredientInputs
+                    ingredients={ingredients}
+                    onIngredientChange={handleIngredientChange}
+                    onAddIngredient={addIngredient}
+                    onRemoveIngredient={removeIngredient}
+                    minIngredients={1}
+                    amountStep="0.1"
+                />
 
                 {totalVolume > 0 && desiredLiters && (
                     <div className="results-section">
