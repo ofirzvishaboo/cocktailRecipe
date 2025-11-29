@@ -103,22 +103,6 @@ const CocktailDetailPage = () => {
     <div className="card">
       <div className="cocktail-detail-header">
         <Link to="/" className="back-link">← Back to Cocktails</Link>
-        {isOwner() && (
-          <div className="cocktail-actions">
-            <button
-              onClick={() => setEditing(true)}
-              className="button-edit"
-            >
-              Edit
-            </button>
-            <button
-              onClick={handleDelete}
-              className="button-remove"
-            >
-              Delete
-            </button>
-          </div>
-        )}
       </div>
 
       <div className="cocktail-detail-content">
@@ -138,7 +122,25 @@ const CocktailDetailPage = () => {
         </div>
 
         <div className="cocktail-detail-info">
-          <h1 className="cocktail-detail-title">{cocktail.name}</h1>
+          <div className="cocktail-title-row">
+            <h1 className="cocktail-detail-title">{cocktail.name}</h1>
+            {isOwner() && (
+              <div className="cocktail-actions-inline">
+                <button
+                  onClick={() => setEditing(true)}
+                  className="button-edit"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="button-remove"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
 
           {cocktail.description && (
             <div className="cocktail-description">

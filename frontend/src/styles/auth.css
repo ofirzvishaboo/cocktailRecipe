@@ -98,3 +98,24 @@
   text-decoration: underline;
 }
 
+@media (max-width: 600px) {
+  .auth-container {
+    padding: 16px;
+  }
+
+  .auth-card {
+    padding: 24px;
+    border-radius: 10px;
+  }
+
+  .auth-card h2 {
+    font-size: 24px;
+  }
+
+  .form-group input,
+  .auth-button {
+    padding: 14px;
+    font-size: 15px;
+  }
+}
+

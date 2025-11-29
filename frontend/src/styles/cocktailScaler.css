@@ -1,7 +1,8 @@
 .cocktail-scaler {
-    max-width: 800px;
+    max-width: 1000px;
+    width: 100%;
     margin: 0 auto;
-    padding: 20px;
+    padding: 24px;
     font-family: Arial, sans-serif;
 }
 
@@ -49,7 +50,7 @@
 }
 
 .cocktails-list-selector {
-    max-height: 300px;
+    max-height: 320px;
     overflow-y: auto;
 }
 
@@ -167,6 +168,16 @@
 
 .sections-container {
     margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+}
+
+@media (min-width: 900px) {
+    .sections-container {
+        grid-template-columns: 1fr 1fr;
+        align-items: flex-start;
+    }
 }
 
 .ingredients-section h3 {
@@ -298,7 +309,31 @@
     color: #007bff;
 }
 
+@media (max-width: 900px) {
+    .cocktail-selector-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .add-cocktail-btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
 @media (max-width: 768px) {
+    .cocktail-scaler {
+        padding: 16px;
+    }
+
+    .cocktail-selector-section,
+    .recipe-input,
+    .ingredients-section,
+    .results-section {
+        padding: 16px;
+    }
+
     .quantities-display {
         grid-template-columns: 1fr;
     }
@@ -310,5 +345,19 @@
 
     .ingredient-row input {
         margin-bottom: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .cocktail-selector-section,
+    .recipe-input,
+    .ingredients-section,
+    .results-section {
+        padding: 12px;
+    }
+
+    .add-btn,
+    .remove-btn {
+        width: 100%;
     }
 }
