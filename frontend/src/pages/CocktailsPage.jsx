@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import AddCocktailForm from '../components/cocktail/AddCocktailForm'
 import api from '../api'
 import { useAuth } from '../contexts/AuthContext'
+import ConfirmDialog from '../components/common/ConfirmDialog'
 
 const CocktailsPage = () => {
   const { user, isAuthenticated } = useAuth()
@@ -14,8 +15,18 @@ const CocktailsPage = () => {
   const [error, setError] = useState('')
   const [editingCocktail, setEditingCocktail] = useState(null)
   const [failedImages, setFailedImages] = useState(new Set())
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [pendingDeleteCocktailId, setPendingDeleteCocktailId] = useState(null)
 
-  const removeCocktail = async (cocktailId) => {
+  const requestRemoveCocktail = (cocktailId) => {
+    setPendingDeleteCocktailId(cocktailId)
+    setDeleteConfirmOpen(true)
+  }
+
+  const removeCocktail = async () => {
+    const cocktailId = pendingDeleteCocktailId
+    if (!cocktailId) return
+
     try {
       await api.delete(`/cocktail-recipes/${cocktailId}`)
       const updatedCocktails = cocktails.filter(c => c.id !== cocktailId)
@@ -60,6 +71,9 @@ const CocktailsPage = () => {
     } catch (e) {
       setError('Failed to delete cocktail')
       console.error('Failed to delete cocktail', e)
+    } finally {
+      setDeleteConfirmOpen(false)
+      setPendingDeleteCocktailId(null)
     }
   }
 
@@ -292,7 +306,7 @@ const CocktailsPage = () => {
                       Edit
                     </button>
                     <button
-                      onClick={() => removeCocktail(c.id)}
+                      onClick={() => requestRemoveCocktail(c.id)}
                       className="button-remove"
                     >
                       Remove
@@ -314,6 +328,20 @@ const CocktailsPage = () => {
       </div>
         </>
       )}
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="Delete cocktail?"
+        message={`Are you sure you want to delete "${cocktails.find(c => c.id === pendingDeleteCocktailId)?.name || ''}"? This cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onCancel={() => {
+          setDeleteConfirmOpen(false)
+          setPendingDeleteCocktailId(null)
+        }}
+        onConfirm={removeCocktail}
+      />
     </div>
   )
 }

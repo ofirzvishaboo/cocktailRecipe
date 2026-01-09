@@ -478,6 +478,84 @@
   color: var(--text);
 }
 
+/* Destructive primary action (modal confirm) */
+.button-danger {
+  padding: 0.75rem 1.5rem;
+  background: var(--danger);
+  color: white;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.button-danger:hover:not(:disabled) {
+  background: var(--danger-hover);
+  border-color: var(--danger-hover);
+}
+
+.button-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 2000;
+}
+
+.modal {
+  width: 100%;
+  max-width: 520px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+}
+
+.modal-header {
+  padding: 1rem 1.25rem 0.75rem 1.25rem;
+}
+
+.modal-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.modal-body {
+  padding: 0 1.25rem 1rem 1.25rem;
+}
+
+.modal-text {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.modal-actions {
+  padding: 0.9rem 1.25rem 1.25rem 1.25rem;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+@media (max-width: 480px) {
+  .modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 /* Ingredients List */
 .ingredients-list {
   text-align: left;

@@ -1,12 +1,14 @@
 # 🍹 Cocktail Recipe Manager
 
-A full-stack web application for managing cocktail recipes and ingredients. Built with FastAPI (Python) backend and React (Vite) frontend, containerized with Docker.
+A full-stack web application for cocktail recipes, ingredients, and cost management. Built with a FastAPI (Python) backend and a React (Vite) frontend, containerized with Docker.
 
 ## ✨ Features
 
 - **Cocktail Management**: Create, read, update, and delete cocktail recipes
 - **Ingredient Management**: Manage ingredients used in cocktails
 - **Recipe Composition**: Associate ingredients with cocktails and specify quantities (ml)
+- **Bottle-based Costing**: Define purchasable bottle SKUs per ingredient (brand + size + price) and compute recipe costs
+- **Cocktail Scaler + Costs**: Scale recipes to a target volume and see a per-ingredient + total cost breakdown
 - **Modern UI**: Clean, responsive interface with tabbed navigation
 - **RESTful API**: Well-structured API with automatic documentation
 - **Database**: PostgreSQL database with proper relationships
@@ -83,6 +85,7 @@ cocktailRecipe/
 │   │   ├── database.py    # Database connection and session
 │   │   ├── cocktail_recipe.py
 │   │   ├── ingredient.py
+│   │   ├── ingredient_brand.py
 │   │   └── cocktail_ingredient.py
 │   ├── routers/            # API route handlers
 │   │   ├── cocktails.py
@@ -99,9 +102,8 @@ cocktailRecipe/
 ├── frontend/              # React frontend
 │   ├── src/
 │   │   ├── components/    # React components
-│   │   │   ├── addCocktailForm.jsx
-│   │   │   └── Ingredients.jsx
-│   │   ├── api.js        # API client configuration
+│   │   ├── pages/         # Route pages (Cocktails, Ingredients, Scaler, etc.)
+│   │   ├── api.js         # API client configuration (LAN-friendly baseURL)
 │   │   ├── App.jsx       # Main application component
 │   │   └── main.jsx      # Application entry point
 │   ├── Dockerfile        # Frontend container definition
@@ -151,8 +153,9 @@ cocktailRecipe/
    npm install
    ```
 
-3. **Set up API URL**
-   The frontend uses `VITE_API_URL` environment variable. Create a `.env` file:
+3. **Set up API URL (optional)**
+   The frontend will auto-detect the backend host as `http://<current-hostname>:8000` for LAN access.
+   If you want to override it, create a `.env` file:
    ```env
    VITE_API_URL=http://localhost:8000
    ```
@@ -170,6 +173,7 @@ cocktailRecipe/
 - `POST /cocktail-recipes/` - Create a new cocktail recipe
 - `PUT /cocktail-recipes/{cocktail_id}` - Update a cocktail recipe
 - `DELETE /cocktail-recipes/{cocktail_id}` - Delete a cocktail recipe
+- `GET /cocktail-recipes/{cocktail_id}/cost` - Compute per-ingredient + total cost (based on selected bottle brands)
 
 ### Ingredients
 - `GET /ingredients/` - Get all ingredients
@@ -177,6 +181,10 @@ cocktailRecipe/
 - `POST /ingredients/` - Create a new ingredient
 - `PUT /ingredients/{ingredient_id}` - Update an ingredient
 - `DELETE /ingredients/{ingredient_id}` - Delete an ingredient
+- `GET /ingredients/{ingredient_id}/brands` - List bottle SKUs for an ingredient
+- `POST /ingredients/{ingredient_id}/brands` - Create bottle SKU for an ingredient
+- `PUT /ingredients/brands/{brand_id}` - Update bottle SKU (superuser)
+- `DELETE /ingredients/brands/{brand_id}` - Delete bottle SKU (superuser)
 
 ### Cocktail Ingredients
 - `GET /cocktail-ingredients/` - Get all cocktail-ingredient associations
@@ -186,11 +194,12 @@ For detailed API documentation, visit http://localhost:8000/docs when the backen
 
 ## 🗄️ Database Schema
 
-The application uses three main tables:
+The application uses these main tables:
 
 - **cocktail_recipes**: Stores cocktail recipe information
 - **ingredients**: Stores ingredient information
 - **cocktail_ingredients**: Junction table linking cocktails to ingredients with quantities (ml)
+- **ingredient_brands**: Bottle SKUs per ingredient (brand name + bottle size ml + bottle price)
 
 ## 🔐 Environment Variables
 
@@ -203,7 +212,7 @@ The application uses three main tables:
 - `DATABASE_ECHO` - Enable SQL query logging (default: `False`)
 
 ### Frontend
-- `VITE_API_URL` - Backend API URL (default: `http://localhost:8000`)
+- `VITE_API_URL` - Backend API URL (optional). If not set (or set to localhost), the frontend defaults to `http://<current-hostname>:8000` for LAN access.
 
 ## 🐳 Docker Services
 
@@ -245,7 +254,8 @@ This project is open source and available under the MIT License.
 - If ports 5432, 8000, or 5173 are in use, modify them in `docker-compose.yml`
 
 ### Frontend can't connect to backend
-- Verify `VITE_API_URL` is set correctly
+- If accessing from another device (LAN), do NOT use `localhost` for `VITE_API_URL` in the browser.
+  The app defaults to `http://<current-hostname>:8000` to work on LAN.
 - Check that the backend service is running: `docker-compose logs api`
 
 ### Volume mounting issues

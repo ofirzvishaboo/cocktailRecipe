@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../api'
 import { useAuth } from '../contexts/AuthContext'
+import ConfirmDialog from '../components/common/ConfirmDialog'
 
 function IngredientsPage() {
   const { isAdmin, isAuthenticated } = useAuth()
@@ -9,6 +10,8 @@ function IngredientsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [pendingDeleteIngredientId, setPendingDeleteIngredientId] = useState(null)
   const [editingIngredient, setEditingIngredient] = useState(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [expandedIngredientIds, setExpandedIngredientIds] = useState(() => new Set())
@@ -121,7 +124,15 @@ function IngredientsPage() {
     }
   }
 
-  const removeIngredient = async (ingredientId) => {
+  const requestRemoveIngredient = (ingredientId) => {
+    setPendingDeleteIngredientId(ingredientId)
+    setDeleteConfirmOpen(true)
+  }
+
+  const removeIngredient = async () => {
+    const ingredientId = pendingDeleteIngredientId
+    if (!ingredientId) return
+
     try {
       await api.delete(`/ingredients/${ingredientId}`)
       const updatedIngredients = ingredients.filter(ing => ing.id !== ingredientId)
@@ -138,6 +149,9 @@ function IngredientsPage() {
     } catch (e) {
       setError('Failed to delete ingredient')
       console.error('Failed to delete ingredient', e)
+    } finally {
+      setDeleteConfirmOpen(false)
+      setPendingDeleteIngredientId(null)
     }
   }
 
@@ -414,18 +428,18 @@ function IngredientsPage() {
                       {isAdmin && (
                         <>
                           <button
-                            onClick={() => editIngredient(ing)}
-                            className="button-edit"
+                          onClick={() => editIngredient(ing)}
+                          className="button-edit"
                             type="button"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => removeIngredient(ing.id)}
-                            className="button-remove"
+                        >
+                          Edit
+                        </button>
+                        <button
+                            onClick={() => requestRemoveIngredient(ing.id)}
+                          className="button-remove"
                             type="button"
-                          >
-                            Remove
+                        >
+                          Remove
                           </button>
                         </>
                       )}
@@ -570,9 +584,9 @@ function IngredientsPage() {
                               Add
                             </button>
                           </div>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
+                  </div>
                   )}
                 </li>
               ))
@@ -580,6 +594,20 @@ function IngredientsPage() {
           </ul>
         )}
       </div>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="Delete ingredient?"
+        message={`Are you sure you want to delete "${ingredients.find(i => i.id === pendingDeleteIngredientId)?.name || ''}"? This cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onCancel={() => {
+          setDeleteConfirmOpen(false)
+          setPendingDeleteIngredientId(null)
+        }}
+        onConfirm={removeIngredient}
+      />
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import api from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import AddCocktailForm from '../components/cocktail/AddCocktailForm'
+import ConfirmDialog from '../components/common/ConfirmDialog'
 
 const CocktailDetailPage = () => {
   const { id } = useParams()
@@ -13,6 +14,7 @@ const CocktailDetailPage = () => {
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
   useEffect(() => {
     const loadCocktail = async () => {
@@ -36,16 +38,14 @@ const CocktailDetailPage = () => {
   }, [id])
 
   const handleDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete "${cocktail.name}"?`)) {
-      return
-    }
-
     try {
       await api.delete(`/cocktail-recipes/${id}`)
       navigate('/')
     } catch (e) {
       setError('Failed to delete cocktail')
       console.error('Failed to delete cocktail', e)
+    } finally {
+      setDeleteConfirmOpen(false)
     }
   }
 
@@ -133,7 +133,7 @@ const CocktailDetailPage = () => {
                   Edit
                 </button>
                 <button
-                  onClick={handleDelete}
+                  onClick={() => setDeleteConfirmOpen(true)}
                   className="button-remove"
                 >
                   Delete
@@ -180,6 +180,17 @@ const CocktailDetailPage = () => {
       </div>
 
       {error && <div className="error-message">{error}</div>}
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="Delete cocktail?"
+        message={`Are you sure you want to delete "${cocktail.name}"? This cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onCancel={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

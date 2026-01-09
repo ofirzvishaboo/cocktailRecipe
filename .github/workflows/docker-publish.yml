@@ -1,11 +1,12 @@
-name: Build and Publish Backend Docker Image
+name: Build and Publish Docker Images (Backend + Frontend)
 
 on:
   workflow_dispatch:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/cocktail-recipe-api
+  IMAGE_NAME_BACKEND: ${{ secrets.DOCKERHUB_USERNAME }}/cocktail-recipe-api
+  IMAGE_NAME_FRONTEND: ${{ secrets.DOCKERHUB_USERNAME }}/cocktail-recipe-frontend
 
 jobs:
   build-and-push:
@@ -28,10 +29,10 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract metadata (tags, labels) for Docker
-        id: meta
+        id: meta_backend
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_NAME }}
+          images: ${{ env.IMAGE_NAME_BACKEND }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
@@ -39,15 +40,39 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push Docker image
+      - name: Build and push Backend Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           file: ./backend/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta_backend.outputs.tags }}
+          labels: ${{ steps.meta_backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract metadata (tags, labels) for Frontend Docker
+        id: meta_frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME_FRONTEND }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta_frontend.outputs.tags }}
+          labels: ${{ steps.meta_frontend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

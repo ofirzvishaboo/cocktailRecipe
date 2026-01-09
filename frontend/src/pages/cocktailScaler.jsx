@@ -315,132 +315,132 @@ export default function CocktailScaler() {
 
             <div className="scaler-grid">
                 <div className="scaler-left">
-                    <div className="cocktail-selector-section">
-                        <h3>Select from Existing Cocktails</h3>
-                        {loading && <div className="loading">Loading cocktails...</div>}
-                        {error && <div className="error-message">{error}</div>}
-                        {!loading && !error && (
-                            <>
-                                <div className="search-container-selector">
-                                    <input
-                                        type="text"
-                                        placeholder="Search by name or ingredients (e.g., vodka, lime)..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="search-input-selector"
-                                    />
-                                </div>
-                                <div className="cocktails-list-selector">
-                                    {filteredCocktails.length === 0 ? (
-                                        <p>
-                                            {searchQuery.trim()
-                                                ? `No cocktails found matching "${searchQuery}"`
-                                                : cocktails.length === 0
-                                                    ? 'No cocktails available. Create some cocktails first!'
-                                                    : 'No cocktails match your search.'}
-                                        </p>
-                                    ) : (
-                                        <ul className="cocktail-selector-list">
-                                            {filteredCocktails.map((cocktail) => (
-                                                <li key={cocktail.id} className="cocktail-selector-item">
-                                                    <div className="cocktail-selector-info">
-                                                        <span className="cocktail-selector-name">{cocktail.name}</span>
-                                                        {cocktail.ingredients && cocktail.ingredients.length > 0 && (
-                                                            <span className="cocktail-selector-ingredients">
-                                                                {cocktail.ingredients.length} ingredient{cocktail.ingredients.length !== 1 ? 's' : ''}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleAddCocktail(cocktail)}
-                                                        className="add-cocktail-btn"
-                                                    >
-                                                        Select
-                                                    </button>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                    </div>
-
-                    <div className="recipe-input">
-                        <div className="input-group">
-                            <label htmlFor="recipeName">Cocktail Name:</label>
+            <div className="cocktail-selector-section">
+                <h3>Select from Existing Cocktails</h3>
+                {loading && <div className="loading">Loading cocktails...</div>}
+                {error && <div className="error-message">{error}</div>}
+                {!loading && !error && (
+                    <>
+                        <div className="search-container-selector">
                             <input
                                 type="text"
-                                id="recipeName"
-                                value={recipeName}
-                                onChange={(e) => setRecipeName(e.target.value)}
-                                placeholder="Enter cocktail name"
+                                placeholder="Search by name or ingredients (e.g., vodka, lime)..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="search-input-selector"
                             />
                         </div>
-
-                        <div className="input-group">
-                            <label htmlFor="desiredLiters">Desired Liters to Produce:</label>
-                            <input
-                                type="number"
-                                id="desiredLiters"
-                                value={desiredLiters}
-                                onChange={(e) => setDesiredLiters(e.target.value)}
-                                placeholder="Enter liters"
-                                min="0"
-                                step="0.1"
-                            />
-                        </div>
+                    <div className="cocktails-list-selector">
+                            {filteredCocktails.length === 0 ? (
+                                <p>
+                                    {searchQuery.trim()
+                                        ? `No cocktails found matching "${searchQuery}"`
+                                        : cocktails.length === 0
+                                            ? 'No cocktails available. Create some cocktails first!'
+                                            : 'No cocktails match your search.'}
+                                </p>
+                        ) : (
+                            <ul className="cocktail-selector-list">
+                                    {filteredCocktails.map((cocktail) => (
+                                    <li key={cocktail.id} className="cocktail-selector-item">
+                                        <div className="cocktail-selector-info">
+                                            <span className="cocktail-selector-name">{cocktail.name}</span>
+                                            {cocktail.ingredients && cocktail.ingredients.length > 0 && (
+                                                <span className="cocktail-selector-ingredients">
+                                                    {cocktail.ingredients.length} ingredient{cocktail.ingredients.length !== 1 ? 's' : ''}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleAddCocktail(cocktail)}
+                                            className="add-cocktail-btn"
+                                        >
+                                                        Select
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
+                    </>
+                )}
+            </div>
 
-                    <IngredientInputs
-                        ingredients={ingredients}
-                        onIngredientChange={handleIngredientChange}
-                        onAddIngredient={addIngredient}
-                        onRemoveIngredient={removeIngredient}
-                        minIngredients={1}
-                        amountStep="0.1"
+            <div className="recipe-input">
+                <div className="input-group">
+                    <label htmlFor="recipeName">Cocktail Name:</label>
+                    <input
+                        type="text"
+                        id="recipeName"
+                        value={recipeName}
+                        onChange={(e) => setRecipeName(e.target.value)}
+                        placeholder="Enter cocktail name"
+                    />
+                </div>
+
+                <div className="input-group">
+                    <label htmlFor="desiredLiters">Desired Liters to Produce:</label>
+                    <input
+                        type="number"
+                        id="desiredLiters"
+                        value={desiredLiters}
+                        onChange={(e) => setDesiredLiters(e.target.value)}
+                        placeholder="Enter liters"
+                        min="0"
+                        step="0.1"
+                    />
+                </div>
+            </div>
+
+                <IngredientInputs
+                    ingredients={ingredients}
+                    onIngredientChange={handleIngredientChange}
+                    onAddIngredient={addIngredient}
+                    onRemoveIngredient={removeIngredient}
+                    minIngredients={1}
+                    amountStep="0.1"
                         nameSuggestions={ingredientNameSuggestions}
                         showBrandSelect={true}
                         brandOptionsByIndex={brandOptionsByIndex}
                         brandPlaceholder={savingBrands ? 'Saving...' : 'Brand bottle (optional)'}
                         brandDisabledByIndex={ingredients.map(() => selectedCocktailId ? !canEditSelectedCocktail() : false)}
-                    />
+                />
                 </div>
 
                 <div className="scaler-right">
-                    {totalVolume > 0 && desiredLiters && (
-                        <div className="results-section">
-                            <h3>Recipe Scaling Results</h3>
-                            <div className="recipe-info">
-                                <p><strong>Original Total Volume:</strong> {totalVolume} ml</p>
-                                <p><strong>Desired Volume:</strong> {parseFloat(desiredLiters) * 1000} ml</p>
-                                <p><strong>Scaling Factor:</strong> {scalingFactor.toFixed(3)}x</p>
+                {totalVolume > 0 && desiredLiters && (
+                    <div className="results-section">
+                        <h3>Recipe Scaling Results</h3>
+                        <div className="recipe-info">
+                            <p><strong>Original Total Volume:</strong> {totalVolume} ml</p>
+                            <p><strong>Desired Volume:</strong> {parseFloat(desiredLiters) * 1000} ml</p>
+                            <p><strong>Scaling Factor:</strong> {scalingFactor.toFixed(3)}x</p>
+                        </div>
+
+                        <div className="quantities-display">
+                            <div className="quantities-column">
+                                <h4>Original Recipe</h4>
+                                {ingredients.map((ingredient, index) => (
+                                    <div key={index} className="quantity-item">
+                                        <span className="ingredient-name">{ingredient.name || `Ingredient ${index + 1}`}</span>
+                                        <span className="ingredient-amount">{ingredient.amount || 0} ml</span>
+                                    </div>
+                                ))}
                             </div>
 
-                            <div className="quantities-display">
-                                <div className="quantities-column">
-                                    <h4>Original Recipe</h4>
-                                    {ingredients.map((ingredient, index) => (
-                                        <div key={index} className="quantity-item">
-                                            <span className="ingredient-name">{ingredient.name || `Ingredient ${index + 1}`}</span>
-                                            <span className="ingredient-amount">{ingredient.amount || 0} ml</span>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="quantities-column">
-                                    <h4>Scaled for {desiredLiters}L</h4>
-                                    {ingredients.map((ingredient, index) => (
-                                        <div key={index} className="quantity-item">
-                                            <span className="ingredient-name">{ingredient.name || `Ingredient ${index + 1}`}</span>
-                                            <span className="ingredient-amount">{getScaledAmount(ingredient.amount)} ml</span>
-                                        </div>
-                                    ))}
-                                </div>
+                            <div className="quantities-column">
+                                <h4>Scaled for {desiredLiters}L</h4>
+                                {ingredients.map((ingredient, index) => (
+                                    <div key={index} className="quantity-item">
+                                        <span className="ingredient-name">{ingredient.name || `Ingredient ${index + 1}`}</span>
+                                        <span className="ingredient-amount">{getScaledAmount(ingredient.amount)} ml</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    )}
+                    </div>
+                )}
 
                     {selectedCocktailId && (
                         <div className="results-section cost-section">
