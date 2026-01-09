@@ -10,6 +10,11 @@ function IngredientInputs({
   amountPlaceholder = 'Amount (ml)',
   minIngredients = 1,
   amountStep = '0.1',
+  nameSuggestions = [],
+  showBrandSelect = false,
+  brandOptionsByIndex = [],
+  brandPlaceholder = 'Brand bottle (optional)',
+  brandDisabledByIndex = [],
 }) {
   const ingredientNameRefs = useRef([])
   const prevLengthRef = useRef(ingredients.length)
@@ -37,10 +42,18 @@ function IngredientInputs({
             placeholder={namePlaceholder}
             value={ingredient.name}
             onChange={(e) => onIngredientChange(index, 'name', e.target.value)}
+            list={nameSuggestions.length ? 'ingredient-suggestions' : undefined}
             ref={(el) => {
               ingredientNameRefs.current[index] = el
             }}
           />
+          {nameSuggestions.length > 0 && index === 0 && (
+            <datalist id="ingredient-suggestions">
+              {nameSuggestions.map((n) => (
+                <option key={n} value={n} />
+              ))}
+            </datalist>
+          )}
           <input
             type="number"
             placeholder={amountPlaceholder}
@@ -49,6 +62,21 @@ function IngredientInputs({
             min="0"
             step={amountStep}
           />
+          {showBrandSelect && (
+            <select
+              value={ingredient.ingredient_brand_id || ''}
+              onChange={(e) => onIngredientChange(index, 'ingredient_brand_id', e.target.value)}
+              className="brand-select"
+              disabled={brandDisabledByIndex[index] === true}
+            >
+              <option value="">{brandPlaceholder}</option>
+              {(brandOptionsByIndex[index] || []).map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.brand_name} ({b.bottle_size_ml}ml / {b.bottle_price})
+                </option>
+              ))}
+            </select>
+          )}
           <button
             type="button"
             onClick={() => onRemoveIngredient(index)}

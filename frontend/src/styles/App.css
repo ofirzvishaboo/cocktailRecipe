@@ -1,20 +1,20 @@
 #root {
   width: 100%;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(180deg, var(--surface-muted) 0%, var(--bg) 60%, var(--bg) 100%);
   margin: 0;
   padding: 0;
 }
 
 /* Professional Navbar */
 .navbar {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(10px);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   position: sticky;
   top: 0;
   z-index: 100;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--border);
 }
 
 .navbar-container {
@@ -37,11 +37,7 @@
   margin: 0;
   font-size: 1.5rem;
   font-weight: 700;
-  color: #333;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text);
 }
 
 .navbar-links {
@@ -59,7 +55,7 @@
   width: 44px;
   height: 44px;
   border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   transition: background 0.3s ease, border-color 0.3s ease;
@@ -69,7 +65,7 @@
   display: block;
   width: 100%;
   height: 3px;
-  background: #333;
+  background: var(--text);
   border-radius: 3px;
   transition: transform 0.3s ease;
 }
@@ -78,7 +74,7 @@
   padding: 0.75rem 1.5rem;
   border: none;
   background: transparent;
-  color: #666;
+  color: var(--text-muted);
   cursor: pointer;
   font-size: 1rem;
   font-weight: 500;
@@ -88,14 +84,14 @@
 }
 
 .nav-link:hover {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .nav-link.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--primary);
   color: white;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(47, 127, 247, 0.25);
 }
 
 .nav-link {
@@ -104,7 +100,7 @@
 
 .navbar-user {
   padding: 0.75rem 1.5rem;
-  color: #666;
+  color: var(--text-muted);
   font-size: 0.9rem;
   font-weight: 500;
   display: flex;
@@ -112,12 +108,12 @@
 }
 
 .logout-button {
-  background: #dc3545 !important;
+  background: var(--danger) !important;
   color: white !important;
 }
 
 .logout-button:hover {
-  background: #bb2d3b !important;
+  background: var(--danger-hover) !important;
 }
 
 /* Main Content */
@@ -129,10 +125,10 @@
 }
 
 .card {
-  background: white;
+  background: var(--surface);
   border-radius: 16px;
   padding: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
   margin-bottom: 2rem;
 }
 
@@ -143,10 +139,10 @@
 }
 
 .cocktails-list h3 {
-  color: #333;
+  color: var(--text);
   margin-bottom: 1.5rem;
   font-size: 1.5rem;
-  border-bottom: 2px solid #f0f0f0;
+  border-bottom: 2px solid var(--border);
   padding-bottom: 0.5rem;
 }
 
@@ -157,11 +153,11 @@
 }
 
 .cocktails-list > ul > li {
-  background: #f8f9fa;
+  background: var(--surface-muted);
   border-radius: 12px;
   padding: 1.5rem;
   margin-bottom: 1rem;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border);
   transition: all 0.3s ease;
 }
 
@@ -195,7 +191,7 @@
   height: 80px;
   object-fit: cover;
   border-radius: 8px;
-  border: 2px solid #e9ecef;
+  border: 2px solid var(--border);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   display: block;
 }
@@ -207,8 +203,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  border: 2px solid #e9ecef;
-  background: #f8f9fa;
+  border: 2px solid var(--border);
+  background: var(--surface-muted);
   color: #6c757d;
   font-size: 0.75rem;
   text-align: center;
@@ -218,7 +214,7 @@
 
 .cocktail-item strong {
   font-size: 1.25rem;
-  color: #333;
+  color: var(--text);
 }
 
 .created-at {
@@ -230,7 +226,7 @@
 
 .created-by {
   font-size: 0.85rem;
-  color: #667eea;
+  color: var(--primary);
   font-weight: 500;
   margin-top: 0.25rem;
 }
@@ -247,7 +243,7 @@
 }
 
 .error-message {
-  color: #dc3545;
+  color: var(--danger);
   background: #f8d7da;
   padding: 1rem;
   border-radius: 8px;
@@ -258,23 +254,23 @@
 .button-edit,
 .button-remove {
   padding: 0.5rem 1rem;
-  border: none;
+  border: 1px solid transparent;
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.9rem;
-  font-weight: 500;
-  transition: all 0.3s ease;
+  font-weight: 600;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .button-edit {
-  background: #0d6efd;
-  color: white;
-  margin-right: 0.5rem;
+  background: transparent;
+  color: var(--primary);
+  border-color: rgba(47, 127, 247, 0.45);
 }
 
 .button-edit:hover:not(:disabled) {
-  background: #0b5ed7;
-  box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+  background: var(--primary-soft);
+  border-color: var(--primary);
 }
 
 .button-edit:disabled {
@@ -283,13 +279,14 @@
 }
 
 .button-remove {
-  background: #dc3545;
-  color: white;
+  background: transparent;
+  color: var(--danger);
+  border-color: rgba(220, 53, 69, 0.45);
 }
 
 .button-remove:hover {
-  background: #bb2d3b;
-  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+  background: rgba(220, 53, 69, 0.10);
+  border-color: var(--danger);
 }
 
 /* Loading State */
@@ -312,6 +309,88 @@
 /* Form Styles */
 .ingredient-form {
   margin-bottom: 2rem;
+}
+
+.ingredients-section {
+  background: #f8f9fa;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.ingredients-section h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.ingredient-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.ingredient-row input,
+.ingredient-row .brand-select {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: var(--surface);
+}
+
+.ingredient-row input:focus,
+.ingredient-row .brand-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.ingredient-row .brand-select:disabled {
+  background: #f1f3f5;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.remove-btn {
+  background: var(--danger);
+  color: white;
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.remove-btn:hover:not(:disabled) {
+  background: var(--danger-hover);
+}
+
+.remove-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.add-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  margin-top: 0.5rem;
+}
+
+.add-btn:hover {
+  background: var(--primary-hover);
 }
 
 .form-group label {
@@ -339,13 +418,13 @@
 
 .form-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
 }
 
 .button-primary {
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--primary);
   color: white;
   border: none;
   border-radius: 8px;
@@ -353,12 +432,13 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px rgba(47, 127, 247, 0.25);
 }
 
 .button-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(47, 127, 247, 0.25);
+  background: var(--primary-hover);
 }
 
 .button-primary:disabled {
@@ -369,19 +449,33 @@
 
 .button-secondary {
   padding: 0.75rem 1.5rem;
-  background: #6c757d;
-  color: white;
-  border: none;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .button-secondary:hover {
-  background: #5a6268;
-  transform: translateY(-2px);
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+/* Ingredients page: brands button should be subtle (outline) */
+.button-brands {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.button-brands:hover {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: var(--border);
+  color: var(--text);
 }
 
 /* Ingredients List */
@@ -421,6 +515,83 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.ingredient-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* Make action buttons in ingredient rows compact (especially on mobile) */
+.ingredient-actions .button-secondary,
+.ingredient-actions .button-edit,
+.ingredient-actions .button-remove {
+  padding: 0.45rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.brands-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.brands-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.brands-header h4 {
+  margin: 0;
+  color: #333;
+}
+
+.brands-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.brand-row {
+  display: grid;
+  grid-template-columns: 1.5fr 0.7fr 0.7fr auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.brand-display {
+  grid-column: 1 / span 3;
+  display: grid;
+  grid-template-columns: 1.5fr 0.7fr 0.7fr;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.brand-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.brand-create {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.brand-create h4 {
+  margin: 0 0 0.75rem 0;
+  color: #333;
 }
 
 .ingredient-item-content strong {
@@ -611,6 +782,19 @@
     gap: 1rem;
   }
 
+  .brand-row {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-display {
+    grid-column: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .brand-actions {
+    justify-content: flex-start;
+  }
+
   .cocktail-info {
     flex-direction: column;
     align-items: center;
@@ -657,6 +841,29 @@
     box-sizing: border-box;
   }
 
+  /* Mobile: reduce button size/height */
+  .button-primary,
+  .button-secondary,
+  .button-edit,
+  .button-remove {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.9rem;
+    border-radius: 10px;
+  }
+
+  /* Action rows should not force each button to full width */
+  .ingredient-actions .button-primary,
+  .ingredient-actions .button-secondary,
+  .ingredient-actions .button-edit,
+  .ingredient-actions .button-remove {
+    width: auto;
+  }
+
+  .ingredient-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .search-container,
   .search-container-full {
     max-width: 100%;
@@ -685,8 +892,10 @@
   }
 
   .ingredient-item-content {
-    flex-direction: row;
-    align-items: center;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    align-items: start;
     text-align: left;
     width: 100%;
   }
@@ -696,10 +905,22 @@
     text-align: left;
   }
 
-  .ingredient-item-content > div {
-    display: flex;
-    justify-content: flex-end;
+  /* Make all ingredient action buttons match a consistent layout on mobile */
+  .ingredient-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 0.5rem;
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .ingredient-actions button {
+    width: 100%;
+  }
+
+  /* Remove button always on its own row, full width */
+  .ingredient-actions .button-remove {
+    grid-column: 1 / -1;
   }
 }
 
@@ -736,11 +957,11 @@
   align-items: center;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid #e9ecef;
+  border-bottom: 2px solid var(--border);
 }
 
 .back-link {
-  color: #667eea;
+  color: var(--primary);
   text-decoration: none;
   font-weight: 500;
   font-size: 1rem;
@@ -748,7 +969,7 @@
 }
 
 .back-link:hover {
-  color: #764ba2;
+  color: var(--primary-hover);
   text-decoration: underline;
 }
 
@@ -787,8 +1008,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  border: 3px dashed #e9ecef;
-  background: #f8f9fa;
+  border: 3px dashed var(--border);
+  background: var(--surface-muted);
   color: #6c757d;
   font-size: 1rem;
   font-weight: 500;
@@ -803,11 +1024,7 @@
 .cocktail-detail-title {
   font-size: 2.5rem;
   margin: 0;
-  color: #333;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text);
 }
 
 .cocktail-title-row {
@@ -829,13 +1046,13 @@
   flex-direction: column;
   gap: 0.75rem;
   padding: 1rem;
-  background: #f8f9fa;
+  background: var(--surface-muted);
   border-radius: 8px;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid var(--primary);
 }
 
 .meta-item {
-  color: #555;
+  color: var(--text-muted);
   font-size: 0.95rem;
 }
 
@@ -881,12 +1098,12 @@
 
 .ingredient-name {
   font-weight: 500;
-  color: #333;
+  color: var(--text);
   font-size: 1.1rem;
 }
 
 .ingredient-amount {
-  color: #667eea;
+  color: var(--primary);
   font-weight: 600;
   font-size: 1rem;
 }
@@ -898,7 +1115,7 @@
 }
 
 .cocktail-name-link:hover {
-  color: #667eea;
+  color: var(--primary);
 }
 
 .cocktail-name-link strong {
@@ -907,7 +1124,7 @@
 }
 
 .cocktail-name-link:hover strong {
-  color: #667eea;
+  color: var(--primary);
 }
 
 @media (max-width: 768px) {
@@ -957,14 +1174,14 @@
 .cocktail-description {
   margin: 1.5rem 0;
   padding: 1rem;
-  background: #f8f9fa;
+  background: var(--surface-muted);
   border-radius: 8px;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid var(--primary);
 }
 
 .cocktail-description p {
   margin: 0;
-  color: #555;
+  color: var(--text-muted);
   font-size: 1rem;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -995,7 +1212,7 @@
 .search-input {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border);
   border-radius: 8px;
   font-size: 16px;
   transition: border-color 0.3s, box-shadow 0.3s;
@@ -1004,8 +1221,8 @@
 
 .search-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
 }
 
 .search-input::placeholder {

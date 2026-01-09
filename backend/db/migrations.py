@@ -176,3 +176,96 @@ async def add_user_id_column_if_missing(engine: AsyncEngine):
         else:
             print("description column already exists in cocktail_recipes table")
 
+
+async def add_ingredient_brands_table_if_missing(engine: AsyncEngine):
+    """Create ingredient_brands table if it doesn't exist"""
+    async with engine.begin() as conn:
+        result = await conn.execute(
+            text("""
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                AND table_name = 'ingredient_brands'
+            """)
+        )
+        table_exists = result.scalar() is not None
+
+        if table_exists:
+            print("ingredient_brands table already exists")
+            return
+
+        print("Creating ingredient_brands table...")
+        await conn.execute(
+            text("""
+                CREATE TABLE ingredient_brands (
+                    id UUID PRIMARY KEY,
+                    ingredient_id UUID NOT NULL,
+                    brand_name VARCHAR NOT NULL,
+                    bottle_size_ml INTEGER NOT NULL,
+                    bottle_price NUMERIC NOT NULL,
+                    CONSTRAINT fk_ingredient_brands_ingredient_id
+                        FOREIGN KEY (ingredient_id)
+                        REFERENCES ingredients(id)
+                        ON DELETE CASCADE
+                )
+            """)
+        )
+        await conn.execute(
+            text("""
+                CREATE INDEX IF NOT EXISTS ix_ingredient_brands_ingredient_id
+                ON ingredient_brands(ingredient_id)
+            """)
+        )
+        print("Successfully created ingredient_brands table")
+
+
+async def add_ingredient_brand_id_to_cocktail_ingredients_if_missing(engine: AsyncEngine):
+    """Add ingredient_brand_id column to cocktail_ingredients table if it doesn't exist"""
+    async with engine.begin() as conn:
+        result = await conn.execute(
+            text("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'cocktail_ingredients'
+                AND column_name = 'ingredient_brand_id'
+            """)
+        )
+        column_exists = result.scalar() is not None
+
+        if not column_exists:
+            print("Adding ingredient_brand_id column to cocktail_ingredients table...")
+            await conn.execute(
+                text("""
+                    ALTER TABLE cocktail_ingredients
+                    ADD COLUMN ingredient_brand_id UUID
+                """)
+            )
+        else:
+            print("ingredient_brand_id column already exists in cocktail_ingredients table")
+
+        # Ensure FK exists
+        fk_result = await conn.execute(
+            text("""
+                SELECT constraint_name
+                FROM information_schema.table_constraints
+                WHERE table_name = 'cocktail_ingredients'
+                AND constraint_name = 'fk_cocktail_ingredients_ingredient_brand_id'
+            """)
+        )
+        fk_exists = fk_result.scalar() is not None
+
+        if not fk_exists:
+            print("Adding foreign key constraint for ingredient_brand_id...")
+            await conn.execute(
+                text("""
+                    ALTER TABLE cocktail_ingredients
+                    ADD CONSTRAINT fk_cocktail_ingredients_ingredient_brand_id
+                    FOREIGN KEY (ingredient_brand_id)
+                    REFERENCES ingredient_brands(id)
+                    ON DELETE SET NULL
+                """)
+            )
+            print("Successfully added foreign key constraint for ingredient_brand_id")
+        else:
+            print("Foreign key constraint for ingredient_brand_id already exists")
+

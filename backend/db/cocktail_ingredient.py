@@ -12,8 +12,14 @@ class CocktailIngredient(Base):
     cocktail_id = Column(UUID(as_uuid=True), ForeignKey('cocktail_recipes.id', ondelete='CASCADE'), primary_key=True)
     ingredient_id = Column(UUID(as_uuid=True), ForeignKey('ingredients.id', ondelete='CASCADE'), primary_key=True)
     ml = Column(Integer, nullable=False)  # ml amount specific to this recipe
+    ingredient_brand_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("ingredient_brands.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     # Relationships to access the related objects
     cocktail = relationship("CocktailRecipe", back_populates="cocktail_ingredients")
     ingredient = relationship("Ingredient", back_populates="cocktail_ingredients")
+    ingredient_brand = relationship("IngredientBrand")
 

@@ -51,8 +51,8 @@ const CocktailDetailPage = () => {
 
   const handleUpdate = async (updatedCocktail) => {
     try {
-      const response = await api.put(`/cocktail-recipes/${updatedCocktail.id}`, updatedCocktail)
-      setCocktail(response.data)
+      // AddCocktailForm already performs the API request and passes back the updated cocktail
+      setCocktail(updatedCocktail)
       setEditing(false)
     } catch (e) {
       setError('Failed to update cocktail')

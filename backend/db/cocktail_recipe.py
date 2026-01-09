@@ -47,7 +47,11 @@ class CocktailRecipe(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "image_url": self.image_url,
             "ingredients": [
-                {"name": ci.ingredient.name, "ml": ci.ml}
+                {
+                    "name": ci.ingredient.name,
+                    "ml": ci.ml,
+                    "ingredient_brand_id": ci.ingredient_brand_id,
+                }
                 for ci in self.cocktail_ingredients
             ]
         }

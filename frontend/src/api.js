@@ -1,7 +1,25 @@
 import axios from 'axios'
 
+function computeBaseUrl() {
+    // If accessing the frontend via LAN IP (e.g. http://10.x.x.x:5173),
+    // default to hitting the backend on the same host (http://10.x.x.x:8000).
+    const fallback = `http://${window.location.hostname}:8000`
+
+    const envUrl = import.meta.env.VITE_API_URL
+    if (!envUrl) return fallback
+
+    try {
+        const host = new URL(envUrl).hostname
+        // Ignore localhost-style env defaults because they break when accessed from another device
+        if (host === 'localhost' || host === '127.0.0.1') return fallback
+        return envUrl
+    } catch {
+        return fallback
+    }
+}
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+    baseURL: computeBaseUrl(),
     timeout: 10000, // 10 second timeout
 })
 

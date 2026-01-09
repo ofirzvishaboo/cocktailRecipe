@@ -1,25 +1,100 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import api from '../../api'
 import IngredientInputs from './IngredientInputs'
 
 function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = false }) {
+    const [ingredientsCatalog, setIngredientsCatalog] = useState([])
+    const [brandsByIngredientId, setBrandsByIngredientId] = useState({})
+    const [brandOptionsByIndex, setBrandOptionsByIndex] = useState(
+        initialCocktail?.ingredients?.map(() => []) || [[]]
+    )
+
     const [form, setForm] = useState({
         name: initialCocktail?.name || '',
         description: initialCocktail?.description || '',
         ingredients: initialCocktail?.ingredients?.map((ing) => ({
             name: ing.name || '',
-            amount: ing.ml !== undefined ? String(ing.ml) : ''
-        })) || [{ name: '', amount: '' }],
+            amount: ing.ml !== undefined ? String(ing.ml) : '',
+            ingredient_brand_id: ing.ingredient_brand_id || '',
+        })) || [{ name: '', amount: '', ingredient_brand_id: '' }],
         imageUrl: initialCocktail?.image_url || '',
         imagePreview: initialCocktail?.image_url || '',
         submitting: false,
     })
 
+    const ingredientNameSuggestions = useMemo(
+        () => (ingredientsCatalog || []).map((i) => i.name).filter(Boolean),
+        [ingredientsCatalog]
+    )
+
+    useEffect(() => {
+        const loadIngredientsCatalog = async () => {
+            try {
+                const res = await api.get('/ingredients/')
+                setIngredientsCatalog(res.data || [])
+            } catch (e) {
+                console.error('Failed to load ingredients catalog', e)
+            }
+        }
+        loadIngredientsCatalog()
+    }, [])
+
+    const findIngredientIdByName = (name) => {
+        const n = (name || '').trim().toLowerCase()
+        if (!n) return null
+        const match = (ingredientsCatalog || []).find((i) => (i.name || '').trim().toLowerCase() === n)
+        return match?.id || null
+    }
+
+    const loadBrandsForIngredientId = async (ingredientId) => {
+        if (!ingredientId) return []
+        if (brandsByIngredientId[ingredientId]) return brandsByIngredientId[ingredientId]
+        const res = await api.get(`/ingredients/${ingredientId}/brands`)
+        const brands = res.data || []
+        setBrandsByIngredientId((prev) => ({ ...prev, [ingredientId]: brands }))
+        return brands
+    }
+
+    const syncBrandOptionsForRow = async (index, ingredientName) => {
+        const ingredientId = findIngredientIdByName(ingredientName)
+        if (!ingredientId) {
+            setBrandOptionsByIndex((prev) => {
+                const next = [...prev]
+                next[index] = []
+                return next
+            })
+            return
+        }
+        try {
+            const brands = await loadBrandsForIngredientId(ingredientId)
+            setBrandOptionsByIndex((prev) => {
+                const next = [...prev]
+                next[index] = brands
+                return next
+            })
+        } catch (e) {
+            console.error('Failed to load brands for ingredient', ingredientId, e)
+        }
+    }
+
+    useEffect(() => {
+        // When catalog loads or ingredients change, ensure brand options are loaded for rows with known ingredient names
+        const run = async () => {
+            const rows = form.ingredients || []
+            await Promise.all(
+                rows.map((row, idx) => syncBrandOptionsForRow(idx, row.name))
+            )
+        }
+        if (ingredientsCatalog.length > 0) run()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [ingredientsCatalog])
+
     const addIngredient = () => {
         setForm(prev => ({
             ...prev,
-            ingredients: [...prev.ingredients, { name: '', amount: '' }]
+            ingredients: [...prev.ingredients, { name: '', amount: '', ingredient_brand_id: '' }]
         }))
+        setBrandOptionsByIndex((prev) => [...prev, []])
     }
 
     const removeIngredient = (index) => {
@@ -28,15 +103,22 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
             const nextIngredients = prev.ingredients.filter((_, i) => i !== index)
             return { ...prev, ingredients: nextIngredients }
         })
+        setBrandOptionsByIndex((prev) => prev.filter((_, i) => i !== index))
     }
 
     const handleIngredientChange = (index, field, value) => {
         setForm(prev => {
-            const updated = prev.ingredients.map((ingredient, i) =>
-                i === index ? { ...ingredient, [field]: value } : ingredient
-            )
+            const updated = prev.ingredients.map((ingredient, i) => {
+                if (i !== index) return ingredient
+                if (field === 'name') {
+                    return { ...ingredient, name: value, ingredient_brand_id: '' }
+                }
+                return { ...ingredient, [field]: value }
+            })
             return { ...prev, ingredients: updated }
         })
+
+        if (field === 'name') syncBrandOptionsForRow(index, value)
     }
 
     const handleImageChange = async (e) => {
@@ -117,7 +199,8 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
             .filter(ing => ing.name.trim() && ing.amount !== '' && !isNaN(Number(ing.amount)))
             .map(ing => ({
                 name: ing.name.trim(),
-                ml: Number(ing.amount)
+                ml: Number(ing.amount),
+                ingredient_brand_id: ing.ingredient_brand_id ? ing.ingredient_brand_id : null,
             }))
 
         if (!form.name || ingredientsArray.length === 0) return
@@ -147,11 +230,12 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 setForm({
                     name: '',
                     description: '',
-                    ingredients: [{ name: '', amount: '' }],
+                    ingredients: [{ name: '', amount: '', ingredient_brand_id: '' }],
                     imageUrl: '',
                     imagePreview: '',
                     submitting: false
                 })
+                setBrandOptionsByIndex([[]])
             }
         } finally {
             setForm(prev => ({ ...prev, submitting: false }))
@@ -213,6 +297,9 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 minIngredients={1}
                 amountStep="1"
                 addButtonLabel="Add Ingredient"
+                nameSuggestions={ingredientNameSuggestions}
+                showBrandSelect={true}
+                brandOptionsByIndex={brandOptionsByIndex}
             />
             <div className="form-actions">
                 <button

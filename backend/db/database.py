@@ -27,11 +27,12 @@ class Base(DeclarativeBase):
 
 # Import all models to ensure they're registered with Base.metadata
 # This must be done after Base is defined to avoid circular imports
-from . import cocktail_ingredient, ingredient, cocktail_recipe, users
+from . import cocktail_ingredient, ingredient, ingredient_brand, cocktail_recipe, users
 
 # Re-export models for backward compatibility
 from .cocktail_ingredient import CocktailIngredient
 from .ingredient import Ingredient
+from .ingredient_brand import IngredientBrand
 from .cocktail_recipe import CocktailRecipe
 from .users import User
 
@@ -43,9 +44,16 @@ async def create_db_and_tables():
         await conn.run_sync(Base.metadata.create_all)
 
     # Run migrations
-    from .migrations import add_missing_user_columns, add_user_id_column_if_missing
+    from .migrations import (
+        add_missing_user_columns,
+        add_user_id_column_if_missing,
+        add_ingredient_brands_table_if_missing,
+        add_ingredient_brand_id_to_cocktail_ingredients_if_missing,
+    )
     await add_missing_user_columns(engine)
     await add_user_id_column_if_missing(engine)
+    await add_ingredient_brands_table_if_missing(engine)
+    await add_ingredient_brand_id_to_cocktail_ingredients_if_missing(engine)
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:

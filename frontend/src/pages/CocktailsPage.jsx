@@ -73,8 +73,8 @@ const CocktailsPage = () => {
 
   const updateCocktail = async (updatedCocktail) => {
     try {
-      const response = await api.put(`/cocktail-recipes/${updatedCocktail.id}`, updatedCocktail)
-      const updatedCocktailFromApi = response.data
+      // AddCocktailForm already performs the API request and passes back the updated cocktail
+      const updatedCocktailFromApi = updatedCocktail
       const updatedCocktails = cocktails.map(c => c.id === updatedCocktailFromApi.id ? updatedCocktailFromApi : c)
       setCocktails(updatedCocktails)
       setEditingCocktail(null)

@@ -66,7 +66,9 @@ services:
     ports:
       - "5173:5173"
     environment:
-      VITE_API_URL: http://localhost:8000
+      # Let the frontend auto-detect the backend host based on window.location.hostname.
+      # This avoids breaking when accessing from another device via LAN IP.
+      VITE_API_URL: ""
     depends_on:
       - api
     volumes:

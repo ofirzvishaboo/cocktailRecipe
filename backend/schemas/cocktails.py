@@ -8,6 +8,7 @@ from .ingredient import Ingredient, IngredientUpdate
 class CocktailIngredientInput(BaseModel):
     name: str
     ml: int
+    ingredient_brand_id: Optional[UUID] = None
 
 # User info for cocktail responses
 class CocktailUser(BaseModel):
@@ -44,3 +45,22 @@ class CocktailRecipeUpdate(BaseModel):
 
 class CocktailRecipeDelete(BaseModel):
     id: UUID
+
+
+class CocktailIngredientCostLine(BaseModel):
+    ingredient_name: str
+    ml: float
+    scaled_ml: float
+    ingredient_brand_id: Optional[UUID] = None
+    brand_name: Optional[str] = None
+    bottle_size_ml: Optional[int] = None
+    bottle_price: Optional[float] = None
+    cost_per_ml: float
+    ingredient_cost: float
+
+
+class CocktailCostResponse(BaseModel):
+    lines: List[CocktailIngredientCostLine]
+    total_cocktail_cost: float
+    scaled_total_cost: float
+    scale_factor: float

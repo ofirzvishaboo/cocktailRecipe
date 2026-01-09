@@ -3,7 +3,7 @@ import api from '../api'
 import { useAuth } from '../contexts/AuthContext'
 
 function IngredientsPage() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, isAuthenticated } = useAuth()
   const [ingredients, setIngredients] = useState([])
   const [filteredIngredients, setFilteredIngredients] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -11,8 +11,15 @@ function IngredientsPage() {
   const [error, setError] = useState('')
   const [editingIngredient, setEditingIngredient] = useState(null)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [expandedIngredientIds, setExpandedIngredientIds] = useState(() => new Set())
+  const [brandsByIngredientId, setBrandsByIngredientId] = useState({})
+  const [brandFormByIngredientId, setBrandFormByIngredientId] = useState({})
+  const [editingBrandById, setEditingBrandById] = useState({})
   const [form, setForm] = useState({
     name: '',
+    brand_name: '',
+    bottle_size_ml: '',
+    bottle_price: '',
     submitting: false,
   })
 
@@ -82,9 +89,29 @@ function IngredientsPage() {
         if (!searchQuery.trim() || res.data.name.toLowerCase().includes(searchQuery.toLowerCase())) {
           setFilteredIngredients(updatedIngredients)
         }
+
+        const brandName = (form.brand_name || '').trim()
+        const bottleSizeMl = parseInt(form.bottle_size_ml, 10)
+        const bottlePrice = parseFloat(form.bottle_price)
+        const hasBrandFields = brandName || form.bottle_size_ml || form.bottle_price
+        if (hasBrandFields) {
+          if (!brandName || Number.isNaN(bottleSizeMl) || Number.isNaN(bottlePrice)) {
+            throw new Error('Invalid brand fields (brand name, bottle size, and bottle price are required)')
+          }
+          await api.post(`/ingredients/${res.data.id}/brands`, {
+            brand_name: brandName,
+            bottle_size_ml: bottleSizeMl,
+            bottle_price: bottlePrice,
+          })
+          // Refresh brands cache for this ingredient if user expands later
+          setBrandsByIngredientId((prev) => ({
+            ...prev,
+            [res.data.id]: { loading: false, error: '', brands: [] },
+          }))
+        }
       }
 
-      setForm({ name: '', submitting: false })
+      setForm({ name: '', brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
       setShowAddForm(false)
     } catch (e) {
       setError(editingIngredient ? 'Failed to update ingredient' : 'Failed to create ingredient')
@@ -116,13 +143,143 @@ function IngredientsPage() {
 
   const editIngredient = (ingredient) => {
     setEditingIngredient(ingredient)
-    setForm({ name: ingredient.name, submitting: false })
+    setForm({ name: ingredient.name, brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
   }
 
   const cancelEdit = () => {
     setEditingIngredient(null)
-    setForm({ name: '', submitting: false })
+    setForm({ name: '', brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
     setShowAddForm(false)
+  }
+
+  const loadBrands = async (ingredientId) => {
+    try {
+      setBrandsByIngredientId((prev) => ({
+        ...prev,
+        [ingredientId]: { loading: true, error: '', brands: prev?.[ingredientId]?.brands || [] },
+      }))
+      const res = await api.get(`/ingredients/${ingredientId}/brands`)
+      setBrandsByIngredientId((prev) => ({
+        ...prev,
+        [ingredientId]: { loading: false, error: '', brands: res.data || [] },
+      }))
+    } catch (e) {
+      setBrandsByIngredientId((prev) => ({
+        ...prev,
+        [ingredientId]: { loading: false, error: 'Failed to load brands', brands: prev?.[ingredientId]?.brands || [] },
+      }))
+      console.error('Failed to load brands', e)
+    }
+  }
+
+  const toggleBrands = async (ingredientId) => {
+    setExpandedIngredientIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(ingredientId)) next.delete(ingredientId)
+      else next.add(ingredientId)
+      return next
+    })
+
+    if (!brandsByIngredientId[ingredientId]) {
+      await loadBrands(ingredientId)
+    }
+  }
+
+  const updateBrandForm = (ingredientId, patch) => {
+    setBrandFormByIngredientId((prev) => ({
+      ...prev,
+      [ingredientId]: {
+        brand_name: prev?.[ingredientId]?.brand_name ?? '',
+        bottle_size_ml: prev?.[ingredientId]?.bottle_size_ml ?? '',
+        bottle_price: prev?.[ingredientId]?.bottle_price ?? '',
+        submitting: prev?.[ingredientId]?.submitting ?? false,
+        ...patch,
+      },
+    }))
+  }
+
+  const createBrand = async (ingredientId) => {
+    const bf = brandFormByIngredientId[ingredientId] || {}
+    const brandName = (bf.brand_name || '').trim()
+    const bottleSizeMl = parseInt(bf.bottle_size_ml, 10)
+    const bottlePrice = parseFloat(bf.bottle_price)
+    if (!brandName || Number.isNaN(bottleSizeMl) || Number.isNaN(bottlePrice)) return
+
+    try {
+      updateBrandForm(ingredientId, { submitting: true })
+      await api.post(`/ingredients/${ingredientId}/brands`, {
+        brand_name: brandName,
+        bottle_size_ml: bottleSizeMl,
+        bottle_price: bottlePrice,
+      })
+      updateBrandForm(ingredientId, { brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
+      await loadBrands(ingredientId)
+    } catch (e) {
+      updateBrandForm(ingredientId, { submitting: false })
+      setError('Failed to create brand')
+      console.error('Failed to create brand', e)
+    }
+  }
+
+  const startEditBrand = (brand) => {
+    setEditingBrandById((prev) => ({
+      ...prev,
+      [brand.id]: {
+        brand_name: brand.brand_name ?? '',
+        bottle_size_ml: brand.bottle_size_ml ?? '',
+        bottle_price: brand.bottle_price ?? '',
+        submitting: false,
+      },
+    }))
+  }
+
+  const cancelEditBrand = (brandId) => {
+    setEditingBrandById((prev) => {
+      const next = { ...prev }
+      delete next[brandId]
+      return next
+    })
+  }
+
+  const updateEditingBrand = (brandId, patch) => {
+    setEditingBrandById((prev) => ({
+      ...prev,
+      [brandId]: { ...(prev[brandId] || {}), ...patch },
+    }))
+  }
+
+  const saveBrand = async (brandId, ingredientId) => {
+    const eb = editingBrandById[brandId]
+    if (!eb) return
+    const brandName = (eb.brand_name || '').trim()
+    const bottleSizeMl = parseInt(eb.bottle_size_ml, 10)
+    const bottlePrice = parseFloat(eb.bottle_price)
+    if (!brandName || Number.isNaN(bottleSizeMl) || Number.isNaN(bottlePrice)) return
+
+    try {
+      updateEditingBrand(brandId, { submitting: true })
+      await api.put(`/ingredients/brands/${brandId}`, {
+        brand_name: brandName,
+        bottle_size_ml: bottleSizeMl,
+        bottle_price: bottlePrice,
+      })
+      cancelEditBrand(brandId)
+      await loadBrands(ingredientId)
+    } catch (e) {
+      updateEditingBrand(brandId, { submitting: false })
+      setError('Failed to update brand')
+      console.error('Failed to update brand', e)
+    }
+  }
+
+  const deleteBrand = async (brandId, ingredientId) => {
+    try {
+      await api.delete(`/ingredients/brands/${brandId}`)
+      await loadBrands(ingredientId)
+    } catch (e) {
+      setError('Failed to delete brand')
+      console.error('Failed to delete brand', e)
+    }
   }
 
   return (
@@ -158,6 +315,31 @@ function IngredientsPage() {
                   value={form.name}
                   onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
                   className="form-input"
+                />
+                <input
+                  type="text"
+                  placeholder="Brand (optional)"
+                  value={form.brand_name}
+                  onChange={(e) => setForm(prev => ({ ...prev, brand_name: e.target.value }))}
+                  className="form-input form-input-small"
+                />
+                <input
+                  type="number"
+                  placeholder="Bottle size (ml)"
+                  value={form.bottle_size_ml}
+                  onChange={(e) => setForm(prev => ({ ...prev, bottle_size_ml: e.target.value }))}
+                  className="form-input form-input-small"
+                  min="1"
+                  step="1"
+                />
+                <input
+                  type="number"
+                  placeholder="Bottle price"
+                  value={form.bottle_price}
+                  onChange={(e) => setForm(prev => ({ ...prev, bottle_price: e.target.value }))}
+                  className="form-input form-input-small"
+                  min="0"
+                  step="0.01"
                 />
                 <button
                   type="submit"
@@ -219,23 +401,179 @@ function IngredientsPage() {
                 <li key={ing.id} className="ingredient-item">
                   <div className="ingredient-item-content">
                     <strong>{ing.name}</strong>
-                    {isAdmin && (
-                      <div>
+                    <div className="ingredient-actions">
+                      {isAuthenticated && (
                         <button
-                          onClick={() => editIngredient(ing)}
-                          className="button-edit"
+                          onClick={() => toggleBrands(ing.id)}
+                          className="button-secondary button-brands"
+                          type="button"
                         >
-                          Edit
+                          {expandedIngredientIds.has(ing.id) ? 'Hide Brands' : 'Brands'}
                         </button>
-                        <button
-                          onClick={() => removeIngredient(ing.id)}
-                          className="button-remove"
-                        >
-                          Remove
+                      )}
+                      {isAdmin && (
+                        <>
+                          <button
+                            onClick={() => editIngredient(ing)}
+                            className="button-edit"
+                            type="button"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => removeIngredient(ing.id)}
+                            className="button-remove"
+                            type="button"
+                          >
+                            Remove
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {expandedIngredientIds.has(ing.id) && (
+                    <div className="brands-panel">
+                      <div className="brands-header">
+                        <h4>Brands / Bottles</h4>
+                        <button type="button" className="button-secondary" onClick={() => loadBrands(ing.id)}>
+                          Refresh
                         </button>
                       </div>
-                    )}
-                  </div>
+
+                      {brandsByIngredientId?.[ing.id]?.loading && <div className="loading">Loading brands...</div>}
+                      {brandsByIngredientId?.[ing.id]?.error && (
+                        <div className="error-message">{brandsByIngredientId[ing.id].error}</div>
+                      )}
+
+                      {!brandsByIngredientId?.[ing.id]?.loading && (
+                        <div className="brands-list">
+                          {(brandsByIngredientId?.[ing.id]?.brands || []).length === 0 ? (
+                            <div className="empty-state">No brands yet.</div>
+                          ) : (
+                            (brandsByIngredientId?.[ing.id]?.brands || []).map((b) => {
+                              const eb = editingBrandById[b.id]
+                              const isEditing = !!eb
+                              return (
+                                <div key={b.id} className="brand-row">
+                                  {isEditing ? (
+                                    <>
+                                      <input
+                                        className="form-input"
+                                        value={eb.brand_name}
+                                        onChange={(e) => updateEditingBrand(b.id, { brand_name: e.target.value })}
+                                        placeholder="Brand name"
+                                      />
+                                      <input
+                                        className="form-input form-input-small"
+                                        value={eb.bottle_size_ml}
+                                        onChange={(e) => updateEditingBrand(b.id, { bottle_size_ml: e.target.value })}
+                                        placeholder="Size (ml)"
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                      />
+                                      <input
+                                        className="form-input form-input-small"
+                                        value={eb.bottle_price}
+                                        onChange={(e) => updateEditingBrand(b.id, { bottle_price: e.target.value })}
+                                        placeholder="Price"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                      />
+                                      {isAdmin && (
+                                        <div className="brand-actions">
+                                          <button
+                                            type="button"
+                                            className="button-primary"
+                                            disabled={eb.submitting}
+                                            onClick={() => saveBrand(b.id, ing.id)}
+                                          >
+                                            Save
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="button-secondary"
+                                            disabled={eb.submitting}
+                                            onClick={() => cancelEditBrand(b.id)}
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="brand-display">
+                                        <strong>{b.brand_name}</strong>
+                                        <span>{b.bottle_size_ml} ml</span>
+                                        <span>{b.bottle_price}</span>
+                                      </div>
+                                      {isAdmin && (
+                                        <div className="brand-actions">
+                                          <button type="button" className="button-edit" onClick={() => startEditBrand(b)}>
+                                            Edit
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="button-remove"
+                                            onClick={() => deleteBrand(b.id, ing.id)}
+                                          >
+                                            Delete
+                                          </button>
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              )
+                            })
+                          )}
+                        </div>
+                      )}
+
+                      {isAdmin && (
+                        <div className="brand-create">
+                          <h4>Add Brand</h4>
+                          <div className="brand-row">
+                            <input
+                              className="form-input"
+                              value={brandFormByIngredientId?.[ing.id]?.brand_name ?? ''}
+                              onChange={(e) => updateBrandForm(ing.id, { brand_name: e.target.value })}
+                              placeholder="Brand name"
+                            />
+                            <input
+                              className="form-input form-input-small"
+                              value={brandFormByIngredientId?.[ing.id]?.bottle_size_ml ?? ''}
+                              onChange={(e) => updateBrandForm(ing.id, { bottle_size_ml: e.target.value })}
+                              placeholder="Bottle size (ml)"
+                              type="number"
+                              min="1"
+                              step="1"
+                            />
+                            <input
+                              className="form-input form-input-small"
+                              value={brandFormByIngredientId?.[ing.id]?.bottle_price ?? ''}
+                              onChange={(e) => updateBrandForm(ing.id, { bottle_price: e.target.value })}
+                              placeholder="Bottle price"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                            />
+                            <button
+                              type="button"
+                              className="button-primary"
+                              disabled={brandFormByIngredientId?.[ing.id]?.submitting}
+                              onClick={() => createBrand(ing.id)}
+                            >
+                              Add
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </li>
               ))
             )}

@@ -19,6 +19,12 @@ class Ingredient(Base):
         cascade="all, delete-orphan"
     )
 
+    brands = relationship(
+        "IngredientBrand",
+        back_populates="ingredient",
+        cascade="all, delete-orphan",
+    )
+
     # Property to convert model to schema dictionary
     @property
     def to_schema(self):
