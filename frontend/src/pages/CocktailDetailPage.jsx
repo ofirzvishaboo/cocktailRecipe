@@ -8,7 +8,7 @@ import ConfirmDialog from '../components/common/ConfirmDialog'
 const CocktailDetailPage = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isAdmin } = useAuth()
   const [cocktail, setCocktail] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -61,7 +61,7 @@ const CocktailDetailPage = () => {
   }
 
   const isOwner = () => {
-    return isAuthenticated && user && cocktail && cocktail.user_id === user.id
+    return isAuthenticated && user && cocktail && (isAdmin || cocktail.created_by_user_id === user.id)
   }
 
   if (loading) {
@@ -107,16 +107,16 @@ const CocktailDetailPage = () => {
 
       <div className="cocktail-detail-content">
         <div className="cocktail-detail-image">
-          {cocktail.image_url && !imageError ? (
+          {(cocktail.picture_url || cocktail.image_url) && !imageError ? (
             <img
-              src={cocktail.image_url}
+              src={cocktail.picture_url || cocktail.image_url}
               alt={cocktail.name}
               className="cocktail-detail-image-large"
               onError={() => setImageError(true)}
             />
           ) : (
             <div className="cocktail-image-placeholder-large">
-              {cocktail.image_url ? 'Invalid Image' : 'No Image'}
+              {(cocktail.picture_url || cocktail.image_url) ? 'Invalid Image' : 'No Image'}
             </div>
           )}
         </div>
@@ -163,18 +163,31 @@ const CocktailDetailPage = () => {
 
           <div className="cocktail-ingredients-section">
             <h2>Ingredients</h2>
-            {cocktail.ingredients && cocktail.ingredients.length > 0 ? (
+            {(cocktail.recipe_ingredients && cocktail.recipe_ingredients.length > 0) ? (
+              <ul className="ingredients-list-detailed">
+                {cocktail.recipe_ingredients.map((ri, i) => (
+                  <li key={`${ri.ingredient_id}-${i}`} className="ingredient-item-detailed">
+                    <span className="ingredient-name">{ri.ingredient_name || 'Unknown'}</span>
+                    <span className="ingredient-brand">{ri.bottle_name || '-'}</span>
+                    <span className="ingredient-amount">
+                      {ri.quantity} {ri.unit}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (cocktail.ingredients && cocktail.ingredients.length > 0 ? (
               <ul className="ingredients-list-detailed">
                 {cocktail.ingredients.map((ing, i) => (
                   <li key={`${ing.name}-${i}`} className="ingredient-item-detailed">
                     <span className="ingredient-name">{ing.name}</span>
+                    <span className="ingredient-brand">-</span>
                     <span className="ingredient-amount">{ing.ml} ml</span>
                   </li>
                 ))}
               </ul>
             ) : (
               <p>No ingredients listed.</p>
-            )}
+            ))}
           </div>
         </div>
       </div>

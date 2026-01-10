@@ -23,6 +23,6 @@ class IngredientBrand(Base):
     bottle_size_ml = Column(Integer, nullable=False)
     bottle_price = Column(Numeric, nullable=False)
 
-    ingredient = relationship("Ingredient", back_populates="brands")
+    ingredient = relationship("Ingredient")
 
 

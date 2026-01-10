@@ -19,7 +19,7 @@ class CocktailIngredient(Base):
     )
 
     # Relationships to access the related objects
-    cocktail = relationship("CocktailRecipe", back_populates="cocktail_ingredients")
-    ingredient = relationship("Ingredient", back_populates="cocktail_ingredients")
+    cocktail = relationship("CocktailRecipe")
+    ingredient = relationship("Ingredient")
     ingredient_brand = relationship("IngredientBrand")
 

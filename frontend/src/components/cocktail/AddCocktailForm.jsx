@@ -6,19 +6,30 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
     const [ingredientsCatalog, setIngredientsCatalog] = useState([])
     const [brandsByIngredientId, setBrandsByIngredientId] = useState({})
     const [brandOptionsByIndex, setBrandOptionsByIndex] = useState(
-        initialCocktail?.ingredients?.map(() => []) || [[]]
+        (initialCocktail?.recipe_ingredients || initialCocktail?.ingredients || []).map(() => []) || [[]]
     )
 
     const [form, setForm] = useState({
         name: initialCocktail?.name || '',
         description: initialCocktail?.description || '',
-        ingredients: initialCocktail?.ingredients?.map((ing) => ({
-            name: ing.name || '',
-            amount: ing.ml !== undefined ? String(ing.ml) : '',
-            ingredient_brand_id: ing.ingredient_brand_id || '',
-        })) || [{ name: '', amount: '', ingredient_brand_id: '' }],
-        imageUrl: initialCocktail?.image_url || '',
-        imagePreview: initialCocktail?.image_url || '',
+        ingredients: (initialCocktail?.recipe_ingredients
+            ? (initialCocktail.recipe_ingredients || []).map((ri) => ({
+                name: ri.ingredient_name || '',
+                ingredient_id: ri.ingredient_id || '',
+                amount: ri.quantity !== undefined ? String(ri.quantity) : '',
+                unit: ri.unit || 'ml',
+                bottle_id: ri.bottle_id || '',
+            }))
+            : (initialCocktail?.ingredients || []).map((ing) => ({
+                name: ing.name || '',
+                ingredient_id: '',
+                amount: ing.ml !== undefined ? String(ing.ml) : '',
+                unit: 'ml',
+                bottle_id: ing.ingredient_brand_id || '',
+            }))
+        ) || [{ name: '', ingredient_id: '', amount: '', unit: 'ml', bottle_id: '' }],
+        imageUrl: initialCocktail?.picture_url || initialCocktail?.image_url || '',
+        imagePreview: initialCocktail?.picture_url || initialCocktail?.image_url || '',
         submitting: false,
     })
 
@@ -49,10 +60,10 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
     const loadBrandsForIngredientId = async (ingredientId) => {
         if (!ingredientId) return []
         if (brandsByIngredientId[ingredientId]) return brandsByIngredientId[ingredientId]
-        const res = await api.get(`/ingredients/${ingredientId}/brands`)
-        const brands = res.data || []
-        setBrandsByIngredientId((prev) => ({ ...prev, [ingredientId]: brands }))
-        return brands
+        const res = await api.get(`/ingredients/${ingredientId}/bottles`)
+        const bottles = res.data || []
+        setBrandsByIngredientId((prev) => ({ ...prev, [ingredientId]: bottles }))
+        return bottles
     }
 
     const syncBrandOptionsForRow = async (index, ingredientName) => {
@@ -92,7 +103,7 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
     const addIngredient = () => {
         setForm(prev => ({
             ...prev,
-            ingredients: [...prev.ingredients, { name: '', amount: '', ingredient_brand_id: '' }]
+            ingredients: [...prev.ingredients, { name: '', ingredient_id: '', amount: '', unit: 'ml', bottle_id: '' }]
         }))
         setBrandOptionsByIndex((prev) => [...prev, []])
     }
@@ -111,7 +122,7 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
             const updated = prev.ingredients.map((ingredient, i) => {
                 if (i !== index) return ingredient
                 if (field === 'name') {
-                    return { ...ingredient, name: value, ingredient_brand_id: '' }
+                    return { ...ingredient, name: value, ingredient_id: '', bottle_id: '' }
                 }
                 return { ...ingredient, [field]: value }
             })
@@ -196,20 +207,30 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
     const handleSubmit = async (e) => {
         e.preventDefault()
         const ingredientsArray = form.ingredients
-            .filter(ing => ing.name.trim() && ing.amount !== '' && !isNaN(Number(ing.amount)))
-            .map(ing => ({
-                name: ing.name.trim(),
-                ml: Number(ing.amount),
-                ingredient_brand_id: ing.ingredient_brand_id ? ing.ingredient_brand_id : null,
-            }))
+            .filter((ing) => {
+                const ingredientId = ing.ingredient_id || findIngredientIdByName(ing.name)
+                return ingredientId && ing.amount !== '' && !isNaN(Number(ing.amount))
+            })
+            .map((ing, idx) => {
+                const ingredientId = ing.ingredient_id || findIngredientIdByName(ing.name)
+                return {
+                    ingredient_id: ingredientId,
+                    quantity: Number(ing.amount),
+                    unit: (ing.unit || 'ml').toLowerCase(),
+                    bottle_id: ing.bottle_id ? ing.bottle_id : null,
+                    sort_order: idx + 1,
+                    is_garnish: false,
+                    is_optional: false,
+                }
+            })
 
         if (!form.name || ingredientsArray.length === 0) return
 
         const newCocktail = {
             name: form.name,
             description: form.description.trim() || null,
-            ingredients: ingredientsArray,
-            image_url: form.imageUrl || null
+            recipe_ingredients: ingredientsArray,
+            picture_url: form.imageUrl || null
         }
 
         try {
@@ -230,7 +251,7 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 setForm({
                     name: '',
                     description: '',
-                    ingredients: [{ name: '', amount: '', ingredient_brand_id: '' }],
+                    ingredients: [{ name: '', ingredient_id: '', amount: '', unit: 'ml', bottle_id: '' }],
                     imageUrl: '',
                     imagePreview: '',
                     submitting: false
@@ -298,7 +319,7 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 amountStep="1"
                 addButtonLabel="Add Ingredient"
                 nameSuggestions={ingredientNameSuggestions}
-                showBrandSelect={true}
+                showBottleSelect={true}
                 brandOptionsByIndex={brandOptionsByIndex}
             />
             <div className="form-actions">

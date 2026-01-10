@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 
 const CocktailsPage = () => {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isAdmin } = useAuth()
   const navigate = useNavigate()
   const [cocktails, setCocktails] = useState([])
   const [filteredCocktails, setFilteredCocktails] = useState([])
@@ -17,6 +17,18 @@ const CocktailsPage = () => {
   const [failedImages, setFailedImages] = useState(new Set())
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [pendingDeleteCocktailId, setPendingDeleteCocktailId] = useState(null)
+
+  const getIngredientNames = (cocktail) => {
+    const ris = cocktail?.recipe_ingredients
+    if (Array.isArray(ris) && ris.length > 0) {
+      return ris.map((ri) => (ri.ingredient_name || '').trim()).filter(Boolean)
+    }
+    const legacy = cocktail?.ingredients
+    if (Array.isArray(legacy) && legacy.length > 0) {
+      return legacy.map((ing) => (ing?.name || '').trim()).filter(Boolean)
+    }
+    return []
+  }
 
   const requestRemoveCocktail = (cocktailId) => {
     setPendingDeleteCocktailId(cocktailId)
@@ -42,15 +54,11 @@ const CocktailsPage = () => {
           const ingredientQueries = query.split(',').map(q => q.trim()).filter(q => q.length > 0)
 
           const filtered = updatedCocktails.filter(cocktail => {
-            if (!cocktail.ingredients || !Array.isArray(cocktail.ingredients) || cocktail.ingredients.length === 0) {
-              return false
-            }
+            const names = getIngredientNames(cocktail).map((n) => n.toLowerCase())
+            if (names.length === 0) return false
 
             return ingredientQueries.every(ingQuery => {
-              return cocktail.ingredients.some(ing => {
-                if (!ing || !ing.name) return false
-                return ing.name.toLowerCase().startsWith(ingQuery)
-              })
+              return names.some((n) => n.startsWith(ingQuery))
             })
           })
           setFilteredCocktails(filtered)
@@ -58,11 +66,7 @@ const CocktailsPage = () => {
           // Search by cocktail name OR single ingredient
           const filtered = updatedCocktails.filter(cocktail => {
             const nameMatch = cocktail.name && cocktail.name.toLowerCase().startsWith(query)
-            const ingredientMatch = cocktail.ingredients && Array.isArray(cocktail.ingredients) &&
-              cocktail.ingredients.some(ing => {
-                if (!ing || !ing.name) return false
-                return ing.name.toLowerCase().startsWith(query)
-              })
+            const ingredientMatch = getIngredientNames(cocktail).some((n) => n.toLowerCase().startsWith(query))
             return nameMatch || ingredientMatch
           })
           setFilteredCocktails(filtered)
@@ -103,15 +107,11 @@ const CocktailsPage = () => {
           const ingredientQueries = query.split(',').map(q => q.trim()).filter(q => q.length > 0)
 
           const filtered = updatedCocktails.filter(cocktail => {
-            if (!cocktail.ingredients || !Array.isArray(cocktail.ingredients) || cocktail.ingredients.length === 0) {
-              return false
-            }
+            const names = getIngredientNames(cocktail).map((n) => n.toLowerCase())
+            if (names.length === 0) return false
 
             return ingredientQueries.every(ingQuery => {
-              return cocktail.ingredients.some(ing => {
-                if (!ing || !ing.name) return false
-                return ing.name.toLowerCase().startsWith(ingQuery)
-              })
+              return names.some((n) => n.startsWith(ingQuery))
             })
           })
           setFilteredCocktails(filtered)
@@ -119,11 +119,7 @@ const CocktailsPage = () => {
           // Search by cocktail name OR single ingredient
           const filtered = updatedCocktails.filter(cocktail => {
             const nameMatch = cocktail.name && cocktail.name.toLowerCase().startsWith(query)
-            const ingredientMatch = cocktail.ingredients && Array.isArray(cocktail.ingredients) &&
-              cocktail.ingredients.some(ing => {
-                if (!ing || !ing.name) return false
-                return ing.name.toLowerCase().startsWith(query)
-              })
+            const ingredientMatch = getIngredientNames(cocktail).some((n) => n.toLowerCase().startsWith(query))
             return nameMatch || ingredientMatch
           })
           setFilteredCocktails(filtered)
@@ -170,18 +166,13 @@ const CocktailsPage = () => {
         const ingredientQueries = query.split(',').map(q => q.trim()).filter(q => q.length > 0)
 
         const filtered = cocktails.filter(cocktail => {
-          // Skip cocktails without ingredients
-          if (!cocktail.ingredients || !Array.isArray(cocktail.ingredients) || cocktail.ingredients.length === 0) {
-            return false
-          }
+          const names = getIngredientNames(cocktail).map((n) => n.toLowerCase())
+          if (names.length === 0) return false
 
           // Check if all ingredient queries match (using startsWith)
           // Each query must match at least one ingredient
           return ingredientQueries.every(ingQuery => {
-            return cocktail.ingredients.some(ing => {
-              if (!ing || !ing.name) return false
-              return ing.name.toLowerCase().startsWith(ingQuery)
-            })
+            return names.some((n) => n.startsWith(ingQuery))
           })
         })
         setFilteredCocktails(filtered)
@@ -192,11 +183,7 @@ const CocktailsPage = () => {
           const nameMatch = cocktail.name && cocktail.name.toLowerCase().startsWith(query)
 
           // Check if any ingredient matches
-          const ingredientMatch = cocktail.ingredients && Array.isArray(cocktail.ingredients) &&
-            cocktail.ingredients.some(ing => {
-              if (!ing || !ing.name) return false
-              return ing.name.toLowerCase().startsWith(query)
-            })
+          const ingredientMatch = getIngredientNames(cocktail).some((n) => n.toLowerCase().startsWith(query))
 
           return nameMatch || ingredientMatch
         })
@@ -207,7 +194,7 @@ const CocktailsPage = () => {
 
   // Check if the current user owns this cocktail
   const isOwner = (cocktail) => {
-    return isAuthenticated && user && cocktail.user_id === user.id
+    return isAuthenticated && user && (isAdmin || cocktail.created_by_user_id === user.id)
   }
 
   return (
@@ -264,20 +251,20 @@ const CocktailsPage = () => {
               <li key={`${c.name}-${idx}`}>
                 <div className="cocktail-item">
                   <div className="cocktail-info">
-                    {c.image_url && !failedImages.has(c.id) ? (
+                    {(c.picture_url || c.image_url) && !failedImages.has(c.id) ? (
                       <img
-                        src={c.image_url}
+                        src={c.picture_url || c.image_url}
                         alt={c.name}
                         className="cocktail-image"
                             onError={() => {
-                          console.error('Failed to load image:', c.image_url, 'for cocktail:', c.name)
+                          console.error('Failed to load image:', (c.picture_url || c.image_url), 'for cocktail:', c.name)
                           setFailedImages(prev => new Set(prev).add(c.id))
                         }}
-                        onLoad={() => console.log('Image loaded successfully:', c.image_url)}
+                        onLoad={() => console.log('Image loaded successfully:', (c.picture_url || c.image_url))}
                       />
                     ) : (
                       <div className="cocktail-image-placeholder">
-                        {c.image_url ? 'Invalid Image' : 'No Image'}
+                        {(c.picture_url || c.image_url) ? 'Invalid Image' : 'No Image'}
                       </div>
                     )}
                     <div className="cocktail-details">
@@ -315,8 +302,17 @@ const CocktailsPage = () => {
                       )}
                 </div>
                 <ul>
-                  {(c.ingredients || []).map((ing, i) => (
-                    <li key={`${ing.name}-${i}`}>{ing.name} - {ing.ml} ml</li>
+                  {(c.recipe_ingredients && c.recipe_ingredients.length > 0
+                    ? c.recipe_ingredients
+                    : (c.ingredients || []).map((ing) => ({
+                        ingredient_name: ing.name,
+                        quantity: ing.ml,
+                        unit: 'ml',
+                      }))
+                  ).map((ri, i) => (
+                    <li key={`${ri.ingredient_name}-${i}`}>
+                      {ri.ingredient_name} - {ri.quantity} {ri.unit}
+                    </li>
                   ))}
                 </ul>
               </li>

@@ -27,7 +27,21 @@ class Base(DeclarativeBase):
 
 # Import all models to ensure they're registered with Base.metadata
 # This must be done after Base is defined to avoid circular imports
-from . import cocktail_ingredient, ingredient, ingredient_brand, cocktail_recipe, users
+from . import (
+    cocktail_ingredient,
+    ingredient,
+    ingredient_brand,
+    cocktail_recipe,
+    users,
+    brand,
+    kind,
+    subcategory,
+    glass_type,
+    importer,
+    bottle,
+    bottle_price,
+    recipe_ingredient,
+)
 
 # Re-export models for backward compatibility
 from .cocktail_ingredient import CocktailIngredient
@@ -35,6 +49,15 @@ from .ingredient import Ingredient
 from .ingredient_brand import IngredientBrand
 from .cocktail_recipe import CocktailRecipe
 from .users import User
+
+from .brand import Brand
+from .kind import Kind
+from .subcategory import Subcategory
+from .glass_type import GlassType
+from .importer import Importer
+from .bottle import Bottle
+from .bottle_price import BottlePrice
+from .recipe_ingredient import RecipeIngredient
 
 engine = create_async_engine(DATABASE_URL)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
@@ -49,11 +72,17 @@ async def create_db_and_tables():
         add_user_id_column_if_missing,
         add_ingredient_brands_table_if_missing,
         add_ingredient_brand_id_to_cocktail_ingredients_if_missing,
+        add_normalized_schema_tables_if_missing,
+        add_normalized_columns_if_missing,
+        backfill_normalized_costing_if_needed,
     )
     await add_missing_user_columns(engine)
     await add_user_id_column_if_missing(engine)
     await add_ingredient_brands_table_if_missing(engine)
     await add_ingredient_brand_id_to_cocktail_ingredients_if_missing(engine)
+    await add_normalized_schema_tables_if_missing(engine)
+    await add_normalized_columns_if_missing(engine)
+    await backfill_normalized_costing_if_needed(engine)
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:

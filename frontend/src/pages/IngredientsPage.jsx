@@ -93,20 +93,25 @@ function IngredientsPage() {
           setFilteredIngredients(updatedIngredients)
         }
 
-        const brandName = (form.brand_name || '').trim()
+        // Optional: create initial bottle + price (normalized schema)
+        const bottleName = (form.brand_name || '').trim()
         const bottleSizeMl = parseInt(form.bottle_size_ml, 10)
         const bottlePrice = parseFloat(form.bottle_price)
-        const hasBrandFields = brandName || form.bottle_size_ml || form.bottle_price
-        if (hasBrandFields) {
-          if (!brandName || Number.isNaN(bottleSizeMl) || Number.isNaN(bottlePrice)) {
-            throw new Error('Invalid brand fields (brand name, bottle size, and bottle price are required)')
+        const hasBottleFields = bottleName || form.bottle_size_ml || form.bottle_price
+        if (hasBottleFields) {
+          if (!bottleName || Number.isNaN(bottleSizeMl) || Number.isNaN(bottlePrice)) {
+            throw new Error('Invalid bottle fields (name, size, and price are required)')
           }
-          await api.post(`/ingredients/${res.data.id}/brands`, {
-            brand_name: brandName,
-            bottle_size_ml: bottleSizeMl,
-            bottle_price: bottlePrice,
+          const bottleRes = await api.post(`/ingredients/${res.data.id}/bottles`, {
+            name: bottleName,
+            volume_ml: bottleSizeMl,
+            is_default_cost: true,
           })
-          // Refresh brands cache for this ingredient if user expands later
+          await api.post(`/ingredients/bottles/${bottleRes.data.id}/prices`, {
+            price: bottlePrice,
+            currency: 'ILS',
+          })
+          // Refresh cache for this ingredient if user expands later
           setBrandsByIngredientId((prev) => ({
             ...prev,
             [res.data.id]: { loading: false, error: '', brands: [] },
@@ -172,10 +177,19 @@ function IngredientsPage() {
         ...prev,
         [ingredientId]: { loading: true, error: '', brands: prev?.[ingredientId]?.brands || [] },
       }))
-      const res = await api.get(`/ingredients/${ingredientId}/brands`)
+      const res = await api.get(`/ingredients/${ingredientId}/bottles`)
+      const bottles = res.data || []
+      // Adapt normalized bottles to the legacy "brand" row shape used by this screen
+      const brands = bottles.map((b) => ({
+        id: b.id,
+        ingredient_id: b.ingredient_id,
+        brand_name: b.name,
+        bottle_size_ml: b.volume_ml,
+        bottle_price: b.current_price?.price ?? '',
+      }))
       setBrandsByIngredientId((prev) => ({
         ...prev,
-        [ingredientId]: { loading: false, error: '', brands: res.data || [] },
+        [ingredientId]: { loading: false, error: '', brands },
       }))
     } catch (e) {
       setBrandsByIngredientId((prev) => ({
@@ -221,10 +235,14 @@ function IngredientsPage() {
 
     try {
       updateBrandForm(ingredientId, { submitting: true })
-      await api.post(`/ingredients/${ingredientId}/brands`, {
-        brand_name: brandName,
-        bottle_size_ml: bottleSizeMl,
-        bottle_price: bottlePrice,
+      const bottleRes = await api.post(`/ingredients/${ingredientId}/bottles`, {
+        name: brandName,
+        volume_ml: bottleSizeMl,
+        is_default_cost: false,
+      })
+      await api.post(`/ingredients/bottles/${bottleRes.data.id}/prices`, {
+        price: bottlePrice,
+        currency: 'ILS',
       })
       updateBrandForm(ingredientId, { brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
       await loadBrands(ingredientId)
@@ -272,10 +290,14 @@ function IngredientsPage() {
 
     try {
       updateEditingBrand(brandId, { submitting: true })
-      await api.put(`/ingredients/brands/${brandId}`, {
-        brand_name: brandName,
-        bottle_size_ml: bottleSizeMl,
-        bottle_price: bottlePrice,
+      await api.put(`/ingredients/bottles/${brandId}`, {
+        name: brandName,
+        volume_ml: bottleSizeMl,
+      })
+      // Add a new price record (simple approach)
+      await api.post(`/ingredients/bottles/${brandId}/prices`, {
+        price: bottlePrice,
+        currency: 'ILS',
       })
       cancelEditBrand(brandId)
       await loadBrands(ingredientId)
@@ -288,7 +310,7 @@ function IngredientsPage() {
 
   const deleteBrand = async (brandId, ingredientId) => {
     try {
-      await api.delete(`/ingredients/brands/${brandId}`)
+      await api.delete(`/ingredients/bottles/${brandId}`)
       await loadBrands(ingredientId)
     } catch (e) {
       setError('Failed to delete brand')

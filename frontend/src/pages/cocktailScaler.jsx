@@ -5,9 +5,9 @@ import IngredientInputs from '../components/cocktail/IngredientInputs';
 import { useAuth } from '../contexts/AuthContext'
 
 export default function CocktailScaler() {
-    const { user, isAuthenticated } = useAuth()
+    const { user, isAuthenticated, isAdmin } = useAuth()
     const [recipeName, setRecipeName] = useState('');
-    const [ingredients, setIngredients] = useState([{ name: '', amount: '', ingredient_brand_id: '' }]);
+    const [ingredients, setIngredients] = useState([{ name: '', amount: '', unit: 'ml', bottle_id: '' }]);
     const [desiredLiters, setDesiredLiters] = useState('');
     const [cocktails, setCocktails] = useState([]);
     const [filteredCocktails, setFilteredCocktails] = useState([]);
@@ -25,7 +25,7 @@ export default function CocktailScaler() {
     const [savingBrands, setSavingBrands] = useState(false);
 
     const addIngredient = () => {
-        setIngredients([...ingredients, { name: '', amount: '', ingredient_brand_id: '' }]);
+        setIngredients([...ingredients, { name: '', amount: '', unit: 'ml', bottle_id: '' }]);
         setBrandOptionsByIndex((prev) => [...prev, []]);
     };
 
@@ -40,14 +40,14 @@ export default function CocktailScaler() {
         const updatedIngredients = ingredients.map((ingredient, i) => {
             if (i !== index) return ingredient;
             if (field === 'name') {
-                return { ...ingredient, name: value, ingredient_brand_id: '' };
+                return { ...ingredient, name: value, bottle_id: '' };
             }
             return { ...ingredient, [field]: value };
         });
         setIngredients(updatedIngredients);
 
         if (field === 'name') syncBrandOptionsForRow(index, value);
-        if (field === 'ingredient_brand_id') persistBrandSelection(updatedIngredients);
+        if (field === 'bottle_id') persistBrandSelection(updatedIngredients);
     };
 
     const calculateTotalVolume = () => {
@@ -106,6 +106,18 @@ export default function CocktailScaler() {
         [ingredientsCatalog]
     )
 
+    const getIngredientNamesForCocktail = (cocktail) => {
+        const ris = cocktail?.recipe_ingredients
+        if (Array.isArray(ris) && ris.length > 0) {
+            return ris.map((ri) => (ri.ingredient_name || '').trim()).filter(Boolean)
+        }
+        const legacy = cocktail?.ingredients
+        if (Array.isArray(legacy) && legacy.length > 0) {
+            return legacy.map((ing) => (ing?.name || '').trim()).filter(Boolean)
+        }
+        return []
+    }
+
     const findIngredientIdByName = (name) => {
         const n = (name || '').trim().toLowerCase()
         if (!n) return null
@@ -116,10 +128,10 @@ export default function CocktailScaler() {
     const loadBrandsForIngredientId = async (ingredientId) => {
         if (!ingredientId) return []
         if (brandsByIngredientId[ingredientId]) return brandsByIngredientId[ingredientId]
-        const res = await api.get(`/ingredients/${ingredientId}/brands`)
-        const brands = res.data || []
-        setBrandsByIngredientId((prev) => ({ ...prev, [ingredientId]: brands }))
-        return brands
+        const res = await api.get(`/ingredients/${ingredientId}/bottles`)
+        const bottles = res.data || []
+        setBrandsByIngredientId((prev) => ({ ...prev, [ingredientId]: bottles }))
+        return bottles
     }
 
     const syncBrandOptionsForRow = async (index, ingredientName) => {
@@ -144,31 +156,35 @@ export default function CocktailScaler() {
         }
     }
 
-    const canEditSelectedCocktail = () => {
-        return Boolean(isAuthenticated && user && selectedCocktail && selectedCocktail.user_id === user.id)
+        const canEditSelectedCocktail = () => {
+        return Boolean(isAuthenticated && user && selectedCocktail && (isAdmin || selectedCocktail.created_by_user_id === user.id))
     }
 
     const persistBrandSelection = async (currentIngredients) => {
         if (!selectedCocktailId || !selectedCocktail) return
         if (!canEditSelectedCocktail()) return
 
-        // Use the cocktail's stored names/ml as canonical; only apply brand ids from UI
-        const brandByName = {}
+        // Use the cocktail's stored names/quantities as canonical; only apply bottle ids from UI
+        const bottleByName = {}
         currentIngredients.forEach((ing) => {
             const key = (ing.name || '').trim().toLowerCase()
-            if (key) brandByName[key] = ing.ingredient_brand_id || ''
+            if (key) bottleByName[key] = ing.bottle_id || ''
         })
 
         const payload = {
             name: selectedCocktail.name,
             description: selectedCocktail.description || null,
-            image_url: selectedCocktail.image_url || null,
-            ingredients: (selectedCocktail.ingredients || []).map((ing) => {
-                const key = (ing.name || '').trim().toLowerCase()
+            picture_url: selectedCocktail.picture_url || selectedCocktail.image_url || null,
+            recipe_ingredients: (selectedCocktail.recipe_ingredients || []).map((ri, idx) => {
+                const key = (ri.ingredient_name || '').trim().toLowerCase()
                 return {
-                    name: ing.name,
-                    ml: ing.ml,
-                    ingredient_brand_id: brandByName[key] ? brandByName[key] : null,
+                    ingredient_id: ri.ingredient_id,
+                    quantity: ri.quantity,
+                    unit: ri.unit,
+                    bottle_id: bottleByName[key] ? bottleByName[key] : null,
+                    sort_order: ri.sort_order ?? (idx + 1),
+                    is_garnish: !!ri.is_garnish,
+                    is_optional: !!ri.is_optional,
                 }
             }),
         }
@@ -179,12 +195,13 @@ export default function CocktailScaler() {
             const updated = res.data
             setSelectedCocktail(updated)
             // Keep local ingredient brand selections aligned with saved cocktail
-            const formattedIngredients = (updated.ingredients || []).map((ing) => ({
-                name: ing.name,
-                amount: String(ing.ml),
-                ingredient_brand_id: ing.ingredient_brand_id || '',
+            const formattedIngredients = (updated.recipe_ingredients || []).map((ri) => ({
+                name: ri.ingredient_name || '',
+                amount: String(ri.quantity),
+                unit: ri.unit || 'ml',
+                bottle_id: ri.bottle_id || '',
             }))
-            setIngredients(formattedIngredients.length ? formattedIngredients : [{ name: '', amount: '', ingredient_brand_id: '' }])
+            setIngredients(formattedIngredients.length ? formattedIngredients : [{ name: '', amount: '', unit: 'ml', bottle_id: '' }])
             setBrandOptionsByIndex((prev) => {
                 const next = formattedIngredients.map((_, idx) => prev[idx] || [])
                 return next
@@ -265,11 +282,8 @@ export default function CocktailScaler() {
                     const nameMatch = cocktail.name && cocktail.name.toLowerCase().startsWith(query);
 
                     // Check if any ingredient matches
-                    const ingredientMatch = cocktail.ingredients && Array.isArray(cocktail.ingredients) &&
-                        cocktail.ingredients.some(ing => {
-                            if (!ing || !ing.name) return false;
-                            return ing.name.toLowerCase().startsWith(query);
-                        });
+                    const ingredientMatch = getIngredientNamesForCocktail(cocktail)
+                        .some((n) => n.toLowerCase().startsWith(query));
 
                     return nameMatch || ingredientMatch;
                 });
@@ -282,20 +296,30 @@ export default function CocktailScaler() {
         setSelectedCocktailId(cocktail.id);
         setSelectedCocktail(cocktail);
         setRecipeName(cocktail.name);
-        if (cocktail.ingredients && cocktail.ingredients.length > 0) {
-            const formattedIngredients = cocktail.ingredients.map(ing => ({
-                name: ing.name,
-                amount: ing.ml.toString(),
-                ingredient_brand_id: ing.ingredient_brand_id || '',
-            }));
+        const ris = (cocktail.recipe_ingredients && cocktail.recipe_ingredients.length)
+            ? cocktail.recipe_ingredients
+            : (cocktail.ingredients || []).map((ing) => ({
+                ingredient_name: ing.name,
+                quantity: ing.ml,
+                unit: 'ml',
+                bottle_id: ing.ingredient_brand_id || '',
+            }))
+
+        if (ris.length > 0) {
+            const formattedIngredients = ris.map((ri) => ({
+                name: ri.ingredient_name || '',
+                amount: String(ri.quantity ?? ''),
+                unit: ri.unit || 'ml',
+                bottle_id: ri.bottle_id || '',
+            }))
             setIngredients(formattedIngredients);
             setBrandOptionsByIndex(formattedIngredients.map(() => []));
-            // Preload brand options for each row
+            // Preload bottle options for each row
             formattedIngredients.forEach((row, idx) => {
                 syncBrandOptionsForRow(idx, row.name);
             })
         } else {
-            setIngredients([{ name: '', amount: '', ingredient_brand_id: '' }]);
+            setIngredients([{ name: '', amount: '', unit: 'ml', bottle_id: '' }]);
             setBrandOptionsByIndex([[]]);
         }
     };
@@ -345,9 +369,9 @@ export default function CocktailScaler() {
                                     <li key={cocktail.id} className="cocktail-selector-item">
                                         <div className="cocktail-selector-info">
                                             <span className="cocktail-selector-name">{cocktail.name}</span>
-                                            {cocktail.ingredients && cocktail.ingredients.length > 0 && (
+                                            {getIngredientNamesForCocktail(cocktail).length > 0 && (
                                                 <span className="cocktail-selector-ingredients">
-                                                    {cocktail.ingredients.length} ingredient{cocktail.ingredients.length !== 1 ? 's' : ''}
+                                                    {getIngredientNamesForCocktail(cocktail).length} ingredient{getIngredientNamesForCocktail(cocktail).length !== 1 ? 's' : ''}
                                                 </span>
                                             )}
                                         </div>
@@ -401,9 +425,9 @@ export default function CocktailScaler() {
                     minIngredients={1}
                     amountStep="0.1"
                         nameSuggestions={ingredientNameSuggestions}
-                        showBrandSelect={true}
+                        showBottleSelect={true}
                         brandOptionsByIndex={brandOptionsByIndex}
-                        brandPlaceholder={savingBrands ? 'Saving...' : 'Brand bottle (optional)'}
+                        bottlePlaceholder={savingBrands ? 'Saving...' : 'Bottle (optional)'}
                         brandDisabledByIndex={ingredients.map(() => selectedCocktailId ? !canEditSelectedCocktail() : false)}
                 />
                 </div>
@@ -453,15 +477,15 @@ export default function CocktailScaler() {
                                     <div className="cost-breakdown">
                                         <div className="cost-row cost-header">
                                             <span>Ingredient</span>
-                                            <span>Brand</span>
-                                            <span>Scaled (ml)</span>
+                                            <span>Bottle</span>
+                                            <span>Scaled</span>
                                             <span>Cost</span>
                                         </div>
                                         {Array.isArray(costData.lines) && costData.lines.map((line, idx) => (
                                             <div key={`${line.ingredient_name}-${idx}`} className="cost-row">
                                                 <span className="cost-ingredient">{line.ingredient_name}</span>
-                                                <span className="cost-brand">{line.brand_name || '-'}</span>
-                                                <span className="cost-ml">{Math.round((Number(line.scaled_ml) || 0) * 100) / 100}</span>
+                                                <span className="cost-brand">{line.bottle_name || '-'}</span>
+                                                <span className="cost-ml">{Math.round((Number(line.scaled_quantity) || 0) * 100) / 100} {line.unit || ''}</span>
                                                 <span className="cost-value">{formatMoney(line.ingredient_cost)}</span>
                                             </div>
                                         ))}
