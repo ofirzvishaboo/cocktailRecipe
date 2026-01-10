@@ -425,9 +425,9 @@ function IngredientsPage() {
                           {expandedIngredientIds.has(ing.id) ? 'Hide Brands' : 'Brands'}
                         </button>
                       )}
-                      {isAdmin && (
+                    {isAdmin && (
                         <>
-                          <button
+                        <button
                           onClick={() => editIngredient(ing)}
                           className="button-edit"
                             type="button"
