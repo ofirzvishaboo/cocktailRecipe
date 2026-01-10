@@ -4,13 +4,6 @@ from uuid import UUID
 from datetime import datetime
 from .ingredient import Ingredient, IngredientUpdate
 
-# Schema for ingredient with ml amount in a cocktail recipe
-class CocktailIngredientInput(BaseModel):
-    name: str
-    ml: int
-    ingredient_brand_id: Optional[UUID] = None
-
-
 class RecipeIngredientInput(BaseModel):
     ingredient_id: UUID
     quantity: float
@@ -58,10 +51,7 @@ class CocktailRecipe(BaseModel):
 class CocktailRecipeCreate(BaseModel):
     name: str
     description: Optional[str] = None  # Optional description
-    # New normalized input
-    recipe_ingredients: Optional[List[RecipeIngredientInput]] = None
-    # Legacy input (kept for backwards compatibility during transition)
-    ingredients: Optional[List[CocktailIngredientInput]] = None
+    recipe_ingredients: List[RecipeIngredientInput]
     picture_url: Optional[str] = None
     garnish_text: Optional[str] = None
     glass_type_id: Optional[UUID] = None
@@ -71,8 +61,7 @@ class CocktailRecipeCreate(BaseModel):
 class CocktailRecipeUpdate(BaseModel):
     name: str
     description: Optional[str] = None  # Optional description
-    recipe_ingredients: Optional[List[RecipeIngredientInput]] = None
-    ingredients: Optional[List[CocktailIngredientInput]] = None
+    recipe_ingredients: List[RecipeIngredientInput]
     picture_url: Optional[str] = None
     garnish_text: Optional[str] = None
     glass_type_id: Optional[UUID] = None

@@ -35,26 +35,6 @@ class IngredientDelete(BaseModel):
     name: str
 
 
-class IngredientBrandRead(BaseModel):
-    id: UUID
-    ingredient_id: UUID
-    brand_name: str
-    bottle_size_ml: int
-    bottle_price: float
-
-
-class IngredientBrandCreate(BaseModel):
-    brand_name: str
-    bottle_size_ml: int
-    bottle_price: float
-
-
-class IngredientBrandUpdate(BaseModel):
-    brand_name: Optional[str] = None
-    bottle_size_ml: Optional[int] = None
-    bottle_price: Optional[float] = None
-
-
 # Normalized reference DTOs
 class BrandRead(BaseModel):
     id: UUID

@@ -12,8 +12,6 @@ from db.database import (
     get_async_session,
     CocktailRecipe as CocktailRecipeModel,
     Ingredient as IngredientModel,
-    CocktailIngredient as CocktailIngredientModel,  # legacy
-    IngredientBrand as IngredientBrandModel,  # legacy
     RecipeIngredient as RecipeIngredientModel,
     Bottle as BottleModel,
     BottlePrice as BottlePriceModel,
@@ -67,19 +65,6 @@ def _serialize_cocktail(c: CocktailRecipeModel) -> Dict:
                 }
             )
 
-    # Legacy "ingredients" field for current UI until frontend is refactored
-    legacy_ingredients = []
-    if recipe_ingredients:
-        for ri in recipe_ingredients:
-            if ri["unit"] == "ml":
-                legacy_ingredients.append(
-                    {
-                        "name": ri["ingredient_name"] or "Unknown",
-                        "ml": int(round(float(ri["quantity"]))),
-                        "ingredient_brand_id": ri["bottle_id"],
-                    }
-                )
-
     return {
         "id": c.id,
         "created_by_user_id": c.created_by_user_id,
@@ -94,7 +79,6 @@ def _serialize_cocktail(c: CocktailRecipeModel) -> Dict:
         "base_recipe_id": c.base_recipe_id,
         "is_base": c.is_base,
         "recipe_ingredients": recipe_ingredients,
-        "ingredients": legacy_ingredients,
     }
 
 
@@ -158,62 +142,20 @@ async def create_cocktail_recipe(
         db.add(cocktail_model)
         await db.flush()  # Flush to get the ID
 
-        # Process normalized recipe_ingredients if provided; otherwise accept legacy ingredients
-        if cocktail.recipe_ingredients:
-            for ri in cocktail.recipe_ingredients:
-                db.add(
-                    RecipeIngredientModel(
-                        recipe_id=cocktail_model.id,
-                        ingredient_id=ri.ingredient_id,
-                        quantity=ri.quantity,
-                        unit=ri.unit,
-                        bottle_id=ri.bottle_id,
-                        is_garnish=ri.is_garnish,
-                        is_optional=ri.is_optional,
-                        sort_order=ri.sort_order,
-                    )
+        # Process recipe_ingredients only (clean break)
+        for ri in cocktail.recipe_ingredients:
+            db.add(
+                RecipeIngredientModel(
+                    recipe_id=cocktail_model.id,
+                    ingredient_id=ri.ingredient_id,
+                    quantity=ri.quantity,
+                    unit=ri.unit,
+                    bottle_id=ri.bottle_id,
+                    is_garnish=ri.is_garnish,
+                    is_optional=ri.is_optional,
+                    sort_order=ri.sort_order,
                 )
-        elif cocktail.ingredients:
-            for ingredient_data in cocktail.ingredients:
-                ingredient_result = await db.execute(
-                    select(IngredientModel).where(
-                        func.lower(IngredientModel.name) == ingredient_data.name.lower()
-                    )
-                )
-                ingredient = ingredient_result.scalar_one_or_none()
-                if not ingredient:
-                    ingredient = IngredientModel(name=ingredient_data.name)
-                    db.add(ingredient)
-                    await db.flush()
-
-                bottle_id = ingredient_data.ingredient_brand_id
-                if bottle_id is not None:
-                    # In normalized schema, old ingredient_brand_id is migrated to bottles.id
-                    bottle_result = await db.execute(select(BottleModel).where(BottleModel.id == bottle_id))
-                    bottle = bottle_result.scalar_one_or_none()
-                    if not bottle:
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"bottle_id {bottle_id} not found",
-                        )
-                    if bottle.ingredient_id != ingredient.id:
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="bottle_id does not belong to the specified ingredient",
-                        )
-
-                db.add(
-                    RecipeIngredientModel(
-                        recipe_id=cocktail_model.id,
-                        ingredient_id=ingredient.id,
-                        quantity=float(ingredient_data.ml),
-                        unit="ml",
-                        bottle_id=bottle_id,
-                        is_garnish=False,
-                        is_optional=False,
-                        sort_order=None,
-                    )
-                )
+            )
 
         await db.commit()
 
@@ -279,57 +221,19 @@ async def update_cocktail_recipe(
             await db.delete(ri)
         await db.flush()
 
-        if cocktail.recipe_ingredients:
-            for ri in cocktail.recipe_ingredients:
-                db.add(
-                    RecipeIngredientModel(
-                        recipe_id=cocktail_id,
-                        ingredient_id=ri.ingredient_id,
-                        quantity=ri.quantity,
-                        unit=ri.unit,
-                        bottle_id=ri.bottle_id,
-                        is_garnish=ri.is_garnish,
-                        is_optional=ri.is_optional,
-                        sort_order=ri.sort_order,
-                    )
+        for ri in cocktail.recipe_ingredients:
+            db.add(
+                RecipeIngredientModel(
+                    recipe_id=cocktail_id,
+                    ingredient_id=ri.ingredient_id,
+                    quantity=ri.quantity,
+                    unit=ri.unit,
+                    bottle_id=ri.bottle_id,
+                    is_garnish=ri.is_garnish,
+                    is_optional=ri.is_optional,
+                    sort_order=ri.sort_order,
                 )
-        elif cocktail.ingredients:
-            for ingredient_data in cocktail.ingredients:
-                ingredient_result = await db.execute(
-                    select(IngredientModel).where(
-                        func.lower(IngredientModel.name) == ingredient_data.name.lower()
-                    )
-                )
-                ingredient = ingredient_result.scalar_one_or_none()
-                if not ingredient:
-                    ingredient = IngredientModel(name=ingredient_data.name)
-                    db.add(ingredient)
-                    await db.flush()
-
-                bottle_id = ingredient_data.ingredient_brand_id
-                if bottle_id is not None:
-                    bottle_result = await db.execute(select(BottleModel).where(BottleModel.id == bottle_id))
-                    bottle = bottle_result.scalar_one_or_none()
-                    if not bottle:
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"bottle_id {bottle_id} not found",
-                        )
-                    if bottle.ingredient_id != ingredient.id:
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="bottle_id does not belong to the specified ingredient",
-                        )
-
-                db.add(
-                    RecipeIngredientModel(
-                        recipe_id=cocktail_id,
-                        ingredient_id=ingredient.id,
-                        quantity=float(ingredient_data.ml),
-                        unit="ml",
-                        bottle_id=bottle_id,
-                    )
-                )
+            )
 
         await db.commit()
 

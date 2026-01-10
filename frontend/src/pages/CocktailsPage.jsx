@@ -23,10 +23,6 @@ const CocktailsPage = () => {
     if (Array.isArray(ris) && ris.length > 0) {
       return ris.map((ri) => (ri.ingredient_name || '').trim()).filter(Boolean)
     }
-    const legacy = cocktail?.ingredients
-    if (Array.isArray(legacy) && legacy.length > 0) {
-      return legacy.map((ing) => (ing?.name || '').trim()).filter(Boolean)
-    }
     return []
   }
 
@@ -251,20 +247,20 @@ const CocktailsPage = () => {
               <li key={`${c.name}-${idx}`}>
                 <div className="cocktail-item">
                   <div className="cocktail-info">
-                    {(c.picture_url || c.image_url) && !failedImages.has(c.id) ? (
+                    {c.picture_url && !failedImages.has(c.id) ? (
                       <img
-                        src={c.picture_url || c.image_url}
+                        src={c.picture_url}
                         alt={c.name}
                         className="cocktail-image"
                             onError={() => {
-                          console.error('Failed to load image:', (c.picture_url || c.image_url), 'for cocktail:', c.name)
+                          console.error('Failed to load image:', c.picture_url, 'for cocktail:', c.name)
                           setFailedImages(prev => new Set(prev).add(c.id))
                         }}
-                        onLoad={() => console.log('Image loaded successfully:', (c.picture_url || c.image_url))}
+                        onLoad={() => console.log('Image loaded successfully:', c.picture_url)}
                       />
                     ) : (
                       <div className="cocktail-image-placeholder">
-                        {(c.picture_url || c.image_url) ? 'Invalid Image' : 'No Image'}
+                        {c.picture_url ? 'Invalid Image' : 'No Image'}
                       </div>
                     )}
                     <div className="cocktail-details">
@@ -302,14 +298,7 @@ const CocktailsPage = () => {
                       )}
                 </div>
                 <ul>
-                  {(c.recipe_ingredients && c.recipe_ingredients.length > 0
-                    ? c.recipe_ingredients
-                    : (c.ingredients || []).map((ing) => ({
-                        ingredient_name: ing.name,
-                        quantity: ing.ml,
-                        unit: 'ml',
-                      }))
-                  ).map((ri, i) => (
+                  {(c.recipe_ingredients || []).map((ri, i) => (
                     <li key={`${ri.ingredient_name}-${i}`}>
                       {ri.ingredient_name} - {ri.quantity} {ri.unit}
                     </li>

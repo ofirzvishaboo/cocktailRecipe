@@ -6,30 +6,21 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
     const [ingredientsCatalog, setIngredientsCatalog] = useState([])
     const [brandsByIngredientId, setBrandsByIngredientId] = useState({})
     const [brandOptionsByIndex, setBrandOptionsByIndex] = useState(
-        (initialCocktail?.recipe_ingredients || initialCocktail?.ingredients || []).map(() => []) || [[]]
+        (initialCocktail?.recipe_ingredients || []).map(() => []) || [[]]
     )
 
     const [form, setForm] = useState({
         name: initialCocktail?.name || '',
         description: initialCocktail?.description || '',
-        ingredients: (initialCocktail?.recipe_ingredients
-            ? (initialCocktail.recipe_ingredients || []).map((ri) => ({
-                name: ri.ingredient_name || '',
-                ingredient_id: ri.ingredient_id || '',
-                amount: ri.quantity !== undefined ? String(ri.quantity) : '',
-                unit: ri.unit || 'ml',
-                bottle_id: ri.bottle_id || '',
-            }))
-            : (initialCocktail?.ingredients || []).map((ing) => ({
-                name: ing.name || '',
-                ingredient_id: '',
-                amount: ing.ml !== undefined ? String(ing.ml) : '',
-                unit: 'ml',
-                bottle_id: ing.ingredient_brand_id || '',
-            }))
-        ) || [{ name: '', ingredient_id: '', amount: '', unit: 'ml', bottle_id: '' }],
-        imageUrl: initialCocktail?.picture_url || initialCocktail?.image_url || '',
-        imagePreview: initialCocktail?.picture_url || initialCocktail?.image_url || '',
+        ingredients: (initialCocktail?.recipe_ingredients || []).map((ri) => ({
+            name: ri.ingredient_name || '',
+            ingredient_id: ri.ingredient_id || '',
+            amount: ri.quantity !== undefined ? String(ri.quantity) : '',
+            unit: ri.unit || 'ml',
+            bottle_id: ri.bottle_id || '',
+        })) || [{ name: '', ingredient_id: '', amount: '', unit: 'ml', bottle_id: '' }],
+        imageUrl: initialCocktail?.picture_url || '',
+        imagePreview: initialCocktail?.picture_url || '',
         submitting: false,
     })
 
@@ -239,11 +230,11 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
 
             if (isEdit) {
                 const response = await api.put(`/cocktail-recipes/${id}`, newCocktail)
-                // Use the API response which includes all fields (created_at, image_url, etc.)
+                // Use the API response which includes all fields
                 AddCocktail(response.data)
             } else {
                 const response = await api.post(`/cocktail-recipes/`, newCocktail)
-                // Use the API response which includes all fields (created_at, image_url, etc.)
+                // Use the API response which includes all fields
                 AddCocktail(response.data)
             }
 

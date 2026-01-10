@@ -111,10 +111,6 @@ export default function CocktailScaler() {
         if (Array.isArray(ris) && ris.length > 0) {
             return ris.map((ri) => (ri.ingredient_name || '').trim()).filter(Boolean)
         }
-        const legacy = cocktail?.ingredients
-        if (Array.isArray(legacy) && legacy.length > 0) {
-            return legacy.map((ing) => (ing?.name || '').trim()).filter(Boolean)
-        }
         return []
     }
 
@@ -174,7 +170,7 @@ export default function CocktailScaler() {
         const payload = {
             name: selectedCocktail.name,
             description: selectedCocktail.description || null,
-            picture_url: selectedCocktail.picture_url || selectedCocktail.image_url || null,
+            picture_url: selectedCocktail.picture_url || null,
             recipe_ingredients: (selectedCocktail.recipe_ingredients || []).map((ri, idx) => {
                 const key = (ri.ingredient_name || '').trim().toLowerCase()
                 return {
@@ -260,18 +256,13 @@ export default function CocktailScaler() {
                 const ingredientQueries = query.split(',').map(q => q.trim()).filter(q => q.length > 0);
 
                 const filtered = cocktails.filter(cocktail => {
-                    // Skip cocktails without ingredients
-                    if (!cocktail.ingredients || !Array.isArray(cocktail.ingredients) || cocktail.ingredients.length === 0) {
-                        return false;
-                    }
+                    const names = getIngredientNamesForCocktail(cocktail).map((n) => n.toLowerCase())
+                    if (names.length === 0) return false;
 
                     // Check if all ingredient queries match (using startsWith)
                     // Each query must match at least one ingredient
                     return ingredientQueries.every(ingQuery => {
-                        return cocktail.ingredients.some(ing => {
-                            if (!ing || !ing.name) return false;
-                            return ing.name.toLowerCase().startsWith(ingQuery);
-                        });
+                        return names.some((n) => n.startsWith(ingQuery))
                     });
                 });
                 setFilteredCocktails(filtered);
@@ -296,14 +287,7 @@ export default function CocktailScaler() {
         setSelectedCocktailId(cocktail.id);
         setSelectedCocktail(cocktail);
         setRecipeName(cocktail.name);
-        const ris = (cocktail.recipe_ingredients && cocktail.recipe_ingredients.length)
-            ? cocktail.recipe_ingredients
-            : (cocktail.ingredients || []).map((ing) => ({
-                ingredient_name: ing.name,
-                quantity: ing.ml,
-                unit: 'ml',
-                bottle_id: ing.ingredient_brand_id || '',
-            }))
+        const ris = cocktail.recipe_ingredients || []
 
         if (ris.length > 0) {
             const formattedIngredients = ris.map((ri) => ({

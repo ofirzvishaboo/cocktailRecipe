@@ -111,13 +111,11 @@ async def reset_db(session):
     # Keep users. Wipe everything else (normalized + legacy) so you get a clean dataset.
     # Order matters; use CASCADE to keep it simple.
     await session.execute(text("TRUNCATE TABLE recipe_ingredients CASCADE"))
-    await session.execute(text("TRUNCATE TABLE cocktail_ingredients CASCADE"))
     await session.execute(text("TRUNCATE TABLE cocktail_recipes CASCADE"))
 
     await session.execute(text("TRUNCATE TABLE bottle_prices CASCADE"))
     await session.execute(text("TRUNCATE TABLE bottles CASCADE"))
 
-    await session.execute(text("TRUNCATE TABLE ingredient_brands CASCADE"))
     await session.execute(text("TRUNCATE TABLE ingredients CASCADE"))
 
     await session.execute(text("TRUNCATE TABLE brands CASCADE"))

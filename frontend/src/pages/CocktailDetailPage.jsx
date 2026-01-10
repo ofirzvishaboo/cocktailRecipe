@@ -107,16 +107,16 @@ const CocktailDetailPage = () => {
 
       <div className="cocktail-detail-content">
         <div className="cocktail-detail-image">
-          {(cocktail.picture_url || cocktail.image_url) && !imageError ? (
+          {cocktail.picture_url && !imageError ? (
             <img
-              src={cocktail.picture_url || cocktail.image_url}
+              src={cocktail.picture_url}
               alt={cocktail.name}
               className="cocktail-detail-image-large"
               onError={() => setImageError(true)}
             />
           ) : (
             <div className="cocktail-image-placeholder-large">
-              {(cocktail.picture_url || cocktail.image_url) ? 'Invalid Image' : 'No Image'}
+              {cocktail.picture_url ? 'Invalid Image' : 'No Image'}
             </div>
           )}
         </div>
@@ -175,19 +175,9 @@ const CocktailDetailPage = () => {
                   </li>
                 ))}
               </ul>
-            ) : (cocktail.ingredients && cocktail.ingredients.length > 0 ? (
-              <ul className="ingredients-list-detailed">
-                {cocktail.ingredients.map((ing, i) => (
-                  <li key={`${ing.name}-${i}`} className="ingredient-item-detailed">
-                    <span className="ingredient-name">{ing.name}</span>
-                    <span className="ingredient-brand">-</span>
-                    <span className="ingredient-amount">{ing.ml} ml</span>
-                  </li>
-                ))}
-              </ul>
             ) : (
               <p>No ingredients listed.</p>
-            ))}
+            )}
           </div>
         </div>
       </div>
