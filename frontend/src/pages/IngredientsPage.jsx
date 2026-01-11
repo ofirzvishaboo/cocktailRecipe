@@ -10,8 +10,10 @@ function IngredientsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [brandSuggestions, setBrandSuggestions] = useState([])
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [pendingDeleteIngredientId, setPendingDeleteIngredientId] = useState(null)
+  const [pendingDeleteUsedBy, setPendingDeleteUsedBy] = useState({ loading: false, error: '', cocktails: [] })
   const [editingIngredient, setEditingIngredient] = useState(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [expandedIngredientIds, setExpandedIngredientIds] = useState(() => new Set())
@@ -28,6 +30,20 @@ function IngredientsPage() {
 
   useEffect(() => {
     loadIngredients()
+  }, [])
+
+  const loadBrandSuggestions = async () => {
+    try {
+      const res = await api.get('/brands/suggestions')
+      setBrandSuggestions(res.data || [])
+    } catch (e) {
+      console.error('Failed to load brand suggestions', e)
+      setBrandSuggestions([])
+    }
+  }
+
+  useEffect(() => {
+    loadBrandSuggestions()
   }, [])
 
   const loadIngredients = async () => {
@@ -111,6 +127,7 @@ function IngredientsPage() {
             price: bottlePrice,
             currency: 'ILS',
           })
+          await loadBrandSuggestions()
           // Refresh cache for this ingredient if user expands later
           setBrandsByIngredientId((prev) => ({
             ...prev,
@@ -129,9 +146,21 @@ function IngredientsPage() {
     }
   }
 
-  const requestRemoveIngredient = (ingredientId) => {
+  const requestRemoveIngredient = async (ingredientId) => {
     setPendingDeleteIngredientId(ingredientId)
+    setPendingDeleteUsedBy({ loading: true, error: '', cocktails: [] })
     setDeleteConfirmOpen(true)
+    try {
+      const res = await api.get(`/ingredients/${ingredientId}/used-by`)
+      setPendingDeleteUsedBy({ loading: false, error: '', cocktails: res.data || [] })
+    } catch (e) {
+      console.error('Failed to load ingredient usage', e)
+      setPendingDeleteUsedBy({
+        loading: false,
+        error: 'Failed to load usage list. Is the backend restarted?',
+        cocktails: [],
+      })
+    }
   }
 
   const removeIngredient = async () => {
@@ -157,6 +186,7 @@ function IngredientsPage() {
     } finally {
       setDeleteConfirmOpen(false)
       setPendingDeleteIngredientId(null)
+      setPendingDeleteUsedBy({ loading: false, error: '', cocktails: [] })
     }
   }
 
@@ -246,6 +276,7 @@ function IngredientsPage() {
       })
       updateBrandForm(ingredientId, { brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
       await loadBrands(ingredientId)
+      await loadBrandSuggestions()
     } catch (e) {
       updateBrandForm(ingredientId, { submitting: false })
       setError('Failed to create brand')
@@ -301,6 +332,7 @@ function IngredientsPage() {
       })
       cancelEditBrand(brandId)
       await loadBrands(ingredientId)
+      await loadBrandSuggestions()
     } catch (e) {
       updateEditingBrand(brandId, { submitting: false })
       setError('Failed to update brand')
@@ -357,6 +389,7 @@ function IngredientsPage() {
                   placeholder="Brand (optional)"
                   value={form.brand_name}
                   onChange={(e) => setForm(prev => ({ ...prev, brand_name: e.target.value }))}
+                  list="brand-suggestions-global"
                   className="form-input form-input-small"
                 />
                 <input
@@ -499,6 +532,7 @@ function IngredientsPage() {
                                         value={eb.brand_name}
                                         onChange={(e) => updateEditingBrand(b.id, { brand_name: e.target.value })}
                                         placeholder="Brand name"
+                                        list="brand-suggestions-global"
                                       />
                                       <input
                                         className="form-input form-input-small"
@@ -578,6 +612,7 @@ function IngredientsPage() {
                               value={brandFormByIngredientId?.[ing.id]?.brand_name ?? ''}
                               onChange={(e) => updateBrandForm(ing.id, { brand_name: e.target.value })}
                               placeholder="Brand name"
+                              list="brand-suggestions-global"
                             />
                             <input
                               className="form-input form-input-small"
@@ -620,16 +655,48 @@ function IngredientsPage() {
       <ConfirmDialog
         open={deleteConfirmOpen}
         title="Delete ingredient?"
-        message={`Are you sure you want to delete "${ingredients.find(i => i.id === pendingDeleteIngredientId)?.name || ''}"? This cannot be undone.`}
+        message={
+          <div>
+            <div style={{ marginBottom: 8 }}>
+              This ingredient is being used by:
+            </div>
+            {pendingDeleteUsedBy.loading ? (
+              <div style={{ marginBottom: 12 }}>Loading…</div>
+            ) : pendingDeleteUsedBy.error ? (
+              <div style={{ marginBottom: 12 }}>{pendingDeleteUsedBy.error}</div>
+            ) : Array.isArray(pendingDeleteUsedBy.cocktails) && pendingDeleteUsedBy.cocktails.length > 0 ? (
+              <ul style={{ marginTop: 0, marginBottom: 12, paddingLeft: 18 }}>
+                {pendingDeleteUsedBy.cocktails.map((c) => (
+                  <li key={c.id}>{c.name}</li>
+                ))}
+              </ul>
+            ) : (
+              <div style={{ marginBottom: 12 }}>No cocktails</div>
+            )}
+            <div>
+              Are you sure you want to delete &quot;{ingredients.find(i => i.id === pendingDeleteIngredientId)?.name || ''}&quot;?
+            </div>
+          </div>
+        }
         confirmText="Delete"
         cancelText="Cancel"
         variant="danger"
         onCancel={() => {
           setDeleteConfirmOpen(false)
           setPendingDeleteIngredientId(null)
+          setPendingDeleteUsedBy({ loading: false, error: '', cocktails: [] })
         }}
         onConfirm={removeIngredient}
       />
+
+      {/* Global brand suggestions for all brand inputs (Add Ingredient / Add Brand / Edit Brand) */}
+      <datalist id="brand-suggestions-global">
+        {(brandSuggestions || [])
+          .map((n) => (n || '').trim())
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b))
+          .map((name) => <option key={name} value={name} />)}
+      </datalist>
     </div>
   )
 }

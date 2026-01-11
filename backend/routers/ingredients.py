@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 from schemas.ingredient import (
     IngredientCreate,
     IngredientUpdate,
@@ -9,11 +9,15 @@ from schemas.ingredient import (
     BottlePriceCreate,
     BottlePriceUpdate,
 )
+import logging
 from db.database import (
     get_async_session,
     Ingredient as IngredientModel,
     Bottle as BottleModel,
     BottlePrice as BottlePriceModel,
+    CocktailRecipe as CocktailRecipeModel,
+    RecipeIngredient as RecipeIngredientModel,
+    Brand as BrandModel,
 )
 from typing import List, Dict
 from uuid import UUID
@@ -22,6 +26,22 @@ from db.users import User
 from datetime import date
 
 router = APIRouter()
+
+
+async def _ensure_brand_id_from_name(db: AsyncSession, name: str):
+    """Create (or reuse) a Brand by name (case-insensitive). Returns brand_id or None."""
+    n = (name or "").strip()
+    if not n:
+        return None
+    res = await db.execute(select(BrandModel).where(func.lower(BrandModel.name) == n.lower()))
+    existing = res.scalar_one_or_none()
+    if existing:
+        return existing.id
+    m = BrandModel(name=n)
+    db.add(m)
+    # Flush so we can use the id in the same transaction without committing yet.
+    await db.flush()
+    return m.id
 
 @router.get("/", response_model=List[Dict])
 async def get_ingredients(db: AsyncSession = Depends(get_async_session)):
@@ -108,6 +128,21 @@ async def update_ingredient(ingredient_id: UUID, ingredient: IngredientUpdate, u
     return ingredient_model.to_schema
 
 
+@router.get("/{ingredient_id}/used-by", response_model=List[Dict])
+async def get_ingredient_used_by(ingredient_id: UUID, db: AsyncSession = Depends(get_async_session)):
+    """List cocktails that use this ingredient (via recipe_ingredients)."""
+    res = await db.execute(
+        select(CocktailRecipeModel.id, CocktailRecipeModel.name)
+        .join(RecipeIngredientModel, RecipeIngredientModel.recipe_id == CocktailRecipeModel.id)
+        .where(RecipeIngredientModel.ingredient_id == ingredient_id)
+        .distinct()
+        .order_by(CocktailRecipeModel.name.asc())
+    )
+    rows = res.all()
+    logging.info(f"Ingredient {ingredient_id} used by {rows}")
+    return [{"id": r[0], "name": r[1]} for r in rows]
+
+
 @router.get("/{ingredient_id}/bottles", response_model=List[Dict])
 async def list_bottles_for_ingredient(ingredient_id: UUID, db: AsyncSession = Depends(get_async_session)):
     """List bottles (SKUs) for an ingredient, with current price if present."""
@@ -172,8 +207,14 @@ async def create_bottle_for_ingredient(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
 
     ing_result = await db.execute(select(IngredientModel).where(IngredientModel.id == ingredient_id))
-    if not ing_result.scalar_one_or_none():
+    ingredient_model = ing_result.scalar_one_or_none()
+    if not ingredient_model:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ingredient not found")
+
+    # Ensure the Brand exists and link it to the ingredient.
+    brand_id = await _ensure_brand_id_from_name(db, bottle.name)
+    if brand_id:
+        ingredient_model.brand_id = brand_id
 
     if bottle.is_default_cost:
         # unset other defaults
@@ -221,6 +262,13 @@ async def update_bottle(
 
     if bottle.name is not None:
         bottle_model.name = bottle.name
+        # Also ensure the Brand exists and link it to the ingredient.
+        ing_res = await db.execute(select(IngredientModel).where(IngredientModel.id == bottle_model.ingredient_id))
+        ingredient_model = ing_res.scalar_one_or_none()
+        if ingredient_model:
+            brand_id = await _ensure_brand_id_from_name(db, bottle.name)
+            if brand_id:
+                ingredient_model.brand_id = brand_id
     if bottle.volume_ml is not None:
         bottle_model.volume_ml = bottle.volume_ml
     if bottle.importer_id is not None:
@@ -337,12 +385,8 @@ async def delete_ingredient(ingredient_id: UUID, user: User = Depends(current_ac
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Ingredient with id {ingredient_id} not found"
         )
-    # Only superusers can delete ingredients (ingredients are shared resources)
-    if not user.is_superuser:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not allowed to delete this ingredient"
-        )
+    # Remove from cocktails first (ingredient FK is RESTRICT on recipe_ingredients)
+    await db.execute(delete(RecipeIngredientModel).where(RecipeIngredientModel.ingredient_id == ingredient_id))
     await db.delete(ingredient_model)
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -48,6 +48,33 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
         return match?.id || null
     }
 
+    const ensureIngredientId = async (rawName, submitCache) => {
+        const name = (rawName || '').trim()
+        const key = name.toLowerCase()
+        if (!name) return null
+
+        // 1) Already in the loaded catalog
+        const existingId = findIngredientIdByName(name)
+        if (existingId) return existingId
+
+        // 2) Already created during this submit
+        if (submitCache.has(key)) return submitCache.get(key)
+
+        // 3) Create new ingredient
+        const res = await api.post('/ingredients/', { name })
+        const created = res?.data
+        if (!created?.id) throw new Error('Failed to create ingredient (missing id)')
+
+        submitCache.set(key, created.id)
+        setIngredientsCatalog((prev) => {
+            const prevArr = Array.isArray(prev) ? prev : []
+            // Avoid duplicating if backend returned an existing ingredient we didn't have locally.
+            const already = prevArr.some((i) => (i?.id && i.id === created.id))
+            return already ? prevArr : [...prevArr, created]
+        })
+        return created.id
+    }
+
     const loadBrandsForIngredientId = async (ingredientId) => {
         if (!ingredientId) return []
         if (brandsByIngredientId[ingredientId]) return brandsByIngredientId[ingredientId]
@@ -197,23 +224,38 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        const ingredientsArray = form.ingredients
-            .filter((ing) => {
-                const ingredientId = ing.ingredient_id || findIngredientIdByName(ing.name)
-                return ingredientId && ing.amount !== '' && !isNaN(Number(ing.amount))
-            })
-            .map((ing, idx) => {
-                const ingredientId = ing.ingredient_id || findIngredientIdByName(ing.name)
-                return {
-                    ingredient_id: ingredientId,
-                    quantity: Number(ing.amount),
-                    unit: (ing.unit || 'ml').toLowerCase(),
-                    bottle_id: ing.bottle_id ? ing.bottle_id : null,
-                    sort_order: idx + 1,
-                    is_garnish: false,
-                    is_optional: false,
-                }
-            })
+        const submitCache = new Map()
+
+        const rows = (form.ingredients || [])
+            .map((ing) => ({
+                ...ing,
+                name: (ing?.name || '').trim(),
+                amount: ing?.amount,
+            }))
+            .filter((ing) => ing.name && ing.amount !== '' && !isNaN(Number(ing.amount)))
+
+        if (!form.name || rows.length === 0) return
+
+        let ingredientIdsByIndex = []
+        try {
+            ingredientIdsByIndex = await Promise.all(
+                rows.map(async (ing) => ing.ingredient_id || await ensureIngredientId(ing.name, submitCache))
+            )
+        } catch (err) {
+            console.error('Failed to create missing ingredients', err)
+            alert('Failed to create a new ingredient. Are you logged in?')
+            return
+        }
+
+        const ingredientsArray = rows.map((ing, idx) => ({
+            ingredient_id: ingredientIdsByIndex[idx],
+            quantity: Number(ing.amount),
+            unit: (ing.unit || 'ml').toLowerCase(),
+            bottle_id: ing.bottle_id ? ing.bottle_id : null,
+            sort_order: idx + 1,
+            is_garnish: false,
+            is_optional: false,
+        }))
 
         if (!form.name || ingredientsArray.length === 0) return
 

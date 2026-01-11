@@ -23,6 +23,8 @@ export default function ConfirmDialog({
 
   if (!open) return null
 
+  const isPlainString = typeof message === 'string'
+
   return (
     <div className="modal-overlay" role="presentation" onMouseDown={onCancel}>
       <div
@@ -36,7 +38,11 @@ export default function ConfirmDialog({
           <h3 id="confirm-dialog-title" className="modal-title">{title}</h3>
         </div>
         <div className="modal-body">
-          <p className="modal-text">{message}</p>
+          {isPlainString ? (
+            <p className="modal-text">{message}</p>
+          ) : (
+            <div className="modal-text">{message}</div>
+          )}
         </div>
         <div className="modal-actions">
           <button type="button" className="button-secondary" onClick={onCancel}>
