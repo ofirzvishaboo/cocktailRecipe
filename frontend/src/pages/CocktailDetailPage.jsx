@@ -202,35 +202,41 @@ const CocktailDetailPage = () => {
           )}
 
           <div className="cocktail-meta">
-            {cocktail.user && (
-              <div className="meta-item">
-                <strong>Created by:</strong> {cocktail.user.email}
+            <div className="meta-grid">
+              {cocktail.user && (
+                <div className="meta-row">
+                  <span className="meta-label">Created by</span>
+                  <span className="meta-value">{cocktail.user.email}</span>
+                </div>
+              )}
+              {cocktail.created_at && (
+                <div className="meta-row">
+                  <span className="meta-label">Created</span>
+                  <span className="meta-value">{new Date(cocktail.created_at).toLocaleString()}</span>
+                </div>
+              )}
+              <div className="meta-row">
+                <span className="meta-label">Glass</span>
+                <span className="meta-value">{glassTypeLabel}</span>
               </div>
-            )}
-            {cocktail.created_at && (
-              <div className="meta-item">
-                <strong>Created:</strong> {new Date(cocktail.created_at).toLocaleString()}
+              <div className="meta-row">
+                <span className="meta-label">Garnish</span>
+                <span className="meta-value">{cocktail.garnish_text || '-'}</span>
               </div>
-            )}
-            <div className="meta-item">
-              <strong>Glass:</strong> {glassTypeLabel}
-            </div>
-            <div className="meta-item">
-              <strong>Garnish:</strong> {cocktail.garnish_text || '-'}
             </div>
           </div>
 
-          <div className="cocktail-ingredients-section">
-            <h2>Ingredients</h2>
+          <div className="cocktail-ingredients-section detail-section">
+            <div className="detail-section-header">
+              <h2>Ingredients</h2>
+            </div>
             {(cocktail.recipe_ingredients && cocktail.recipe_ingredients.length > 0) ? (
               <ul className="ingredients-list-detailed">
                 {cocktail.recipe_ingredients.map((ri, i) => (
                   <li key={`${ri.ingredient_id}-${i}`} className="ingredient-item-detailed">
                     <span className="ingredient-name">{ri.ingredient_name || 'Unknown'}</span>
                     <span className="ingredient-brand">{ri.bottle_name || '-'}</span>
-                    <span className="ingredient-amount">
-                      {ri.quantity} {ri.unit}
-                    </span>
+                    <span className="ingredient-amount">{ri.quantity} {ri.unit}</span>
                   </li>
                 ))}
               </ul>
@@ -239,30 +245,31 @@ const CocktailDetailPage = () => {
             )}
           </div>
 
-          <div className="cocktail-ingredients-section">
-            <h2>Cost</h2>
+          <div className="cocktail-ingredients-section detail-section">
+            <div className="detail-section-header">
+              <h2>Cost</h2>
+              {costData && !costLoading && !costError && (
+                <div className="cost-pill">
+                  Total: {formatMoney(
+                    costData.total_cocktail_cost,
+                    costData?.lines?.find((l) => l?.currency)?.currency || 'ILS'
+                  )}
+                </div>
+              )}
+            </div>
             {costLoading ? (
               <p>Loading cost...</p>
             ) : costError ? (
               <p className="error-message">{costError}</p>
             ) : costData ? (
               <>
-                <div className="meta-item">
-                  <strong>Total:</strong>{' '}
-                  {formatMoney(
-                    costData.total_cocktail_cost,
-                    costData?.lines?.find((l) => l?.currency)?.currency || 'ILS'
-                  )}
-                </div>
                 {(costData.lines && costData.lines.length > 0) ? (
                   <ul className="ingredients-list-detailed">
                     {costData.lines.map((line, i) => (
                       <li key={`${line.ingredient_name}-${i}`} className="ingredient-item-detailed">
                         <span className="ingredient-name">{line.ingredient_name || 'Unknown'}</span>
                         <span className="ingredient-brand">{line.bottle_name || '-'}</span>
-                        <span className="ingredient-amount">
-                          {formatMoney(line.ingredient_cost, line.currency || 'ILS')}
-                        </span>
+                        <span className="ingredient-amount">{formatMoney(line.ingredient_cost, line.currency || 'ILS')}</span>
                       </li>
                     ))}
                   </ul>

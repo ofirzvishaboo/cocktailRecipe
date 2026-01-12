@@ -319,7 +319,6 @@ export default function CocktailScaler() {
 
     return (
         <div className="cocktail-scaler">
-            <h2>Cocktail Recipe Scaler</h2>
 
             <div className="scaler-grid">
                 <div className="scaler-left">

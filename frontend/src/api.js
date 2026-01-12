@@ -26,6 +26,14 @@ const api = axios.create({
 // Add request interceptor for debugging
 api.interceptors.request.use(
     (config) => {
+        // Always attach token if present (prevents "random" 401s when defaults get lost)
+        const token = localStorage.getItem('token')
+        if (token) {
+            config.headers = config.headers || {}
+            if (!config.headers.Authorization) {
+                config.headers.Authorization = `Bearer ${token}`
+            }
+        }
         console.log(`Making ${config.method?.toUpperCase()} request to: ${config.url}`)
         return config
     },

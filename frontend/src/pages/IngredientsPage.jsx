@@ -453,7 +453,6 @@ function IngredientsPage() {
       {error && <div className="error-message">{error}</div>}
 
       <div className="ingredients-list">
-        <h3>All Ingredients</h3>
         {loading && <div className="loading">Loading...</div>}
         {!loading && (
           <ul>

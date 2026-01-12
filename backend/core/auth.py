@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 SECRET = os.getenv("SECRET", "SECRET")  # Should be in environment variables
+JWT_LIFETIME_SECONDS = int(os.getenv("JWT_LIFETIME_SECONDS", "604800"))  # default: 7 days
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
@@ -24,7 +25,7 @@ async def get_user_manager(user_db: SQLAlchemyUserDatabase[User, uuid.UUID] = De
 bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
 
 def get_jwt_strategy() -> JWTStrategy:
-    return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
+    return JWTStrategy(secret=SECRET, lifetime_seconds=JWT_LIFETIME_SECONDS)
 
 auth_backend = AuthenticationBackend(
     name="jwt",

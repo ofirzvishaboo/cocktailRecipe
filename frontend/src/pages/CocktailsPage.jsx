@@ -26,6 +26,13 @@ const CocktailsPage = () => {
     return []
   }
 
+  const getIngredientChips = (cocktail, max = 7) => {
+    const names = getIngredientNames(cocktail)
+    const shown = names.slice(0, max)
+    const remaining = Math.max(0, names.length - shown.length)
+    return { shown, remaining }
+  }
+
   const requestRemoveCocktail = (cocktailId) => {
     setPendingDeleteCocktailId(cocktailId)
     setDeleteConfirmOpen(true)
@@ -140,7 +147,6 @@ const CocktailsPage = () => {
       try {
         setLoading(true)
         const res = await api.get('/cocktail-recipes/')
-        console.log('Loaded cocktails:', res.data)
         setCocktails(res.data || [])
         setFilteredCocktails(res.data || [])
       } catch (e) {
@@ -233,89 +239,84 @@ const CocktailsPage = () => {
           </div>
 
           <div className="cocktails-list">
-            <h3>All Cocktails</h3>
-        {loading && <div>Loading...</div>}
-        {error && <div className="error-message">{error}</div>}
-        {!loading && !error && (
-          <>
-            {filteredCocktails.length === 0 ? (
-              <p>
-                {searchQuery.trim()
-                  ? `No cocktails found matching "${searchQuery}"`
-                  : cocktails.length === 0
-                    ? `No cocktails found. ${!isAuthenticated ? 'Log in to create the first one!' : ''}`
-                    : 'No cocktails match your search.'}
-              </p>
-            ) : (
-          <ul>
-            {filteredCocktails.map((c, idx) => (
-              <li key={`${c.name}-${idx}`}>
-                <div className="cocktail-item">
-                  <div className="cocktail-info">
-                    {c.picture_url && !failedImages.has(c.id) ? (
-                      <img
-                        src={c.picture_url}
-                        alt={c.name}
-                        className="cocktail-image"
-                            onError={() => {
-                          console.error('Failed to load image:', c.picture_url, 'for cocktail:', c.name)
-                          setFailedImages(prev => new Set(prev).add(c.id))
-                        }}
-                        onLoad={() => console.log('Image loaded successfully:', c.picture_url)}
-                      />
-                    ) : (
-                      <div className="cocktail-image-placeholder">
-                        {c.picture_url ? 'Invalid Image' : 'No Image'}
-                      </div>
-                    )}
-                    <div className="cocktail-details">
-                      <Link to={`/cocktails/${c.id}`} className="cocktail-name-link">
-                      <strong>{c.name}</strong>
-                      </Link>
-                      {c.user && (
-                        <span className="created-by">
-                          Created by: {c.user.email}
-                        </span>
-                      )}
-                      {c.created_at && (
-                        <span className="created-at">
-                          Created: {new Date(c.created_at).toLocaleString()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                      {isAuthenticated && isOwner(c) && (
-                  <div>
-                    <button
-                      onClick={() => editCocktail(c)}
-                      className="button-edit"
-                      disabled={!c.id}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => requestRemoveCocktail(c.id)}
-                      className="button-remove"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                      )}
-                </div>
-                <ul>
-                  {(c.recipe_ingredients || []).map((ri, i) => (
-                    <li key={`${ri.ingredient_name}-${i}`}>
-                      {ri.ingredient_name} - {ri.quantity} {ri.unit}
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
+
+            {loading && <div className="loading">Loading...</div>}
+            {error && <div className="error-message">{error}</div>}
+            {!loading && !error && (
+              <>
+                {filteredCocktails.length === 0 ? (
+                  <p>
+                    {searchQuery.trim()
+                      ? `No cocktails found matching "${searchQuery}"`
+                      : cocktails.length === 0
+                        ? `No cocktails found. ${!isAuthenticated ? 'Log in to create the first one!' : ''}`
+                        : 'No cocktails match your search.'}
+                  </p>
+                ) : (
+                  <ul className="cocktails-grid">
+                    {filteredCocktails.map((c) => {
+                      const chips = getIngredientChips(c)
+                      return (
+                        <li key={c.id || c.name}>
+                          <div className="cocktail-card">
+                            <Link to={`/cocktails/${c.id}`} className="cocktail-card-link">
+                              <div className="cocktail-card-media">
+                                {c.picture_url && !failedImages.has(c.id) ? (
+                                  <img
+                                    src={c.picture_url}
+                                    alt={c.name}
+                                    className="cocktail-card-image"
+                                    onError={() => {
+                                      setFailedImages((prev) => new Set(prev).add(c.id))
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="cocktail-card-image-placeholder">
+                                    {c.picture_url ? 'Invalid Image' : 'No Image'}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="cocktail-card-body">
+                                <div className="cocktail-card-title">{c.name}</div>
+                                {(chips.shown.length > 0) && (
+                                  <div className="ingredient-chips">
+                                    {chips.shown.map((name) => (
+                                      <span key={name} className="ingredient-chip">{name}</span>
+                                    ))}
+                                    {chips.remaining > 0 && (
+                                      <span className="ingredient-chip ingredient-chip-more">+{chips.remaining} more</span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </Link>
+
+                            {isAuthenticated && isOwner(c) && (
+                              <div className="cocktail-card-actions">
+                                <button
+                                  onClick={() => editCocktail(c)}
+                                  className="button-edit"
+                                  disabled={!c.id}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => requestRemoveCocktail(c.id)}
+                                  className="button-remove"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </>
             )}
-          </>
-        )}
-      </div>
+          </div>
         </>
       )}
 

@@ -17,9 +17,11 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <Link to="/" className="navbar-title-link">
-          <h1 className="navbar-title">🍹 Cocktail Recipe Manager</h1>
-        </Link>
+        <div className="navbar-left">
+          <Link to="/" className="navbar-title-link" onClick={handleNavClick}>
+            <span className="navbar-title">Cocktail Recipe Manager</span>
+          </Link>
+        </div>
         <button
           type="button"
           className="navbar-toggle"
@@ -32,46 +34,51 @@ const Navbar = () => {
           <span />
         </button>
         <div className={`navbar-links ${isMenuOpen ? 'open' : ''}`}>
-          <Link
-            to="/"
-            className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
-            onClick={handleNavClick}
-          >
-            Cocktails
-          </Link>
-          <Link
-            to="/ingredients"
-            className={`nav-link ${location.pathname === '/ingredients' ? 'active' : ''}`}
-            onClick={handleNavClick}
-          >
-            Ingredients
-          </Link>
-          <Link
-            to="/cocktail-scaler"
-            className={`nav-link ${location.pathname === '/cocktail-scaler' ? 'active' : ''}`}
-            onClick={handleNavClick}
-          >
-            Cocktail Scaler
-          </Link>
-          {isAuthenticated && user ? (
-            <>
-              <span className="navbar-user">Welcome, {user.email}</span>
-              <button
-                onClick={() => {
-                  handleNavClick()
-                  logout()
-                }}
-                className="nav-link logout-button"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <Link to="/login" className="nav-link" onClick={handleNavClick}>Login</Link>
-              <Link to="/signup" className="nav-link" onClick={handleNavClick}>Sign Up</Link>
-            </>
-          )}
+          <div className="navbar-nav">
+            <Link
+              to="/"
+              className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
+              onClick={handleNavClick}
+            >
+              Cocktails
+            </Link>
+            <Link
+              to="/ingredients"
+              className={`nav-link ${location.pathname === '/ingredients' ? 'active' : ''}`}
+              onClick={handleNavClick}
+            >
+              Ingredients
+            </Link>
+            <Link
+              to="/cocktail-scaler"
+              className={`nav-link ${location.pathname === '/cocktail-scaler' ? 'active' : ''}`}
+              onClick={handleNavClick}
+            >
+              Cocktail Scaler
+            </Link>
+          </div>
+
+          <div className="navbar-auth">
+            {isAuthenticated && user ? (
+              <>
+                <span className="navbar-user">Welcome, {user.email}</span>
+                <button
+                  onClick={() => {
+                    handleNavClick()
+                    logout()
+                  }}
+                  className="nav-link logout-button"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="nav-link" onClick={handleNavClick}>Login</Link>
+                <Link to="/signup" className="nav-link" onClick={handleNavClick}>Sign Up</Link>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </nav>

@@ -20,31 +20,57 @@
 .navbar-container {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 1rem 2rem;
+  padding: 0.85rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 0 0 auto;
 }
 
 .navbar-title-link {
   text-decoration: none;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
 }
 
 .navbar-title {
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 800;
   color: var(--text);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .navbar-links {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.navbar-nav,
+.navbar-auth {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
 .navbar-toggle {
@@ -59,6 +85,7 @@
   background: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   transition: background 0.3s ease, border-color 0.3s ease;
+  flex: 0 0 auto;
 }
 
 .navbar-toggle span {
@@ -71,12 +98,12 @@
 }
 
 .nav-link {
-  padding: 0.75rem 1.5rem;
+  padding: 0.55rem 0.9rem;
   border: none;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 500;
   border-radius: 8px;
   transition: all 0.3s ease;
@@ -99,12 +126,16 @@
 }
 
 .navbar-user {
-  padding: 0.75rem 1.5rem;
+  padding: 0.55rem 0.75rem;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
   display: flex;
   align-items: center;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .logout-button {
@@ -184,6 +215,108 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  min-width: 0;
+}
+
+.cocktail-submeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+}
+
+.cocktail-submeta .created-by,
+.cocktail-submeta .created-at {
+  margin: 0;
+}
+
+/* Grid card layout for CocktailsPage */
+.cocktails-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+/* Override old list item styling when using grid */
+.cocktails-list > ul.cocktails-grid > li {
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.cocktail-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.cocktail-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(47, 127, 247, 0.35);
+}
+
+.cocktail-card-link {
+  color: inherit;
+  text-decoration: none;
+  display: block;
+}
+
+.cocktail-card-media {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.cocktail-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cocktail-card-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.cocktail-card-body {
+  padding: 0.9rem 1rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.cocktail-card-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cocktail-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 1rem 1rem;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.7);
+  justify-content: flex-end;
 }
 
 .cocktail-image {
@@ -240,6 +373,31 @@
   color: #666;
   padding: 0.25rem 0;
   font-size: 0.95rem;
+}
+
+.ingredient-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.ingredient-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(47, 127, 247, 0.10);
+  border: 1px solid rgba(47, 127, 247, 0.18);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.ingredient-chip-more {
+  background: rgba(108, 117, 125, 0.12);
+  border-color: rgba(108, 117, 125, 0.22);
+  color: var(--text-muted);
 }
 
 .error-message {
@@ -784,6 +942,17 @@
     padding: 1rem 1.25rem;
   }
 
+  /* Keep navbar on one line on medium screens by tightening spacing */
+  .nav-link {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.93rem;
+  }
+
+  .navbar-user {
+    padding: 0.5rem 0.6rem;
+    max-width: 180px;
+  }
+
   .main-content {
     padding: 1.5rem;
   }
@@ -806,7 +975,7 @@
   }
 
   .navbar-title {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
   }
 
   .navbar-toggle {
@@ -830,6 +999,19 @@
     opacity: 1;
     transform: translateY(0);
     margin-top: 0.5rem;
+  }
+
+  .navbar-nav,
+  .navbar-auth {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .navbar-auth {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
   }
 
   .nav-link,
@@ -1122,7 +1304,6 @@
 .cocktail-meta {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
   padding: 1rem;
   background: var(--surface-muted);
   border-radius: 8px;
@@ -1139,6 +1320,35 @@
   margin-right: 0.5rem;
 }
 
+.meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1.25rem;
+}
+
+.meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.meta-label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.meta-value {
+  color: var(--text);
+  font-size: 0.98rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .cocktail-ingredients-section {
   margin-top: 1rem;
 }
@@ -1147,6 +1357,37 @@
   font-size: 1.75rem;
   margin: 0 0 1rem 0;
   color: #333;
+}
+
+.detail-section {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.detail-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.detail-section-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.cost-pill {
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(47, 127, 247, 0.12);
+  border: 1px solid rgba(47, 127, 247, 0.25);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 0.9rem;
+  white-space: nowrap;
 }
 
 .ingredients-list-detailed {
@@ -1159,9 +1400,10 @@
 }
 
 .ingredient-item-detailed {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
   align-items: center;
+  gap: 0.75rem;
   padding: 1rem;
   background: white;
   border: 1px solid #e9ecef;
@@ -1178,12 +1420,26 @@
   font-weight: 500;
   color: var(--text);
   font-size: 1.1rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ingredient-brand {
+  color: var(--text-muted);
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ingredient-amount {
   color: var(--primary);
   font-weight: 600;
   font-size: 1rem;
+  justify-self: end;
 }
 
 .cocktail-name-link {
@@ -1206,6 +1462,28 @@
 }
 
 @media (max-width: 768px) {
+  .cocktails-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cocktail-card-title {
+    font-size: 1.05rem;
+  }
+
+  .cocktail-card-actions {
+    justify-content: flex-start;
+  }
+
+  .cocktail-item {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .cocktail-actions-inline {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .cocktail-detail-content {
     grid-template-columns: 1fr;
   }
@@ -1223,6 +1501,44 @@
   .cocktail-detail-image-large,
   .cocktail-image-placeholder-large {
     max-width: 100%;
+  }
+
+  .meta-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Extra-small phones */
+@media (max-width: 480px) {
+  .detail-section {
+    padding: 0.85rem;
+  }
+
+  .detail-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cost-pill {
+    width: 100%;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .meta-value {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    word-break: break-word;
+  }
+
+  .ingredient-item-detailed {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .ingredient-amount {
+    justify-self: start;
   }
 }
 

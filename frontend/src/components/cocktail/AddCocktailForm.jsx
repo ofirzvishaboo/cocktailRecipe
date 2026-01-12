@@ -302,6 +302,8 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 setForm({
                     name: '',
                     description: '',
+                    glass_type_id: '',
+                    garnish_text: '',
                     ingredients: [{ name: '', ingredient_id: '', amount: '', unit: 'ml', bottle_id: '' }],
                     imageUrl: '',
                     imagePreview: '',
@@ -309,6 +311,13 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 })
                 setBrandOptionsByIndex([[]])
             }
+        } catch (e) {
+            if (e?.response?.status === 401) {
+                alert('Your session expired. Please log in again, then retry saving.')
+            } else {
+                alert('Failed to save cocktail. Please try again.')
+            }
+            console.error('Failed to save cocktail', e)
         } finally {
             setForm(prev => ({ ...prev, submitting: false }))
         }
