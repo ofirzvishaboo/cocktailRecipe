@@ -15,6 +15,10 @@ const CocktailDetailPage = () => {
   const [editing, setEditing] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [costData, setCostData] = useState(null)
+  const [costLoading, setCostLoading] = useState(false)
+  const [costError, setCostError] = useState('')
+  const [glassTypesById, setGlassTypesById] = useState({})
 
   useEffect(() => {
     const loadCocktail = async () => {
@@ -36,6 +40,49 @@ const CocktailDetailPage = () => {
     }
     loadCocktail()
   }, [id])
+
+  useEffect(() => {
+    const loadGlassTypes = async () => {
+      try {
+        const res = await api.get('/glass-types')
+        const map = {}
+        for (const g of res.data || []) {
+          map[String(g.id)] = g
+        }
+        setGlassTypesById(map)
+      } catch (e) {
+        console.error('Failed to load glass types', e)
+        setGlassTypesById({})
+      }
+    }
+    loadGlassTypes()
+  }, [])
+
+  useEffect(() => {
+    const loadCost = async () => {
+      if (!id) return
+      try {
+        setCostLoading(true)
+        setCostError('')
+        const res = await api.get(`/cocktail-recipes/${id}/cost`, { params: { scale_factor: 1.0 } })
+        setCostData(res.data)
+      } catch (e) {
+        setCostData(null)
+        setCostError('Failed to load cost')
+        console.error('Failed to load cost', e)
+      } finally {
+        setCostLoading(false)
+      }
+    }
+    loadCost()
+  }, [id])
+
+  const formatMoney = (value, currency) => {
+    const n = Number(value)
+    if (Number.isNaN(n)) return '-'
+    const c = (currency || '').toUpperCase()
+    return `${n.toFixed(2)} ${c || 'ILS'}`
+  }
 
   const handleDelete = async () => {
     try {
@@ -84,6 +131,12 @@ const CocktailDetailPage = () => {
   if (!cocktail) {
     return null
   }
+
+  const glassTypeId = cocktail.glass_type_id ? String(cocktail.glass_type_id) : ''
+  const glassType = glassTypeId ? glassTypesById[glassTypeId] : null
+  const glassTypeLabel = glassType
+    ? `${glassType.name}${glassType.capacity_ml ? ` (${glassType.capacity_ml}ml)` : ''}`
+    : (glassTypeId ? 'Unknown glass' : '-')
 
   if (editing) {
     return (
@@ -159,6 +212,12 @@ const CocktailDetailPage = () => {
                 <strong>Created:</strong> {new Date(cocktail.created_at).toLocaleString()}
               </div>
             )}
+            <div className="meta-item">
+              <strong>Glass:</strong> {glassTypeLabel}
+            </div>
+            <div className="meta-item">
+              <strong>Garnish:</strong> {cocktail.garnish_text || '-'}
+            </div>
           </div>
 
           <div className="cocktail-ingredients-section">
@@ -177,6 +236,42 @@ const CocktailDetailPage = () => {
               </ul>
             ) : (
               <p>No ingredients listed.</p>
+            )}
+          </div>
+
+          <div className="cocktail-ingredients-section">
+            <h2>Cost</h2>
+            {costLoading ? (
+              <p>Loading cost...</p>
+            ) : costError ? (
+              <p className="error-message">{costError}</p>
+            ) : costData ? (
+              <>
+                <div className="meta-item">
+                  <strong>Total:</strong>{' '}
+                  {formatMoney(
+                    costData.total_cocktail_cost,
+                    costData?.lines?.find((l) => l?.currency)?.currency || 'ILS'
+                  )}
+                </div>
+                {(costData.lines && costData.lines.length > 0) ? (
+                  <ul className="ingredients-list-detailed">
+                    {costData.lines.map((line, i) => (
+                      <li key={`${line.ingredient_name}-${i}`} className="ingredient-item-detailed">
+                        <span className="ingredient-name">{line.ingredient_name || 'Unknown'}</span>
+                        <span className="ingredient-brand">{line.bottle_name || '-'}</span>
+                        <span className="ingredient-amount">
+                          {formatMoney(line.ingredient_cost, line.currency || 'ILS')}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No cost lines.</p>
+                )}
+              </>
+            ) : (
+              <p>Cost not available.</p>
             )}
           </div>
         </div>

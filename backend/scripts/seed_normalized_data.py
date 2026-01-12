@@ -33,6 +33,7 @@ from db.bottle import Bottle
 from db.bottle_price import BottlePrice
 from db.cocktail_recipe import CocktailRecipe
 from db.recipe_ingredient import RecipeIngredient
+from db.glass_type import GlassType
 
 from core.imagekit_client import upload_base64_to_imagekit
 
@@ -219,6 +220,26 @@ async def seed():
 
             user = await _ensure_admin(session)
 
+            # Seed reference data: glass types
+            glass_types_seed = [
+                ("Coupe", 180),
+                ("Nick & Nora", 150),
+                ("Martini", 180),
+                ("Rocks", 250),
+                ("Highball", 350),
+                ("Collins", 400),
+                ("Tiki Mug", 450),
+                ("Wine", 350),
+                ("Shot", 60),
+                ("Flute", 160),
+            ]
+            glass_type_cache: dict[str, GlassType] = {}
+            for (name, capacity_ml) in glass_types_seed:
+                gt = GlassType(name=name, capacity_ml=capacity_ml)
+                session.add(gt)
+                await session.flush()
+                glass_type_cache[name] = gt
+
             # Create brands + ingredients + bottles + prices
             brand_cache: dict[str, Brand] = {}
             ingredient_cache: dict[str, Ingredient] = {}
@@ -267,14 +288,23 @@ async def seed():
                         )
                     )
 
-            async def mk_cocktail(name: str, desc: str, lines: list[tuple[str, float, str, str | None]]):
+            async def mk_cocktail(
+                name: str,
+                desc: str,
+                lines: list[tuple[str, float, str, str | None]],
+                glass_type_name: str | None = None,
+                garnish_text: str | None = None,
+            ):
                 # lines: (ingredient_name, qty, unit, bottle_name(optional))
                 picture_url = await _try_upload_cocktail_image(name, "seeded via ImageKit")
+                glass_type_id = glass_type_cache.get(glass_type_name).id if glass_type_name else None
                 c = CocktailRecipe(
                     created_by_user_id=user.id,
                     name=name,
                     description=desc,
                     picture_url=picture_url,
+                    glass_type_id=glass_type_id,
+                    garnish_text=garnish_text,
                 )
                 session.add(c)
                 await session.flush()
@@ -303,6 +333,8 @@ async def seed():
                     ("Lime Juice", 30, "ml", "Fresh Lime Juice 1000ml"),
                     ("Triple Sec", 30, "ml", "Cointreau 700ml"),
                 ],
+                glass_type_name="Coupe",
+                garnish_text="Salt rim + lime wheel",
             )
             await mk_cocktail(
                 "Daiquiri",
@@ -312,6 +344,8 @@ async def seed():
                     ("Lime Juice", 30, "ml", "Fresh Lime Juice 1000ml"),
                     ("Simple Syrup", 15, "ml", "House Simple Syrup 1000ml"),
                 ],
+                glass_type_name="Coupe",
+                garnish_text="Lime wheel (optional)",
             )
             await mk_cocktail(
                 "Negroni",
@@ -321,6 +355,8 @@ async def seed():
                     ("Campari", 30, "ml", "Campari 1000ml"),
                     ("Sweet Vermouth", 30, "ml", "Martini Rosso 1000ml"),
                 ],
+                glass_type_name="Rocks",
+                garnish_text="Orange peel",
             )
             await mk_cocktail(
                 "Mojito",
@@ -332,6 +368,8 @@ async def seed():
                     ("Mint", 5, "ml", "Fresh Mint (bundle equiv 100ml)"),
                     ("Soda Water", 90, "ml", "Club Soda 1000ml"),
                 ],
+                glass_type_name="Highball",
+                garnish_text="Mint sprig + lime wheel",
             )
             await mk_cocktail(
                 "Vodka Sour",
@@ -341,6 +379,8 @@ async def seed():
                     ("Lemon Juice", 30, "ml", "Fresh Lemon Juice 1000ml"),
                     ("Simple Syrup", 15, "ml", "House Simple Syrup 1000ml"),
                 ],
+                glass_type_name="Coupe",
+                garnish_text="Lemon peel",
             )
 
         await session.commit()

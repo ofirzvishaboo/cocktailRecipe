@@ -53,8 +53,10 @@ const CocktailsPage = () => {
             const names = getIngredientNames(cocktail).map((n) => n.toLowerCase())
             if (names.length === 0) return false
 
-            return ingredientQueries.every(ingQuery => {
-              return names.some((n) => n.startsWith(ingQuery))
+            return ingredientQueries.every((ingQuery) => {
+              const q = (ingQuery || '').trim()
+              if (!q) return true
+              return names.some((n) => n.includes(q))
             })
           })
           setFilteredCocktails(filtered)
@@ -62,7 +64,7 @@ const CocktailsPage = () => {
           // Search by cocktail name OR single ingredient
           const filtered = updatedCocktails.filter(cocktail => {
             const nameMatch = cocktail.name && cocktail.name.toLowerCase().startsWith(query)
-            const ingredientMatch = getIngredientNames(cocktail).some((n) => n.toLowerCase().startsWith(query))
+            const ingredientMatch = getIngredientNames(cocktail).some((n) => n.toLowerCase().includes(query))
             return nameMatch || ingredientMatch
           })
           setFilteredCocktails(filtered)
@@ -106,8 +108,10 @@ const CocktailsPage = () => {
             const names = getIngredientNames(cocktail).map((n) => n.toLowerCase())
             if (names.length === 0) return false
 
-            return ingredientQueries.every(ingQuery => {
-              return names.some((n) => n.startsWith(ingQuery))
+            return ingredientQueries.every((ingQuery) => {
+              const q = (ingQuery || '').trim()
+              if (!q) return true
+              return names.some((n) => n.includes(q))
             })
           })
           setFilteredCocktails(filtered)
@@ -115,7 +119,7 @@ const CocktailsPage = () => {
           // Search by cocktail name OR single ingredient
           const filtered = updatedCocktails.filter(cocktail => {
             const nameMatch = cocktail.name && cocktail.name.toLowerCase().startsWith(query)
-            const ingredientMatch = getIngredientNames(cocktail).some((n) => n.toLowerCase().startsWith(query))
+            const ingredientMatch = getIngredientNames(cocktail).some((n) => n.toLowerCase().includes(query))
             return nameMatch || ingredientMatch
           })
           setFilteredCocktails(filtered)
@@ -165,10 +169,11 @@ const CocktailsPage = () => {
           const names = getIngredientNames(cocktail).map((n) => n.toLowerCase())
           if (names.length === 0) return false
 
-          // Check if all ingredient queries match (using startsWith)
-          // Each query must match at least one ingredient
-          return ingredientQueries.every(ingQuery => {
-            return names.some((n) => n.startsWith(ingQuery))
+          // Each query must match at least one ingredient (substring match)
+          return ingredientQueries.every((ingQuery) => {
+            const q = (ingQuery || '').trim()
+            if (!q) return true
+            return names.some((n) => n.includes(q))
           })
         })
         setFilteredCocktails(filtered)
@@ -179,7 +184,7 @@ const CocktailsPage = () => {
           const nameMatch = cocktail.name && cocktail.name.toLowerCase().startsWith(query)
 
           // Check if any ingredient matches
-          const ingredientMatch = getIngredientNames(cocktail).some((n) => n.toLowerCase().startsWith(query))
+          const ingredientMatch = getIngredientNames(cocktail).some((n) => n.toLowerCase().includes(query))
 
           return nameMatch || ingredientMatch
         })

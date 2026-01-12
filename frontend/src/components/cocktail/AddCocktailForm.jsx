@@ -5,6 +5,7 @@ import IngredientInputs from './IngredientInputs'
 function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = false }) {
     const [ingredientsCatalog, setIngredientsCatalog] = useState([])
     const [brandsByIngredientId, setBrandsByIngredientId] = useState({})
+    const [glassTypes, setGlassTypes] = useState([])
     const [brandOptionsByIndex, setBrandOptionsByIndex] = useState(
         (initialCocktail?.recipe_ingredients || []).map(() => []) || [[]]
     )
@@ -12,6 +13,8 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
     const [form, setForm] = useState({
         name: initialCocktail?.name || '',
         description: initialCocktail?.description || '',
+        glass_type_id: initialCocktail?.glass_type_id || '',
+        garnish_text: initialCocktail?.garnish_text || '',
         ingredients: (initialCocktail?.recipe_ingredients || []).map((ri) => ({
             name: ri.ingredient_name || '',
             ingredient_id: ri.ingredient_id || '',
@@ -39,6 +42,19 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
             }
         }
         loadIngredientsCatalog()
+    }, [])
+
+    useEffect(() => {
+        const loadGlassTypes = async () => {
+            try {
+                const res = await api.get('/glass-types')
+                setGlassTypes(res.data || [])
+            } catch (e) {
+                console.error('Failed to load glass types', e)
+                setGlassTypes([])
+            }
+        }
+        loadGlassTypes()
     }, [])
 
     const findIngredientIdByName = (name) => {
@@ -263,7 +279,9 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
             name: form.name,
             description: form.description.trim() || null,
             recipe_ingredients: ingredientsArray,
-            picture_url: form.imageUrl || null
+            picture_url: form.imageUrl || null,
+            glass_type_id: form.glass_type_id || null,
+            garnish_text: (form.garnish_text || '').trim() || null,
         }
 
         try {
@@ -321,6 +339,36 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                     rows={4}
                 />
             </div>
+
+            <div className="form-group">
+                <label htmlFor="form-glass-type">Glass type (optional)</label>
+                <select
+                    id="form-glass-type"
+                    value={form.glass_type_id}
+                    onChange={(e) => setForm((prev) => ({ ...prev, glass_type_id: e.target.value }))}
+                    className="form-input"
+                >
+                    <option value="">Select a glass…</option>
+                    {(glassTypes || []).map((g) => (
+                        <option key={g.id} value={g.id}>
+                            {g.name}{g.capacity_ml ? ` (${g.capacity_ml}ml)` : ''}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="form-group">
+                <label htmlFor="form-garnish">Garnish (optional)</label>
+                <input
+                    type="text"
+                    id="form-garnish"
+                    placeholder="e.g. Lime wedge, orange peel..."
+                    value={form.garnish_text}
+                    onChange={(e) => setForm((prev) => ({ ...prev, garnish_text: e.target.value }))}
+                    className="form-input"
+                />
+            </div>
+
             <div className="form-group">
                 <label htmlFor="form-image">Cocktail Image</label>
                 <input

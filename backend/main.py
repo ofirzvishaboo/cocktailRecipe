@@ -8,6 +8,7 @@ from routers.cocktails import router as cocktails_router
 from routers.ingredients import router as ingredients_router
 from routers.brands import router as brands_router
 from routers.images import router as images_router
+from routers.glass_types import router as glass_types_router
 from core.auth import fastapi_users, auth_backend
 from contextlib import asynccontextmanager
 from schemas.users import UserRead, UserCreate, UserUpdate
@@ -69,6 +70,7 @@ app.include_router(images_router, prefix="/images", tags=["images"])
 app.include_router(cocktails_router, prefix="/cocktail-recipes", tags=["cocktails"])
 app.include_router(ingredients_router, prefix="/ingredients", tags=["ingredients"])
 app.include_router(brands_router, prefix="/brands", tags=["brands"])
+app.include_router(glass_types_router, prefix="/glass-types", tags=["glass-types"])
 
 
 # Global exception handler to ensure CORS headers are sent even on errors
