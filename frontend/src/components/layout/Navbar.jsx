@@ -56,6 +56,13 @@ const Navbar = () => {
             >
               Cocktail Scaler
             </Link>
+            <Link
+              to="/inventory"
+              className={`nav-link ${location.pathname === '/inventory' ? 'active' : ''}`}
+              onClick={handleNavClick}
+            >
+              Inventory
+            </Link>
           </div>
 
           <div className="navbar-auth">

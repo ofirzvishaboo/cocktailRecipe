@@ -185,6 +185,268 @@ async def drop_legacy_tables_if_exist(engine: AsyncEngine):
         await conn.execute(text("DROP TABLE IF EXISTS cocktail_ingredients CASCADE"))
         await conn.execute(text("DROP TABLE IF EXISTS ingredient_brands CASCADE"))
 
+async def recreate_inventory_v3_tables(engine: AsyncEngine):
+    """
+    Inventory v3 (two fixed locations: BAR/WAREHOUSE).
+
+    Strategy: drop + recreate inventory tables if any legacy/mismatched tables exist.
+    This is intentionally a "clean break" migration.
+    """
+    async with engine.begin() as conn:
+        res = await conn.execute(
+            text(
+                """
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                  AND table_name IN ('inventory_items', 'inventory_stock', 'inventory_movements')
+                """
+            )
+        )
+        existing = {r[0] for r in res.fetchall()}
+
+        expected_columns = {
+            "inventory_items": {
+                "id",
+                "item_type",
+                "bottle_id",
+                "ingredient_id",
+                "glass_type_id",
+                "name",
+                "unit",
+                "is_active",
+                "min_level",
+                "reorder_level",
+            },
+            "inventory_stock": {"id", "location", "inventory_item_id", "quantity", "reserved_quantity"},
+            "inventory_movements": {
+                "id",
+                "location",
+                "inventory_item_id",
+                "change",
+                "reason",
+                "source_type",
+                "source_id",
+                "created_at",
+                "created_by_user_id",
+            },
+        }
+
+        expected_constraints = {
+            "inventory_items": {
+                "ck_inventory_items_item_type",
+                "ck_inventory_items_backing_fk",
+                "fk_inventory_items_bottle_id",
+                "fk_inventory_items_ingredient_id",
+                "fk_inventory_items_glass_type_id",
+            },
+            "inventory_stock": {
+                "ck_inventory_stock_location",
+                "fk_inventory_stock_inventory_item_id",
+                "ux_inventory_stock_location_item",
+            },
+            "inventory_movements": {
+                "ck_inventory_movements_location",
+                "fk_inventory_movements_inventory_item_id",
+                "fk_inventory_movements_created_by_user_id",
+            },
+        }
+
+        expected_indexes = {
+            "ux_inventory_items_bottle_id",
+            "ux_inventory_items_ingredient_id",
+            "ux_inventory_items_glass_type_id",
+            "ix_inventory_items_item_type",
+            "ix_inventory_items_name",
+            "ix_inventory_stock_item_id",
+            "ix_inventory_movements_item_id",
+            "ix_inventory_movements_created_at",
+        }
+
+        async def _table_columns(table: str) -> set[str]:
+            r = await conn.execute(
+                text(
+                    """
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_schema='public' AND table_name = :t
+                    """
+                ),
+                {"t": table},
+            )
+            return {row[0] for row in r.fetchall()}
+
+        async def _table_constraints(table: str) -> set[str]:
+            r = await conn.execute(
+                text(
+                    """
+                    SELECT constraint_name
+                    FROM information_schema.table_constraints
+                    WHERE table_schema='public' AND table_name = :t
+                    """
+                ),
+                {"t": table},
+            )
+            return {row[0] for row in r.fetchall()}
+
+        async def _all_indexes() -> set[str]:
+            r = await conn.execute(
+                text(
+                    """
+                    SELECT indexname
+                    FROM pg_indexes
+                    WHERE schemaname='public'
+                      AND tablename IN ('inventory_items','inventory_stock','inventory_movements')
+                    """
+                )
+            )
+            return {row[0] for row in r.fetchall()}
+
+        needs_recreate = False
+
+        if existing != {"inventory_items", "inventory_stock", "inventory_movements"}:
+            # Partial existence or missing tables: make it consistent.
+            needs_recreate = True
+        else:
+            for t in ("inventory_items", "inventory_stock", "inventory_movements"):
+                cols = await _table_columns(t)
+                if cols != expected_columns[t]:
+                    needs_recreate = True
+                    break
+                cons = await _table_constraints(t)
+                if not expected_constraints[t].issubset(cons):
+                    needs_recreate = True
+                    break
+
+            if not needs_recreate:
+                idxs = await _all_indexes()
+                if not expected_indexes.issubset(idxs):
+                    needs_recreate = True
+
+        if needs_recreate:
+            if existing:
+                print(f"[migrations] Recreating inventory tables (drop+recreate). Existing: {sorted(existing)}")
+            else:
+                print("[migrations] Creating inventory tables (fresh).")
+            # Drop in dependency order (FKs -> parent), CASCADE keeps it simple.
+            await conn.execute(text("DROP TABLE IF EXISTS inventory_movements CASCADE"))
+            await conn.execute(text("DROP TABLE IF EXISTS inventory_stock CASCADE"))
+            await conn.execute(text("DROP TABLE IF EXISTS inventory_items CASCADE"))
+
+        # Create tables (fresh or after drop), or ensure present if missing.
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS inventory_items (
+                    id UUID PRIMARY KEY,
+                    item_type TEXT NOT NULL,
+                    bottle_id UUID NULL,
+                    ingredient_id UUID NULL,
+                    glass_type_id UUID NULL,
+                    name TEXT NOT NULL,
+                    unit TEXT NOT NULL,
+                    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                    min_level NUMERIC NULL,
+                    reorder_level NUMERIC NULL,
+                    CONSTRAINT ck_inventory_items_item_type
+                        CHECK (item_type IN ('BOTTLE','GARNISH','GLASS')),
+                    CONSTRAINT ck_inventory_items_backing_fk
+                        CHECK (
+                            (item_type = 'BOTTLE' AND bottle_id IS NOT NULL AND ingredient_id IS NULL AND glass_type_id IS NULL)
+                            OR
+                            (item_type = 'GARNISH' AND ingredient_id IS NOT NULL AND bottle_id IS NULL AND glass_type_id IS NULL)
+                            OR
+                            (item_type = 'GLASS' AND glass_type_id IS NOT NULL AND bottle_id IS NULL AND ingredient_id IS NULL)
+                        ),
+                    CONSTRAINT fk_inventory_items_bottle_id
+                        FOREIGN KEY (bottle_id) REFERENCES bottles(id) ON DELETE CASCADE,
+                    CONSTRAINT fk_inventory_items_ingredient_id
+                        FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE,
+                    CONSTRAINT fk_inventory_items_glass_type_id
+                        FOREIGN KEY (glass_type_id) REFERENCES glass_types(id) ON DELETE CASCADE
+                )
+                """
+            )
+        )
+
+        # Ensure at-most-one inventory item per backing entity (partial unique indexes).
+        await conn.execute(
+            text(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS ux_inventory_items_bottle_id
+                    ON inventory_items(bottle_id)
+                    WHERE bottle_id IS NOT NULL
+                """
+            )
+        )
+        await conn.execute(
+            text(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS ux_inventory_items_ingredient_id
+                    ON inventory_items(ingredient_id)
+                    WHERE ingredient_id IS NOT NULL
+                """
+            )
+        )
+        await conn.execute(
+            text(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS ux_inventory_items_glass_type_id
+                    ON inventory_items(glass_type_id)
+                    WHERE glass_type_id IS NOT NULL
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_inventory_items_item_type ON inventory_items(item_type)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_inventory_items_name ON inventory_items(name)"))
+
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS inventory_stock (
+                    id UUID PRIMARY KEY,
+                    location TEXT NOT NULL,
+                    inventory_item_id UUID NOT NULL,
+                    quantity NUMERIC NOT NULL DEFAULT 0,
+                    reserved_quantity NUMERIC NOT NULL DEFAULT 0,
+                    CONSTRAINT ck_inventory_stock_location
+                        CHECK (location IN ('BAR','WAREHOUSE')),
+                    CONSTRAINT fk_inventory_stock_inventory_item_id
+                        FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE CASCADE,
+                    CONSTRAINT ux_inventory_stock_location_item
+                        UNIQUE (location, inventory_item_id)
+                )
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_inventory_stock_item_id ON inventory_stock(inventory_item_id)"))
+
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS inventory_movements (
+                    id UUID PRIMARY KEY,
+                    location TEXT NOT NULL,
+                    inventory_item_id UUID NOT NULL,
+                    change NUMERIC NOT NULL,
+                    reason TEXT NULL,
+                    source_type TEXT NULL,
+                    source_id BIGINT NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                    created_by_user_id UUID NULL,
+                    CONSTRAINT ck_inventory_movements_location
+                        CHECK (location IN ('BAR','WAREHOUSE')),
+                    CONSTRAINT fk_inventory_movements_inventory_item_id
+                        FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE CASCADE,
+                    CONSTRAINT fk_inventory_movements_created_by_user_id
+                        FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+                )
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_inventory_movements_item_id ON inventory_movements(inventory_item_id)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_inventory_movements_created_at ON inventory_movements(created_at)"))
+
 
 async def add_normalized_schema_tables_if_missing(engine: AsyncEngine):
     """Create new normalized tables if they don't exist (create_all handles most, but keep for safety)."""

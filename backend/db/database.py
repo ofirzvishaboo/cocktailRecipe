@@ -39,6 +39,7 @@ from . import (
     bottle,
     bottle_price,
     recipe_ingredient,
+    inventory,
 )
 
 from .ingredient import Ingredient
@@ -54,6 +55,10 @@ from .bottle import Bottle
 from .bottle_price import BottlePrice
 from .recipe_ingredient import RecipeIngredient
 
+from .inventory.item import InventoryItem
+from .inventory.stock import InventoryStock
+from .inventory.movement import InventoryMovement
+
 engine = create_async_engine(DATABASE_URL)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
@@ -68,12 +73,14 @@ async def create_db_and_tables():
         add_normalized_schema_tables_if_missing,
         add_normalized_columns_if_missing,
         drop_legacy_tables_if_exist,
+        recreate_inventory_v3_tables,
     )
     await add_missing_user_columns(engine)
     await add_user_id_column_if_missing(engine)
     await add_normalized_schema_tables_if_missing(engine)
     await add_normalized_columns_if_missing(engine)
     await drop_legacy_tables_if_exist(engine)
+    await recreate_inventory_v3_tables(engine)
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
