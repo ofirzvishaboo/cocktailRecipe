@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AddCocktailForm from '../components/cocktail/AddCocktailForm'
 import api from '../api'
@@ -199,6 +199,14 @@ const CocktailsPage = () => {
     }
   }, [searchQuery, cocktails])
 
+  const classicCocktails = useMemo(() => {
+    return (filteredCocktails || []).filter((c) => !!c?.is_base)
+  }, [filteredCocktails])
+
+  const signatureCocktails = useMemo(() => {
+    return (filteredCocktails || []).filter((c) => !c?.is_base)
+  }, [filteredCocktails])
+
   // Check if the current user owns this cocktail
   const isOwner = (cocktail) => {
     return isAuthenticated && user && (isAdmin || cocktail.created_by_user_id === user.id)
@@ -244,7 +252,7 @@ const CocktailsPage = () => {
             {error && <div className="error-message">{error}</div>}
             {!loading && !error && (
               <>
-                {filteredCocktails.length === 0 ? (
+                {(classicCocktails.length === 0 && signatureCocktails.length === 0) ? (
                   <p>
                     {searchQuery.trim()
                       ? `No cocktails found matching "${searchQuery}"`
@@ -253,66 +261,147 @@ const CocktailsPage = () => {
                         : 'No cocktails match your search.'}
                   </p>
                 ) : (
-                  <ul className="cocktails-grid">
-                    {filteredCocktails.map((c) => {
-                      const chips = getIngredientChips(c)
-                      return (
-                        <li key={c.id || c.name}>
-                          <div className="cocktail-card">
-                            <Link to={`/cocktails/${c.id}`} className="cocktail-card-link">
-                              <div className="cocktail-card-media">
-                                {c.picture_url && !failedImages.has(c.id) ? (
-                                  <img
-                                    src={c.picture_url}
-                                    alt={c.name}
-                                    className="cocktail-card-image"
-                                    onError={() => {
-                                      setFailedImages((prev) => new Set(prev).add(c.id))
-                                    }}
-                                  />
-                                ) : (
-                                  <div className="cocktail-card-image-placeholder">
-                                    {c.picture_url ? 'Invalid Image' : 'No Image'}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="cocktail-card-body">
-                                <div className="cocktail-card-title">{c.name}</div>
-                                {(chips.shown.length > 0) && (
-                                  <div className="ingredient-chips">
-                                    {chips.shown.map((name) => (
-                                      <span key={name} className="ingredient-chip">{name}</span>
-                                    ))}
-                                    {chips.remaining > 0 && (
-                                      <span className="ingredient-chip ingredient-chip-more">+{chips.remaining} more</span>
+                  <>
+                    <h3>Classic Cocktails</h3>
+                    {classicCocktails.length === 0 ? (
+                      <div className="empty-state">
+                        {searchQuery.trim()
+                          ? `No classic cocktails match "${searchQuery}"`
+                          : 'No classic cocktails yet.'}
+                      </div>
+                    ) : (
+                      <ul className="cocktails-grid">
+                        {classicCocktails.map((c) => {
+                          const chips = getIngredientChips(c)
+                          return (
+                            <li key={c.id || c.name}>
+                              <div className="cocktail-card">
+                                <Link to={`/cocktails/${c.id}`} className="cocktail-card-link">
+                                  <div className="cocktail-card-media">
+                                    {c.picture_url && !failedImages.has(c.id) ? (
+                                      <img
+                                        src={c.picture_url}
+                                        alt={c.name}
+                                        className="cocktail-card-image"
+                                        onError={() => {
+                                          setFailedImages((prev) => new Set(prev).add(c.id))
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="cocktail-card-image-placeholder">
+                                        {c.picture_url ? 'Invalid Image' : 'No Image'}
+                                      </div>
                                     )}
                                   </div>
+                                  <div className="cocktail-card-body">
+                                    <div className="cocktail-card-title">{c.name}</div>
+                                    {(chips.shown.length > 0) && (
+                                      <div className="ingredient-chips">
+                                        {chips.shown.map((name) => (
+                                          <span key={name} className="ingredient-chip">{name}</span>
+                                        ))}
+                                        {chips.remaining > 0 && (
+                                          <span className="ingredient-chip ingredient-chip-more">+{chips.remaining} more</span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </Link>
+
+                                {isAuthenticated && isOwner(c) && (
+                                  <div className="cocktail-card-actions">
+                                    <button
+                                      onClick={() => editCocktail(c)}
+                                      className="button-edit"
+                                      disabled={!c.id}
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() => requestRemoveCocktail(c.id)}
+                                      className="button-remove"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
                                 )}
                               </div>
-                            </Link>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
 
-                            {isAuthenticated && isOwner(c) && (
-                              <div className="cocktail-card-actions">
-                                <button
-                                  onClick={() => editCocktail(c)}
-                                  className="button-edit"
-                                  disabled={!c.id}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => requestRemoveCocktail(c.id)}
-                                  className="button-remove"
-                                >
-                                  Remove
-                                </button>
+                    <h3 style={{ marginTop: '1.5rem' }}>Signature Cocktails</h3>
+                    {signatureCocktails.length === 0 ? (
+                      <div className="empty-state">
+                        {searchQuery.trim()
+                          ? `No signature cocktails match "${searchQuery}"`
+                          : 'No signature cocktails yet.'}
+                      </div>
+                    ) : (
+                      <ul className="cocktails-grid">
+                        {signatureCocktails.map((c) => {
+                          const chips = getIngredientChips(c)
+                          return (
+                            <li key={c.id || c.name}>
+                              <div className="cocktail-card">
+                                <Link to={`/cocktails/${c.id}`} className="cocktail-card-link">
+                                  <div className="cocktail-card-media">
+                                    {c.picture_url && !failedImages.has(c.id) ? (
+                                      <img
+                                        src={c.picture_url}
+                                        alt={c.name}
+                                        className="cocktail-card-image"
+                                        onError={() => {
+                                          setFailedImages((prev) => new Set(prev).add(c.id))
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="cocktail-card-image-placeholder">
+                                        {c.picture_url ? 'Invalid Image' : 'No Image'}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="cocktail-card-body">
+                                    <div className="cocktail-card-title">{c.name}</div>
+                                    {(chips.shown.length > 0) && (
+                                      <div className="ingredient-chips">
+                                        {chips.shown.map((name) => (
+                                          <span key={name} className="ingredient-chip">{name}</span>
+                                        ))}
+                                        {chips.remaining > 0 && (
+                                          <span className="ingredient-chip ingredient-chip-more">+{chips.remaining} more</span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </Link>
+
+                                {isAuthenticated && isOwner(c) && (
+                                  <div className="cocktail-card-actions">
+                                    <button
+                                      onClick={() => editCocktail(c)}
+                                      className="button-edit"
+                                      disabled={!c.id}
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() => requestRemoveCocktail(c.id)}
+                                      className="button-remove"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        </li>
-                      )
-                    })}
-                  </ul>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                  </>
                 )}
               </>
             )}

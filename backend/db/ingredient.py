@@ -35,6 +35,11 @@ class Ingredient(Base):
         """Convert Ingredient model to schema dictionary format"""
         return {
             "id": self.id,
-            "name": self.name
+            "name": self.name,
+            "brand_id": self.brand_id,
+            "kind_id": self.kind_id,
+            "subcategory_id": self.subcategory_id,
+            "abv_percent": float(self.abv_percent) if self.abv_percent is not None else None,
+            "notes": self.notes,
         }
 

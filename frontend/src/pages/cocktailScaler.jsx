@@ -9,6 +9,8 @@ export default function CocktailScaler() {
     const [recipeName, setRecipeName] = useState('');
     const [ingredients, setIngredients] = useState([{ name: '', amount: '', unit: 'ml', bottle_id: '' }]);
     const [desiredLiters, setDesiredLiters] = useState('');
+    const [batchType, setBatchType] = useState('base'); // 'base' | 'batch'
+    const [batchTypeUserOverride, setBatchTypeUserOverride] = useState(false);
     const [cocktails, setCocktails] = useState([]);
     const [filteredCocktails, setFilteredCocktails] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -19,6 +21,7 @@ export default function CocktailScaler() {
     const [costLoading, setCostLoading] = useState(false);
     const [costError, setCostError] = useState('');
     const [selectedCocktail, setSelectedCocktail] = useState(null);
+    const [originalIngredients, setOriginalIngredients] = useState([]); // Store full ingredient list
     const [ingredientsCatalog, setIngredientsCatalog] = useState([]);
     const [brandsByIngredientId, setBrandsByIngredientId] = useState({});
     const [brandOptionsByIndex, setBrandOptionsByIndex] = useState([]);
@@ -46,12 +49,17 @@ export default function CocktailScaler() {
         });
         setIngredients(updatedIngredients);
 
+        if (!batchTypeUserOverride) {
+            const nextHasJuice = computeHasJuiceForIngredients(updatedIngredients)
+            setBatchType(nextHasJuice ? 'batch' : 'base')
+        }
+
         if (field === 'name') syncBrandOptionsForRow(index, value);
         if (field === 'bottle_id') persistBrandSelection(updatedIngredients);
     };
 
     const calculateTotalVolume = () => {
-        return ingredients.reduce((total, ingredient) => {
+        return ingredientsForScaling.reduce((total, ingredient) => {
             const amount = parseFloat(ingredient.amount) || 0;
             return total + amount;
         }, 0);
@@ -100,11 +108,74 @@ export default function CocktailScaler() {
         }
         loadIngredientsCatalog()
     }, [])
+    const findIngredientByName = (name) => {
+        const n = (name || '').trim().toLowerCase()
+        if (!n) return null
+        return (ingredientsCatalog || []).find((i) => (i.name || '').trim().toLowerCase() === n) || null
+    }
+
+
+    // Keep Base/Batch auto-defaulted based on ingredients, unless user explicitly overrides.
+    useEffect(() => {
+        if (batchTypeUserOverride) return
+        const nextHasJuice = computeHasJuiceForIngredients(ingredients)
+        setBatchType(nextHasJuice ? 'batch' : 'base')
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [ingredientsCatalog])
 
     const ingredientNameSuggestions = useMemo(
         () => (ingredientsCatalog || []).map((i) => i.name).filter(Boolean),
         [ingredientsCatalog]
     )
+
+    const computeHasJuiceForIngredients = (ings) => {
+        return (ings || []).some((ing) => {
+            const meta = findIngredientByName(ing?.name)
+            return (meta?.subcategory_name || '').trim().toLowerCase() === 'juice'
+        })
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const hasJuice = useMemo(() => computeHasJuiceForIngredients(ingredients), [ingredients, ingredientsCatalog])
+
+    const filterOutJuiceIngredients = (ings) => {
+        return (ings || []).filter((ing) => {
+            const meta = findIngredientByName(ing?.name)
+            return (meta?.subcategory_name || '').trim().toLowerCase() !== 'juice'
+        })
+    }
+
+    // Ingredients to use for scaling calculations (exclude juice when batchType is 'base')
+    const ingredientsForScaling = useMemo(() => {
+        if (batchType === 'base') {
+            return filterOutJuiceIngredients(ingredients)
+        }
+        return ingredients
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [batchType, ingredients, ingredientsCatalog])
+
+    // Separate juice ingredients when batchType is 'base' (for display purposes)
+    const juiceIngredients = useMemo(() => {
+        if (batchType === 'base') {
+            return (ingredients || []).filter((ing) => {
+                const meta = findIngredientByName(ing?.name)
+                return (meta?.subcategory_name || '').trim().toLowerCase() === 'juice'
+            })
+        }
+        return []
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [batchType, ingredients, ingredientsCatalog])
+
+
+
+
+
+    const expirationText = useMemo(() => {
+        if (batchType === 'base') return 'Forever (no expiration)'
+        const d = new Date()
+        d.setDate(d.getDate() + 7)
+        return d.toLocaleDateString()
+    }, [batchType])
 
     const getIngredientNamesForCocktail = (cocktail) => {
         const ris = cocktail?.recipe_ingredients
@@ -224,11 +295,12 @@ export default function CocktailScaler() {
             const scaleFactorForCost = scaleFactor > 0 ? scaleFactor : 1.0;
 
             const params = { scale_factor: scaleFactorForCost };
+            const endpoint = batchType === 'base' ? 'no-juice-cost' : 'cost';
 
             try {
                 setCostLoading(true);
                 setCostError('');
-                const response = await api.get(`/cocktail-recipes/${selectedCocktailId}/cost`, { params });
+                const response = await api.get(`/cocktail-recipes/${selectedCocktailId}/${endpoint}`, { params });
                 setCostData(response.data);
             } catch (e) {
                 setCostData(null);
@@ -241,7 +313,7 @@ export default function CocktailScaler() {
 
         loadCost();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedCocktailId, desiredLiters, ingredients]);
+    }, [selectedCocktailId, desiredLiters, ingredients, batchType]);
 
     // Filter cocktails based on search query
     useEffect(() => {
@@ -296,15 +368,46 @@ export default function CocktailScaler() {
                 unit: ri.unit || 'ml',
                 bottle_id: ri.bottle_id || '',
             }))
+            // Store the original full ingredient list
+            setOriginalIngredients(formattedIngredients);
             setIngredients(formattedIngredients);
             setBrandOptionsByIndex(formattedIngredients.map(() => []));
             // Preload bottle options for each row
             formattedIngredients.forEach((row, idx) => {
                 syncBrandOptionsForRow(idx, row.name);
             })
+
+            // Use batch_type from model, or auto-compute if not set
+            if (cocktail.batch_type) {
+                setBatchType(cocktail.batch_type)
+                setBatchTypeUserOverride(true) // Model has explicit value
+                // If batch_type is 'base', filter out juice ingredients
+                if (cocktail.batch_type === 'base') {
+                    const baseOnly = formattedIngredients.filter((ing) => {
+                        const ri = ris.find((r) => r.ingredient_name === ing.name)
+                        return ri && (ri.subcategory_name || '').trim().toLowerCase() !== 'juice'
+                    })
+                    setIngredients(baseOnly.length ? baseOnly : [{ name: '', amount: '', unit: 'ml', bottle_id: '' }])
+                }
+            } else {
+                setBatchTypeUserOverride(false)
+                const nextHasJuice = computeHasJuiceForIngredients(formattedIngredients)
+                setBatchType(nextHasJuice ? 'batch' : 'base')
+                // If auto-detected as 'base', filter out juice ingredients
+                if (!nextHasJuice) {
+                    const baseOnly = formattedIngredients.filter((ing) => {
+                        const ri = ris.find((r) => r.ingredient_name === ing.name)
+                        return ri && (ri.subcategory_name || '').trim().toLowerCase() !== 'juice'
+                    })
+                    setIngredients(baseOnly.length ? baseOnly : [{ name: '', amount: '', unit: 'ml', bottle_id: '' }])
+                }
+            }
         } else {
+            setOriginalIngredients([]);
             setIngredients([{ name: '', amount: '', unit: 'ml', bottle_id: '' }]);
             setBrandOptionsByIndex([[]]);
+            setBatchTypeUserOverride(false)
+            setBatchType('base')
         }
     };
 
@@ -398,6 +501,60 @@ export default function CocktailScaler() {
                         step="0.1"
                     />
                 </div>
+
+                <div className="input-group">
+                    <label htmlFor="batchType">Type:</label>
+                    <select
+                        id="batchType"
+                        value={batchType}
+                        onChange={(e) => {
+                            const nextType = e.target.value
+                            setBatchType(nextType)
+                            setBatchTypeUserOverride(true)
+
+                            if (nextType === 'base') {
+                                // Filter out juice ingredients from originalIngredients
+                                if (originalIngredients.length > 0) {
+                                    const baseOnly = originalIngredients.filter((ing) => {
+                                        if (selectedCocktail && Array.isArray(selectedCocktail.recipe_ingredients)) {
+                                            const ri = selectedCocktail.recipe_ingredients.find((r) => r.ingredient_name === ing.name)
+                                            return ri && (ri.subcategory_name || '').trim().toLowerCase() !== 'juice'
+                                        }
+                                        // Fall back to catalog lookup
+                                        const meta = findIngredientByName(ing?.name)
+                                        return (meta?.subcategory_name || '').trim().toLowerCase() !== 'juice'
+                                    })
+                                    setIngredients(
+                                        baseOnly.length
+                                            ? baseOnly
+                                            : [{ name: '', amount: '', unit: 'ml', bottle_id: '' }]
+                                    )
+                                } else {
+                                    // No originalIngredients -> fall back to catalog-based filtering
+                                    setIngredients((prev) => filterOutJuiceIngredients(prev))
+                                }
+                            } else if (nextType === 'batch') {
+                                // Restore all original ingredients when switching to batch
+                                if (originalIngredients.length > 0) {
+                                    setIngredients(originalIngredients)
+                                }
+                            }
+                        }}
+                    >
+                        <option value="base">Base (no juice, no expiration)</option>
+                        <option value="batch">Batch (contains juice, expires in 7 days)</option>
+                    </select>
+
+
+                    <div className="batch-expiration">
+                        <span><strong>Expires:</strong> {expirationText}</span>
+                        {(batchType === 'base' && hasJuice) && (
+                            <span className="batch-warning">
+                                Juice detected in ingredients — consider switching to Batch.
+                            </span>
+                        )}
+                    </div>
+                </div>
             </div>
 
                 <IngredientInputs
@@ -428,22 +585,42 @@ export default function CocktailScaler() {
                         <div className="quantities-display">
                             <div className="quantities-column">
                                 <h4>Original Recipe</h4>
-                                {ingredients.map((ingredient, index) => (
+                                {ingredientsForScaling.map((ingredient, index) => (
                                     <div key={index} className="quantity-item">
                                         <span className="ingredient-name">{ingredient.name || `Ingredient ${index + 1}`}</span>
-                                        <span className="ingredient-amount">{ingredient.amount || 0} ml</span>
+                                        <span className="ingredient-amount">{ingredient.amount || 0} {ingredient.unit || 'ml'}</span>
                                     </div>
                                 ))}
+                                {batchType === 'base' && juiceIngredients.length > 0 && (
+                                    <>
+                                        {juiceIngredients.map((ingredient, index) => (
+                                            <div key={`juice-${index}`} className="quantity-item quantity-item-excluded">
+                                                <span className="ingredient-name">{ingredient.name || `Ingredient ${index + 1}`}</span>
+                                                <span className="ingredient-amount">{ingredient.amount || 0} {ingredient.unit || 'ml'} <em>(excluded from base)</em></span>
+                                            </div>
+                                        ))}
+                                    </>
+                                )}
                             </div>
 
                             <div className="quantities-column">
                                 <h4>Scaled for {desiredLiters}L</h4>
-                                {ingredients.map((ingredient, index) => (
+                                {ingredientsForScaling.map((ingredient, index) => (
                                     <div key={index} className="quantity-item">
                                         <span className="ingredient-name">{ingredient.name || `Ingredient ${index + 1}`}</span>
-                                        <span className="ingredient-amount">{getScaledAmount(ingredient.amount)} ml</span>
+                                        <span className="ingredient-amount">{getScaledAmount(ingredient.amount)} {ingredient.unit || 'ml'}</span>
                                     </div>
                                 ))}
+                                {batchType === 'base' && juiceIngredients.length > 0 && (
+                                    <>
+                                        {juiceIngredients.map((ingredient, index) => (
+                                            <div key={`juice-${index}`} className="quantity-item quantity-item-excluded">
+                                                <span className="ingredient-name">{ingredient.name || `Ingredient ${index + 1}`}</span>
+                                                <span className="ingredient-amount"><em>(excluded)</em></span>
+                                            </div>
+                                        ))}
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -42,6 +42,8 @@ class CocktailRecipe(BaseModel):
     garnish_text: Optional[str] = None
     base_recipe_id: Optional[UUID] = None
     is_base: bool = False
+    preparation_method: Optional[str] = None
+    batch_type: Optional[str] = None  # 'base' or 'batch'
     ingredients: List[Ingredient]
     recipe_ingredients: Optional[List[RecipeIngredientInput]] = None
 
@@ -57,6 +59,8 @@ class CocktailRecipeCreate(BaseModel):
     glass_type_id: Optional[UUID] = None
     base_recipe_id: Optional[UUID] = None
     is_base: bool = False
+    preparation_method: Optional[str] = None
+    batch_type: Optional[str] = None  # 'base' or 'batch'
 
 class CocktailRecipeUpdate(BaseModel):
     name: str
@@ -67,6 +71,8 @@ class CocktailRecipeUpdate(BaseModel):
     glass_type_id: Optional[UUID] = None
     base_recipe_id: Optional[UUID] = None
     is_base: bool = False
+    preparation_method: Optional[str] = None
+    batch_type: Optional[str] = None  # 'base' or 'batch'
 
 class CocktailRecipeDelete(BaseModel):
     id: UUID

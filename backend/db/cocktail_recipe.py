@@ -22,6 +22,8 @@ class CocktailRecipe(Base):
     garnish_text = Column(Text, nullable=True)
     base_recipe_id = Column(UUID(as_uuid=True), ForeignKey("cocktail_recipes.id", ondelete="SET NULL"), nullable=True)
     is_base = Column(Boolean, nullable=False, default=False)
+    preparation_method = Column(Text, nullable=True)
+    batch_type = Column(String, nullable=True)  # 'base' or 'batch'
 
     recipe_ingredients = relationship(
         "RecipeIngredient",
@@ -57,6 +59,8 @@ class CocktailRecipe(Base):
             "garnish_text": self.garnish_text,
             "base_recipe_id": self.base_recipe_id,
             "is_base": self.is_base,
+            "preparation_method": self.preparation_method,
+            "batch_type": self.batch_type,
             "recipe_ingredients": [
                 {
                     "id": ri.id,
@@ -72,3 +76,35 @@ class CocktailRecipe(Base):
             ],
         }
 
+        def schema_no_juice(self):
+            return {
+            "id": self.id,
+            "created_by_user_id": self.created_by_user_id,
+            "user": user_data,
+            "name": self.name,
+            "description": self.description,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "glass_type_id": self.glass_type_id,
+            "picture_url": self.picture_url,
+            "garnish_text": self.garnish_text,
+            "base_recipe_id": self.base_recipe_id,
+            "is_base": self.is_base,
+            "preparation_method": self.preparation_method,
+            "batch_type": self.batch_type,
+            "recipe_ingredients": [
+                {
+                    "id": ri.id,
+                    "ingredient_id": ri.ingredient_id,
+                    "quantity": float(ri.quantity),
+                    "unit": ri.unit,
+                    "bottle_id": ri.bottle_id,
+                    "is_garnish": ri.is_garnish,
+                    "is_optional": ri.is_optional,
+                    "sort_order": ri.sort_order,
+                }
+                for ri in (self.recipe_ingredients or [])
+                if ri.ingredient and ri.ingredient.subcategory
+                and ri.ingredient.subcategory.name.lower() != 'juice'
+            ],
+        }

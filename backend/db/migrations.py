@@ -217,6 +217,8 @@ async def recreate_inventory_v3_tables(engine: AsyncEngine):
                 "is_active",
                 "min_level",
                 "reorder_level",
+                "price_minor",
+                "currency",
             },
             "inventory_stock": {"id", "location", "inventory_item_id", "quantity", "reserved_quantity"},
             "inventory_movements": {
@@ -308,9 +310,23 @@ async def recreate_inventory_v3_tables(engine: AsyncEngine):
             # Partial existence or missing tables: make it consistent.
             needs_recreate = True
         else:
+            # Allow safe additive migrations (do NOT drop data).
+            additive_columns = {
+                "inventory_items": {
+                    "price_minor": "INTEGER",
+                    "currency": "TEXT",
+                }
+            }
             for t in ("inventory_items", "inventory_stock", "inventory_movements"):
                 cols = await _table_columns(t)
-                if cols != expected_columns[t]:
+                missing = expected_columns[t] - cols
+                if missing and t in additive_columns and missing.issubset(set(additive_columns[t].keys())):
+                    for col in sorted(missing):
+                        col_type = additive_columns[t][col]
+                        await conn.execute(text(f"ALTER TABLE {t} ADD COLUMN IF NOT EXISTS {col} {col_type} NULL"))
+                    cols |= missing
+                # Allow additive columns (forward-compatible). We only require the expected ones.
+                if not expected_columns[t].issubset(cols):
                     needs_recreate = True
                     break
                 cons = await _table_constraints(t)
@@ -348,6 +364,8 @@ async def recreate_inventory_v3_tables(engine: AsyncEngine):
                     is_active BOOLEAN NOT NULL DEFAULT TRUE,
                     min_level NUMERIC NULL,
                     reorder_level NUMERIC NULL,
+                    price_minor INTEGER NULL,
+                    currency TEXT NULL,
                     CONSTRAINT ck_inventory_items_item_type
                         CHECK (item_type IN ('BOTTLE','GARNISH','GLASS')),
                     CONSTRAINT ck_inventory_items_backing_fk
@@ -368,6 +386,10 @@ async def recreate_inventory_v3_tables(engine: AsyncEngine):
                 """
             )
         )
+
+        # Additive migration: add new columns if table already existed.
+        await conn.execute(text("ALTER TABLE inventory_items ADD COLUMN IF NOT EXISTS price_minor INTEGER NULL"))
+        await conn.execute(text("ALTER TABLE inventory_items ADD COLUMN IF NOT EXISTS currency TEXT NULL"))
 
         # Ensure at-most-one inventory item per backing entity (partial unique indexes).
         await conn.execute(
@@ -446,6 +468,47 @@ async def recreate_inventory_v3_tables(engine: AsyncEngine):
         )
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_inventory_movements_item_id ON inventory_movements(inventory_item_id)"))
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_inventory_movements_created_at ON inventory_movements(created_at)"))
+
+
+async def ensure_ingredient_taxonomy(engine: AsyncEngine):
+    """
+    Ensure Kind='Ingredient' and its Subcategories exist:
+    Spirit, Liqueur, Juice, Syrup, Garnish.
+    """
+    subcats = ["Spirit", "Liqueur", "Juice", "Syrup", "Garnish"]
+    async with engine.begin() as conn:
+        # Kind
+        res = await conn.execute(
+            text("SELECT id FROM kinds WHERE lower(name) = lower(:name) LIMIT 1"),
+            {"name": "Ingredient"},
+        )
+        kind_id = res.scalar_one_or_none()
+        if not kind_id:
+            kind_id = str(uuid.uuid4())
+            await conn.execute(
+                text("INSERT INTO kinds (id, name) VALUES (:id, :name)"),
+                {"id": kind_id, "name": "Ingredient"},
+            )
+
+        # Subcategories (idempotent)
+        for name in subcats:
+            r = await conn.execute(
+                text(
+                    """
+                    SELECT id FROM subcategories
+                    WHERE kind_id = :kind_id AND lower(name) = lower(:name)
+                    LIMIT 1
+                    """
+                ),
+                {"kind_id": kind_id, "name": name},
+            )
+            existing = r.scalar_one_or_none()
+            if existing:
+                continue
+            await conn.execute(
+                text("INSERT INTO subcategories (id, kind_id, name) VALUES (:id, :kind_id, :name)"),
+                {"id": str(uuid.uuid4()), "kind_id": kind_id, "name": name},
+            )
 
 
 async def add_normalized_schema_tables_if_missing(engine: AsyncEngine):
@@ -638,6 +701,8 @@ async def add_normalized_columns_if_missing(engine: AsyncEngine):
         await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS garnish_text TEXT"))
         await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS base_recipe_id UUID"))
         await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS is_base BOOLEAN DEFAULT FALSE"))
+        await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS preparation_method TEXT"))
+        await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS batch_type TEXT"))
 
         # populate defaults for existing rows
         await conn.execute(text("UPDATE cocktail_recipes SET updated_at = COALESCE(updated_at, created_at, NOW())"))

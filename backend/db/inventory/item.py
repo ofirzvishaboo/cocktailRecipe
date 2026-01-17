@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Boolean, Column, ForeignKey, Numeric, String, Text
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -25,6 +25,10 @@ class InventoryItem(Base):
 
     min_level = Column(Numeric, nullable=True)
     reorder_level = Column(Numeric, nullable=True)
+
+    # Optional manual price (for GARNISH/GLASS, and optionally override for bottles).
+    price_minor = Column(Integer, nullable=True)
+    currency = Column(String(3), nullable=True)
 
     bottle = relationship("Bottle")
     ingredient = relationship("Ingredient")

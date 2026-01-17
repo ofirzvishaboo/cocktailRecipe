@@ -74,6 +74,7 @@ async def create_db_and_tables():
         add_normalized_columns_if_missing,
         drop_legacy_tables_if_exist,
         recreate_inventory_v3_tables,
+        ensure_ingredient_taxonomy,
     )
     await add_missing_user_columns(engine)
     await add_user_id_column_if_missing(engine)
@@ -81,6 +82,7 @@ async def create_db_and_tables():
     await add_normalized_columns_if_missing(engine)
     await drop_legacy_tables_if_exist(engine)
     await recreate_inventory_v3_tables(engine)
+    await ensure_ingredient_taxonomy(engine)
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:

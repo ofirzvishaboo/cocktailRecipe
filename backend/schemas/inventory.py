@@ -19,6 +19,8 @@ class InventoryItemCreate(BaseModel):
     unit: str
     min_level: Optional[float] = None
     reorder_level: Optional[float] = None
+    price: Optional[float] = None
+    currency: Optional[str] = None
 
     @field_validator("name", "unit")
     @classmethod
@@ -26,6 +28,18 @@ class InventoryItemCreate(BaseModel):
         v = (v or "").strip()
         if not v:
             raise ValueError("field is required")
+        return v
+
+    @field_validator("currency")
+    @classmethod
+    def _currency(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        v = v.strip().upper()
+        if not v:
+            return None
+        if len(v) != 3:
+            raise ValueError("currency must be a 3-letter code (e.g. ILS)")
         return v
 
     @model_validator(mode="after")
@@ -49,6 +63,8 @@ class InventoryItemUpdate(BaseModel):
     is_active: Optional[bool] = None
     min_level: Optional[float] = None
     reorder_level: Optional[float] = None
+    price: Optional[float] = None
+    currency: Optional[str] = None
 
     @field_validator("name", "unit")
     @classmethod
@@ -58,6 +74,18 @@ class InventoryItemUpdate(BaseModel):
         v = (v or "").strip()
         if not v:
             raise ValueError("cannot be empty")
+        return v
+
+    @field_validator("currency")
+    @classmethod
+    def _currency_optional(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        v = v.strip().upper()
+        if not v:
+            return None
+        if len(v) != 3:
+            raise ValueError("currency must be a 3-letter code (e.g. ILS)")
         return v
 
 
@@ -78,6 +106,35 @@ class InventoryMovementCreate(BaseModel):
         return v or None
 
 
+class ConsumeCocktailBatchRequest(BaseModel):
+    liters: float
+    location: InventoryLocation
+    include_garnish: bool = False
+    include_optional: bool = False
+    reason: Optional[str] = None
+    source_type: Optional[str] = None
+    source_id: Optional[int] = None
+
+    @field_validator("liters")
+    @classmethod
+    def _liters_positive(cls, v: float) -> float:
+        try:
+            v = float(v)
+        except Exception:
+            raise ValueError("liters must be a number")
+        if v <= 0:
+            raise ValueError("liters must be > 0")
+        return v
+
+    @field_validator("reason", "source_type")
+    @classmethod
+    def _strip_nullable2(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
+
 class InventoryItemOut(BaseModel):
     id: UUID
     item_type: InventoryItemType
@@ -89,6 +146,8 @@ class InventoryItemOut(BaseModel):
     is_active: bool
     min_level: Optional[float] = None
     reorder_level: Optional[float] = None
+    price: Optional[float] = None
+    currency: Optional[str] = None
 
     class Config:
         from_attributes = True

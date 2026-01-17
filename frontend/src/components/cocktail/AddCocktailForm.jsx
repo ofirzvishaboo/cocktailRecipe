@@ -13,8 +13,11 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
     const [form, setForm] = useState({
         name: initialCocktail?.name || '',
         description: initialCocktail?.description || '',
+        is_base: !!initialCocktail?.is_base,
         glass_type_id: initialCocktail?.glass_type_id || '',
         garnish_text: initialCocktail?.garnish_text || '',
+        preparation_method: initialCocktail?.preparation_method || '',
+        batch_type: initialCocktail?.batch_type || '',
         ingredients: (initialCocktail?.recipe_ingredients || []).map((ri) => ({
             name: ri.ingredient_name || '',
             ingredient_id: ri.ingredient_id || '',
@@ -282,6 +285,9 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
             picture_url: form.imageUrl || null,
             glass_type_id: form.glass_type_id || null,
             garnish_text: (form.garnish_text || '').trim() || null,
+            is_base: !!form.is_base,
+            preparation_method: (form.preparation_method || '').trim() || null,
+            batch_type: form.batch_type || null,
         }
 
         try {
@@ -302,8 +308,11 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 setForm({
                     name: '',
                     description: '',
+                    is_base: false,
                     glass_type_id: '',
                     garnish_text: '',
+                    preparation_method: '',
+                    batch_type: '',
                     ingredients: [{ name: '', ingredient_id: '', amount: '', unit: 'ml', bottle_id: '' }],
                     imageUrl: '',
                     imagePreview: '',
@@ -336,6 +345,19 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                     className="form-input"
                     required
                 />
+            </div>
+
+            <div className="form-group">
+                <label htmlFor="form-classification">Cocktail type</label>
+                <select
+                    id="form-classification"
+                    value={form.is_base ? 'CLASSIC' : 'SIGNATURE'}
+                    onChange={(e) => setForm((prev) => ({ ...prev, is_base: e.target.value === 'CLASSIC' }))}
+                    className="form-input"
+                >
+                    <option value="SIGNATURE">Signature</option>
+                    <option value="CLASSIC">Classic</option>
+                </select>
             </div>
             <div className="form-group">
                 <label htmlFor="form-description">Description (optional)</label>
@@ -376,6 +398,32 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                     onChange={(e) => setForm((prev) => ({ ...prev, garnish_text: e.target.value }))}
                     className="form-input"
                 />
+            </div>
+
+            <div className="form-group">
+                <label htmlFor="form-preparation-method">Preparation Method (optional)</label>
+                <textarea
+                    id="form-preparation-method"
+                    placeholder="e.g. Shake with ice, strain into glass..."
+                    value={form.preparation_method}
+                    onChange={(e) => setForm((prev) => ({ ...prev, preparation_method: e.target.value }))}
+                    className="form-input form-textarea"
+                    rows={3}
+                />
+            </div>
+
+            <div className="form-group">
+                <label htmlFor="form-batch-type">Batch Type (optional)</label>
+                <select
+                    id="form-batch-type"
+                    value={form.batch_type}
+                    onChange={(e) => setForm((prev) => ({ ...prev, batch_type: e.target.value }))}
+                    className="form-input"
+                >
+                    <option value="">Select batch type...</option>
+                    <option value="base">Base (no juice, no expiration)</option>
+                    <option value="batch">Batch (contains juice, expires in 7 days)</option>
+                </select>
             </div>
 
             <div className="form-group">

@@ -111,17 +111,20 @@ async def update_ingredient(ingredient_id: UUID, ingredient: IngredientUpdate, u
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Ingredient with id {ingredient_id} not found"
         )
-    if ingredient.name is not None:
+    # Pydantic v2: allow explicit nulls (e.g. subcategory_id=null to clear) by checking fields_set.
+    fields = getattr(ingredient, "model_fields_set", set())
+
+    if "name" in fields and ingredient.name is not None:
         ingredient_model.name = ingredient.name
-    if ingredient.brand_id is not None:
+    if "brand_id" in fields:
         ingredient_model.brand_id = ingredient.brand_id
-    if ingredient.kind_id is not None:
+    if "kind_id" in fields:
         ingredient_model.kind_id = ingredient.kind_id
-    if ingredient.subcategory_id is not None:
+    if "subcategory_id" in fields:
         ingredient_model.subcategory_id = ingredient.subcategory_id
-    if ingredient.abv_percent is not None:
+    if "abv_percent" in fields:
         ingredient_model.abv_percent = ingredient.abv_percent
-    if ingredient.notes is not None:
+    if "notes" in fields:
         ingredient_model.notes = ingredient.notes
     await db.commit()
     await db.refresh(ingredient_model)

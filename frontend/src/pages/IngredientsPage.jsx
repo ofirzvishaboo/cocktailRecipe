@@ -10,6 +10,14 @@ function IngredientsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [taxonomy, setTaxonomy] = useState({
+    loading: false,
+    error: '',
+    ingredientKind: null,
+    subcategories: [],
+    subcategoryById: {},
+    subcategoryIdByNameLower: {},
+  })
   const [brandSuggestions, setBrandSuggestions] = useState([])
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [pendingDeleteIngredientId, setPendingDeleteIngredientId] = useState(null)
@@ -22,6 +30,7 @@ function IngredientsPage() {
   const [editingBrandById, setEditingBrandById] = useState({})
   const [form, setForm] = useState({
     name: '',
+    subcategory_id: '',
     brand_name: '',
     bottle_size_ml: '',
     bottle_price: '',
@@ -30,6 +39,43 @@ function IngredientsPage() {
 
   useEffect(() => {
     loadIngredients()
+  }, [])
+
+  useEffect(() => {
+    const loadTaxonomy = async () => {
+      try {
+        setTaxonomy((p) => ({ ...p, loading: true, error: '' }))
+        const kindsRes = await api.get('/kinds/')
+        const kinds = Array.isArray(kindsRes.data) ? kindsRes.data : []
+        const ingredientKind = kinds.find((k) => (k?.name || '').trim().toLowerCase() === 'ingredient') || null
+        if (!ingredientKind?.id) {
+          setTaxonomy((p) => ({ ...p, loading: false, ingredientKind: null, subcategories: [], subcategoryById: {}, subcategoryIdByNameLower: {} }))
+          return
+        }
+        const subsRes = await api.get(`/subcategories/?kind_id=${ingredientKind.id}`)
+        const subcategories = Array.isArray(subsRes.data) ? subsRes.data : []
+        const subcategoryById = {}
+        const subcategoryIdByNameLower = {}
+        for (const s of subcategories) {
+          if (!s?.id) continue
+          subcategoryById[s.id] = s
+          const key = (s.name || '').trim().toLowerCase()
+          if (key) subcategoryIdByNameLower[key] = s.id
+        }
+        setTaxonomy({
+          loading: false,
+          error: '',
+          ingredientKind,
+          subcategories,
+          subcategoryById,
+          subcategoryIdByNameLower,
+        })
+      } catch (e) {
+        console.error('Failed to load taxonomy', e)
+        setTaxonomy((p) => ({ ...p, loading: false, error: 'Failed to load ingredient taxonomy' }))
+      }
+    }
+    loadTaxonomy()
   }, [])
 
   const loadBrandSuggestions = async () => {
@@ -101,7 +147,12 @@ function IngredientsPage() {
         }
       } else {
         // Create new ingredient
-        const res = await api.post('/ingredients/', { name: form.name })
+        const res = await api.post('/ingredients/', {
+          name: form.name,
+          // ensure the Kind is set to our Ingredient taxonomy kind if present
+          kind_id: taxonomy.ingredientKind?.id || undefined,
+          subcategory_id: form.subcategory_id ? form.subcategory_id : null,
+        })
         const updatedIngredients = [...ingredients, res.data]
         setIngredients(updatedIngredients)
         // Update filtered list if search matches
@@ -136,7 +187,7 @@ function IngredientsPage() {
         }
       }
 
-      setForm({ name: '', brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
+      setForm({ name: '', subcategory_id: '', brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
       setShowAddForm(false)
     } catch (e) {
       setError(editingIngredient ? 'Failed to update ingredient' : 'Failed to create ingredient')
@@ -192,14 +243,47 @@ function IngredientsPage() {
 
   const editIngredient = (ingredient) => {
     setEditingIngredient(ingredient)
-    setForm({ name: ingredient.name, brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
+    setForm({ name: ingredient.name, subcategory_id: ingredient.subcategory_id || '', brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
   }
 
   const cancelEdit = () => {
     setEditingIngredient(null)
-    setForm({ name: '', brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
+    setForm({ name: '', subcategory_id: '', brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
     setShowAddForm(false)
   }
+
+  const setIngredientSubcategory = async (ingredientId, subcategoryIdOrEmpty) => {
+    try {
+      const subcategory_id = subcategoryIdOrEmpty ? subcategoryIdOrEmpty : null
+      await api.put(`/ingredients/${ingredientId}`, {
+        kind_id: taxonomy.ingredientKind?.id || undefined,
+        subcategory_id,
+      })
+      const patch = (ing) => (ing.id === ingredientId ? { ...ing, subcategory_id } : ing)
+      const updatedIngredients = ingredients.map(patch)
+      setIngredients(updatedIngredients)
+      setFilteredIngredients((prev) => (Array.isArray(prev) ? prev.map(patch) : prev))
+    } catch (e) {
+      console.error('Failed to update ingredient subcategory', e)
+      setError('Failed to update ingredient group')
+    }
+  }
+
+  const GROUP_ORDER = ['Spirit', 'Liqueur', 'Juice', 'Syrup', 'Garnish']
+  const groupedSections = (() => {
+    const idByName = taxonomy.subcategoryIdByNameLower || {}
+    const items = Array.isArray(filteredIngredients) ? filteredIngredients : []
+    const sections = []
+    for (const name of GROUP_ORDER) {
+      const id = idByName[name.toLowerCase()]
+      const list = id ? items.filter((i) => i.subcategory_id === id) : []
+      sections.push({ key: name.toLowerCase(), title: name, items: list })
+    }
+    const knownIds = new Set(Object.values(idByName))
+    const uncategorized = items.filter((i) => !i.subcategory_id || !knownIds.has(i.subcategory_id))
+    sections.push({ key: 'uncategorized', title: 'Uncategorized', items: uncategorized })
+    return sections
+  })()
 
   const loadBrands = async (ingredientId) => {
     try {
@@ -384,6 +468,18 @@ function IngredientsPage() {
                   onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
                   className="form-input"
                 />
+                {isAdmin && taxonomy.subcategories.length > 0 && (
+                  <select
+                    className="form-input form-input-small"
+                    value={form.subcategory_id}
+                    onChange={(e) => setForm(prev => ({ ...prev, subcategory_id: e.target.value }))}
+                  >
+                    <option value="">Group…</option>
+                    {taxonomy.subcategories.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                )}
                 <input
                   type="text"
                   placeholder="Brand (optional)"
@@ -455,21 +551,40 @@ function IngredientsPage() {
       <div className="ingredients-list">
         {loading && <div className="loading">Loading...</div>}
         {!loading && (
-          <ul>
+          <div>
             {filteredIngredients.length === 0 ? (
-              <li className="empty-state">
+              <div className="empty-state">
                 {searchQuery.trim()
                   ? `No ingredients found matching "${searchQuery}"`
                   : ingredients.length === 0
                     ? `No ingredients yet. ${!isAdmin ? 'Only administrators can add ingredients.' : ''}`
                     : 'No ingredients match your search.'}
-              </li>
+              </div>
             ) : (
-              filteredIngredients.map((ing) => (
-                <li key={ing.id} className="ingredient-item">
+              groupedSections.map((section) => (
+                <div key={section.key} style={{ marginTop: section.key === 'spirit' ? 0 : 18 }}>
+                  <h3 style={{ margin: '0 0 10px 0' }}>{section.title}</h3>
+                  {(section.items || []).length === 0 ? (
+                    <div className="empty-state">No ingredients in this group.</div>
+                  ) : (
+                    <ul>
+                      {section.items.map((ing) => (
+                        <li key={ing.id} className="ingredient-item">
                   <div className="ingredient-item-content">
                     <strong>{ing.name}</strong>
                     <div className="ingredient-actions">
+                      {isAdmin && taxonomy.subcategories.length > 0 && (
+                        <select
+                          className="button-secondary"
+                          value={ing.subcategory_id || ''}
+                          onChange={(e) => setIngredientSubcategory(ing.id, e.target.value)}
+                        >
+                          <option value="">Uncategorized</option>
+                          {taxonomy.subcategories.map((s) => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </select>
+                      )}
                       {isAuthenticated && (
                         <button
                           onClick={() => toggleBrands(ing.id)}
@@ -645,9 +760,13 @@ function IngredientsPage() {
                   </div>
                   )}
                 </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               ))
             )}
-          </ul>
+          </div>
         )}
       </div>
 
