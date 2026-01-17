@@ -85,6 +85,7 @@ async def create_ingredient(ingredient: IngredientCreate, user: User = Depends(c
     # Create new ingredient (preserve original casing)
     ingredient_model = IngredientModel(
         name=ingredient.name,
+        name_he=ingredient.name_he,
         brand_id=ingredient.brand_id,
         kind_id=ingredient.kind_id,
         subcategory_id=ingredient.subcategory_id,
@@ -116,6 +117,8 @@ async def update_ingredient(ingredient_id: UUID, ingredient: IngredientUpdate, u
 
     if "name" in fields and ingredient.name is not None:
         ingredient_model.name = ingredient.name
+    if "name_he" in fields:
+        ingredient_model.name_he = ingredient.name_he
     if "brand_id" in fields:
         ingredient_model.brand_id = ingredient.brand_id
     if "kind_id" in fields:
@@ -175,9 +178,11 @@ async def list_bottles_for_ingredient(ingredient_id: UUID, db: AsyncSession = De
                 "id": b.id,
                 "ingredient_id": b.ingredient_id,
                 "name": b.name,
+                "name_he": getattr(b, "name_he", None),
                 "volume_ml": b.volume_ml,
                 "importer_id": b.importer_id,
                 "description": b.description,
+                "description_he": getattr(b, "description_he", None),
                 "is_default_cost": bool(b.is_default_cost),
                 "current_price": (
                     {
@@ -228,9 +233,11 @@ async def create_bottle_for_ingredient(
     bottle_model = BottleModel(
         ingredient_id=ingredient_id,
         name=bottle.name,
+        name_he=bottle.name_he,
         volume_ml=bottle.volume_ml,
         importer_id=bottle.importer_id,
         description=bottle.description,
+        description_he=bottle.description_he,
         is_default_cost=bool(bottle.is_default_cost),
     )
     db.add(bottle_model)
@@ -240,9 +247,11 @@ async def create_bottle_for_ingredient(
         "id": bottle_model.id,
         "ingredient_id": bottle_model.ingredient_id,
         "name": bottle_model.name,
+        "name_he": bottle_model.name_he,
         "volume_ml": bottle_model.volume_ml,
         "importer_id": bottle_model.importer_id,
         "description": bottle_model.description,
+        "description_he": bottle_model.description_he,
         "is_default_cost": bool(bottle_model.is_default_cost),
     }
 
@@ -272,12 +281,16 @@ async def update_bottle(
             brand_id = await _ensure_brand_id_from_name(db, bottle.name)
             if brand_id:
                 ingredient_model.brand_id = brand_id
+    if bottle.name_he is not None:
+        bottle_model.name_he = bottle.name_he
     if bottle.volume_ml is not None:
         bottle_model.volume_ml = bottle.volume_ml
     if bottle.importer_id is not None:
         bottle_model.importer_id = bottle.importer_id
     if bottle.description is not None:
         bottle_model.description = bottle.description
+    if bottle.description_he is not None:
+        bottle_model.description_he = bottle.description_he
     if bottle.is_default_cost is not None:
         if bottle.is_default_cost:
             others = await db.execute(select(BottleModel).where(BottleModel.ingredient_id == bottle_model.ingredient_id))
@@ -291,9 +304,11 @@ async def update_bottle(
         "id": bottle_model.id,
         "ingredient_id": bottle_model.ingredient_id,
         "name": bottle_model.name,
+        "name_he": bottle_model.name_he,
         "volume_ml": bottle_model.volume_ml,
         "importer_id": bottle_model.importer_id,
         "description": bottle_model.description,
+        "description_he": bottle_model.description_he,
         "is_default_cost": bool(bottle_model.is_default_cost),
     }
 

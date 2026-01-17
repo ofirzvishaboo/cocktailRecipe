@@ -1,4 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from './contexts/AuthContext'
 import './styles/App.css'
 import Navbar from './components/layout/Navbar'
@@ -13,6 +15,35 @@ import InventoryPage from './pages/InventoryPage'
 
 function App() {
   const { isAuthenticated } = useAuth()
+  const { i18n, t } = useTranslation()
+
+  useEffect(() => {
+    const lang = (i18n.language || 'en').split('-')[0]
+    const isHebrew = lang === 'he'
+    document.documentElement.lang = isHebrew ? 'he' : 'en'
+    document.documentElement.dir = isHebrew ? 'rtl' : 'ltr'
+
+    // Inventory mobile "card" labels are rendered via CSS ::before.
+    // CSS variables must contain quoted strings, so we JSON.stringify the value.
+    const setVar = (name, value) => {
+      document.documentElement.style.setProperty(name, JSON.stringify(String(value ?? '')))
+    }
+    setVar('--inv_lbl_name', t('inventory.columns.name'))
+    setVar('--inv_lbl_subcategory', t('inventory.columns.subcategory'))
+    setVar('--inv_lbl_qty', t('inventory.columns.qty'))
+    setVar('--inv_lbl_reserved', t('inventory.columns.reserved'))
+    setVar('--inv_lbl_unit', t('inventory.columns.unit'))
+    setVar('--inv_lbl_price', t('inventory.columns.price'))
+    setVar('--inv_lbl_bar_qty', t('inventory.columns.barQty'))
+    setVar('--inv_lbl_wh_qty', t('inventory.columns.whQty'))
+    setVar('--inv_lbl_status', t('inventory.columns.status'))
+    setVar('--inv_lbl_actions', t('inventory.columns.actions'))
+    setVar('--inv_lbl_when', t('inventory.columns.when'))
+    setVar('--inv_lbl_location', t('inventory.columns.location'))
+    setVar('--inv_lbl_item', t('inventory.columns.item'))
+    setVar('--inv_lbl_change', t('inventory.columns.change'))
+    setVar('--inv_lbl_reason', t('inventory.columns.reason'))
+  }, [i18n.language])
 
   return (
     <>

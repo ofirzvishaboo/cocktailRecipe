@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import api from '../../api'
 import IngredientInputs from './IngredientInputs'
 
 function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = false }) {
+    const { t, i18n } = useTranslation()
+    const lang = (i18n.language || 'en').split('-')[0]
     const [ingredientsCatalog, setIngredientsCatalog] = useState([])
     const [brandsByIngredientId, setBrandsByIngredientId] = useState({})
     const [glassTypes, setGlassTypes] = useState([])
@@ -12,11 +15,15 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
 
     const [form, setForm] = useState({
         name: initialCocktail?.name || '',
+        name_he: initialCocktail?.name_he || '',
         description: initialCocktail?.description || '',
+        description_he: initialCocktail?.description_he || '',
         is_base: !!initialCocktail?.is_base,
         glass_type_id: initialCocktail?.glass_type_id || '',
         garnish_text: initialCocktail?.garnish_text || '',
+        garnish_text_he: initialCocktail?.garnish_text_he || '',
         preparation_method: initialCocktail?.preparation_method || '',
+        preparation_method_he: initialCocktail?.preparation_method_he || '',
         batch_type: initialCocktail?.batch_type || '',
         ingredients: (initialCocktail?.recipe_ingredients || []).map((ri) => ({
             name: ri.ingredient_name || '',
@@ -31,8 +38,17 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
     })
 
     const ingredientNameSuggestions = useMemo(
-        () => (ingredientsCatalog || []).map((i) => i.name).filter(Boolean),
-        [ingredientsCatalog]
+        () => {
+            const out = []
+            for (const i of (ingredientsCatalog || [])) {
+                const he = (i?.name_he || '').trim()
+                const en = (i?.name || '').trim()
+                const label = lang === 'he' ? (he || en) : (en || he)
+                if (label) out.push(label)
+            }
+            return out
+        },
+        [ingredientsCatalog, lang]
     )
 
     useEffect(() => {
@@ -63,7 +79,11 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
     const findIngredientIdByName = (name) => {
         const n = (name || '').trim().toLowerCase()
         if (!n) return null
-        const match = (ingredientsCatalog || []).find((i) => (i.name || '').trim().toLowerCase() === n)
+        const match = (ingredientsCatalog || []).find((i) => {
+            const en = (i?.name || '').trim().toLowerCase()
+            const he = (i?.name_he || '').trim().toLowerCase()
+            return en === n || he === n
+        })
         return match?.id || null
     }
 
@@ -174,16 +194,16 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
         if (file) {
             // Validate file type
             if (!file.type.startsWith('image/')) {
-                alert('Please select an image file')
+                alert(t('cocktailForm.alerts.imageNotFile'))
                 return
             }
             // Validate file size (min 100 bytes, max 10MB)
             if (file.size < 100) {
-                alert('Image file appears to be corrupted or too small')
+                alert(t('cocktailForm.alerts.imageCorrupt'))
                 return
             }
             if (file.size > 10 * 1024 * 1024) {
-                alert('Image size should be less than 10MB')
+                alert(t('cocktailForm.alerts.imageTooLarge'))
                 return
             }
 
@@ -222,7 +242,7 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 }
             } catch (error) {
                 console.error('Failed to upload image:', error)
-                alert('Failed to upload image. Please try again.')
+                alert(t('cocktailForm.alerts.imageUploadFailed'))
                 // Reset image selection
                 setForm(prev => ({
                     ...prev,
@@ -262,7 +282,7 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
             )
         } catch (err) {
             console.error('Failed to create missing ingredients', err)
-            alert('Failed to create a new ingredient. Are you logged in?')
+            alert(t('cocktailForm.alerts.ingredientCreateFailed'))
             return
         }
 
@@ -279,14 +299,18 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
         if (!form.name || ingredientsArray.length === 0) return
 
         const newCocktail = {
-            name: form.name,
-            description: form.description.trim() || null,
+            name: (form.name || '').trim() || (form.name_he || '').trim(),
+            name_he: (form.name_he || '').trim() || null,
+            description: (form.description || '').trim() || null,
+            description_he: (form.description_he || '').trim() || null,
             recipe_ingredients: ingredientsArray,
             picture_url: form.imageUrl || null,
             glass_type_id: form.glass_type_id || null,
             garnish_text: (form.garnish_text || '').trim() || null,
+            garnish_text_he: (form.garnish_text_he || '').trim() || null,
             is_base: !!form.is_base,
             preparation_method: (form.preparation_method || '').trim() || null,
+            preparation_method_he: (form.preparation_method_he || '').trim() || null,
             batch_type: form.batch_type || null,
         }
 
@@ -307,11 +331,15 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
             if (!isEdit) {
                 setForm({
                     name: '',
+                    name_he: '',
                     description: '',
+                    description_he: '',
                     is_base: false,
                     glass_type_id: '',
                     garnish_text: '',
+                    garnish_text_he: '',
                     preparation_method: '',
+                    preparation_method_he: '',
                     batch_type: '',
                     ingredients: [{ name: '', ingredient_id: '', amount: '', unit: 'ml', bottle_id: '' }],
                     imageUrl: '',
@@ -322,9 +350,9 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
             }
         } catch (e) {
             if (e?.response?.status === 401) {
-                alert('Your session expired. Please log in again, then retry saving.')
+                alert(t('cocktailForm.alerts.sessionExpired'))
             } else {
-                alert('Failed to save cocktail. Please try again.')
+                alert(t('cocktailForm.alerts.saveFailed'))
             }
             console.error('Failed to save cocktail', e)
         } finally {
@@ -335,99 +363,100 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
     return (
         <form onSubmit={handleSubmit} className="cocktail-form">
             <div className="form-group">
-                <label htmlFor="form-name">Cocktail name</label>
+                <label htmlFor="form-name">{t('cocktailForm.nameLabel')}</label>
                 <input
                     type="text"
-                    placeholder="Cocktail name"
+                    placeholder={t('cocktailForm.namePlaceholder')}
                     id="form-name"
-                    value={form.name}
-                    onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                    value={lang === 'he' ? form.name_he : form.name}
+                    onChange={(e) => setForm(prev => (lang === 'he' ? { ...prev, name_he: e.target.value } : { ...prev, name: e.target.value }))}
                     className="form-input"
                     required
                 />
             </div>
 
             <div className="form-group">
-                <label htmlFor="form-classification">Cocktail type</label>
+                <label htmlFor="form-classification">{t('cocktailForm.typeLabel')}</label>
                 <select
                     id="form-classification"
                     value={form.is_base ? 'CLASSIC' : 'SIGNATURE'}
                     onChange={(e) => setForm((prev) => ({ ...prev, is_base: e.target.value === 'CLASSIC' }))}
                     className="form-input"
                 >
-                    <option value="SIGNATURE">Signature</option>
-                    <option value="CLASSIC">Classic</option>
+                    <option value="SIGNATURE">{t('cocktailForm.type.signature')}</option>
+                    <option value="CLASSIC">{t('cocktailForm.type.classic')}</option>
                 </select>
             </div>
             <div className="form-group">
-                <label htmlFor="form-description">Description (optional)</label>
+                <label htmlFor="form-description">{t('cocktailForm.descriptionLabel')}</label>
                 <textarea
                     id="form-description"
-                    placeholder="Add a description for this cocktail..."
-                    value={form.description}
-                    onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder={t('cocktailForm.descriptionPlaceholder')}
+                    value={lang === 'he' ? form.description_he : form.description}
+                    onChange={(e) => setForm(prev => (lang === 'he' ? { ...prev, description_he: e.target.value } : { ...prev, description: e.target.value }))}
                     className="form-input form-textarea"
                     rows={4}
                 />
             </div>
 
             <div className="form-group">
-                <label htmlFor="form-glass-type">Glass type (optional)</label>
+                <label htmlFor="form-glass-type">{t('cocktailForm.glassLabel')}</label>
                 <select
                     id="form-glass-type"
                     value={form.glass_type_id}
                     onChange={(e) => setForm((prev) => ({ ...prev, glass_type_id: e.target.value }))}
                     className="form-input"
                 >
-                    <option value="">Select a glass…</option>
+                    <option value="">{t('cocktailForm.glassPlaceholder')}</option>
                     {(glassTypes || []).map((g) => (
                         <option key={g.id} value={g.id}>
-                            {g.name}{g.capacity_ml ? ` (${g.capacity_ml}ml)` : ''}
+                            {(lang === 'he' ? ((g?.name_he || '').trim() || (g?.name || '').trim()) : ((g?.name || '').trim() || (g?.name_he || '').trim()))}
+                            {g.capacity_ml ? ` (${g.capacity_ml}ml)` : ''}
                         </option>
                     ))}
                 </select>
             </div>
 
             <div className="form-group">
-                <label htmlFor="form-garnish">Garnish (optional)</label>
+                <label htmlFor="form-garnish">{t('cocktailForm.garnishLabel')}</label>
                 <input
                     type="text"
                     id="form-garnish"
-                    placeholder="e.g. Lime wedge, orange peel..."
-                    value={form.garnish_text}
-                    onChange={(e) => setForm((prev) => ({ ...prev, garnish_text: e.target.value }))}
+                    placeholder={t('cocktailForm.garnishPlaceholder')}
+                    value={lang === 'he' ? form.garnish_text_he : form.garnish_text}
+                    onChange={(e) => setForm((prev) => (lang === 'he' ? { ...prev, garnish_text_he: e.target.value } : { ...prev, garnish_text: e.target.value }))}
                     className="form-input"
                 />
             </div>
 
             <div className="form-group">
-                <label htmlFor="form-preparation-method">Preparation Method (optional)</label>
+                <label htmlFor="form-preparation-method">{t('cocktailForm.preparationLabel')}</label>
                 <textarea
                     id="form-preparation-method"
-                    placeholder="e.g. Shake with ice, strain into glass..."
-                    value={form.preparation_method}
-                    onChange={(e) => setForm((prev) => ({ ...prev, preparation_method: e.target.value }))}
+                    placeholder={t('cocktailForm.preparationPlaceholder')}
+                    value={lang === 'he' ? form.preparation_method_he : form.preparation_method}
+                    onChange={(e) => setForm((prev) => (lang === 'he' ? { ...prev, preparation_method_he: e.target.value } : { ...prev, preparation_method: e.target.value }))}
                     className="form-input form-textarea"
                     rows={3}
                 />
             </div>
 
             <div className="form-group">
-                <label htmlFor="form-batch-type">Batch Type (optional)</label>
+                <label htmlFor="form-batch-type">{t('cocktailForm.batchTypeLabel')}</label>
                 <select
                     id="form-batch-type"
                     value={form.batch_type}
                     onChange={(e) => setForm((prev) => ({ ...prev, batch_type: e.target.value }))}
                     className="form-input"
                 >
-                    <option value="">Select batch type...</option>
-                    <option value="base">Base (no juice, no expiration)</option>
-                    <option value="batch">Batch (contains juice, expires in 7 days)</option>
+                    <option value="">{t('cocktailForm.batchTypePlaceholder')}</option>
+                    <option value="base">{t('cocktailForm.batchType.base')}</option>
+                    <option value="batch">{t('cocktailForm.batchType.batch')}</option>
                 </select>
             </div>
 
             <div className="form-group">
-                <label htmlFor="form-image">Cocktail Image</label>
+                <label htmlFor="form-image">{t('cocktailForm.imageLabel')}</label>
                 <input
                     type="file"
                     id="form-image"
@@ -437,13 +466,13 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 />
                 {form.imagePreview && (
                     <div className="image-preview-container">
-                        <img src={form.imagePreview} alt="Preview" className="image-preview" />
+                        <img src={form.imagePreview} alt={t('cocktailForm.imagePreviewAlt')} className="image-preview" />
                         <button
                             type="button"
                             onClick={removeImage}
                             className="button-remove-small"
                         >
-                            Remove Image
+                            {t('cocktailForm.removeImage')}
                         </button>
                     </div>
                 )}
@@ -455,7 +484,6 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 onRemoveIngredient={removeIngredient}
                 minIngredients={1}
                 amountStep="1"
-                addButtonLabel="Add Ingredient"
                 nameSuggestions={ingredientNameSuggestions}
                 showBottleSelect={true}
                 brandOptionsByIndex={brandOptionsByIndex}
@@ -466,7 +494,7 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                     disabled={form.submitting}
                     className="button-primary"
                 >
-                    {isEdit ? 'Update cocktail' : 'Save cocktail'}
+                    {isEdit ? t('cocktailForm.update') : t('cocktailForm.save')}
                 </button>
                 {isEdit && onCancel && (
                     <button
@@ -474,7 +502,7 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                         onClick={onCancel}
                         className="button-secondary"
                     >
-                        Cancel
+                        {t('common.cancel')}
                     </button>
                 )}
             </div>

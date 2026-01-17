@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import api from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import '../styles/inventory.css'
@@ -22,6 +23,8 @@ function formatMoney(price, currency) {
 
 export default function InventoryPage() {
   const { isAdmin } = useAuth()
+  const { t, i18n } = useTranslation()
+  const lang = (i18n.language || 'en').split('-')[0]
 
   const [location, setLocation] = useState('BAR')
   const [tab, setTab] = useState('Stock')
@@ -89,7 +92,11 @@ export default function InventoryPage() {
     return 'Uncategorized'
   }
 
-  const displaySubcategory = (row) => groupKeyForRow(row)
+  const displaySubcategory = (row) => {
+    const key = groupKeyForRow(row)
+    // Translate known group labels; fall back to raw key for anything unexpected.
+    return t(`inventory.groups.${key}`, { defaultValue: key })
+  }
 
   const displayPrice = (row) => {
     const price = row?.price
@@ -105,10 +112,13 @@ export default function InventoryPage() {
       const g = groupKeyForRow(it)
       sections[g].push(it)
     }
-    const all = GROUP_ORDER.map((g) => ({ title: g, key: g.toLowerCase(), items: sections[g] || [] }))
-    if (!subcategoryFilter) return all
-    return all.filter((s) => s.title === subcategoryFilter)
-  }, [sortedItems, subcategoryFilter])
+    const all = GROUP_ORDER.map((g) => ({ title: t(`inventory.groups.${g}`), key: g.toLowerCase(), items: sections[g] || [] }))
+    if (subcategoryFilter) {
+      return all.filter((s) => (s.key || '') === (subcategoryFilter || '').toLowerCase())
+    }
+    const isFiltered = !!((q || '').trim() || itemType)
+    return isFiltered ? all.filter((s) => (s.items || []).length > 0) : all
+  }, [sortedItems, subcategoryFilter, t, q, itemType])
 
   const groupStockSections = useMemo(() => {
     const sections = {}
@@ -117,10 +127,13 @@ export default function InventoryPage() {
       const g = groupKeyForRow(r)
       sections[g].push(r)
     }
-    const all = GROUP_ORDER.map((g) => ({ title: g, key: g.toLowerCase(), items: sections[g] || [] }))
-    if (!subcategoryFilter) return all
-    return all.filter((s) => s.title === subcategoryFilter)
-  }, [stockRows, subcategoryFilter])
+    const all = GROUP_ORDER.map((g) => ({ title: t(`inventory.groups.${g}`), key: g.toLowerCase(), items: sections[g] || [] }))
+    if (subcategoryFilter) {
+      return all.filter((s) => (s.key || '') === (subcategoryFilter || '').toLowerCase())
+    }
+    const isFiltered = !!(itemType)
+    return isFiltered ? all.filter((s) => (s.items || []).length > 0) : all
+  }, [stockRows, subcategoryFilter, t, itemType])
 
   const loadStock = async () => {
     setLoading(true)
@@ -179,7 +192,7 @@ export default function InventoryPage() {
       }
     } catch (e) {
       console.error('Failed to load stock', e)
-      setError('Failed to load stock')
+      setError(t('inventory.errors.loadStockFailed'))
     } finally {
       setLoading(false)
     }
@@ -197,7 +210,7 @@ export default function InventoryPage() {
       setItems(Array.isArray(res.data) ? res.data : [])
     } catch (e) {
       console.error('Failed to load items', e)
-      setError('Failed to load items')
+      setError(t('inventory.errors.loadItemsFailed'))
     } finally {
       setLoading(false)
     }
@@ -218,7 +231,7 @@ export default function InventoryPage() {
       setMovements(Array.isArray(res.data) ? res.data : [])
     } catch (e) {
       console.error('Failed to load movements', e)
-      setError('Failed to load movements')
+      setError(t('inventory.errors.loadMovementsFailed'))
     } finally {
       setLoading(false)
     }
@@ -275,7 +288,7 @@ export default function InventoryPage() {
       if (tab === 'Stock') await loadStock()
     } catch (e) {
       console.error('Failed to update item', e)
-      setError('Failed to update item')
+      setError(t('inventory.errors.updateItemFailed'))
     } finally {
       setEditForm((p) => ({ ...p, submitting: false }))
     }
@@ -302,7 +315,7 @@ export default function InventoryPage() {
     } catch (e2) {
       console.error('Failed to create movement', e2)
       const detail = e2?.response?.data?.detail
-      setError(detail ? String(detail) : 'Failed to create movement')
+      setError(detail ? String(detail) : t('inventory.errors.createMovementFailed'))
       setMovementForm((p) => ({ ...p, submitting: false }))
     }
   }
@@ -312,30 +325,30 @@ export default function InventoryPage() {
       <div className="inventory-header">
         <div className="inventory-controls">
           <div className="inventory-control">
-            <label className="inventory-label">Location</label>
+            <label className="inventory-label">{t('inventory.filters.location')}</label>
             <select className="form-input" value={location} onChange={(e) => setLocation(e.target.value)}>
               {LOCATIONS.map((l) => (
-                <option key={l} value={l}>{l}</option>
+                <option key={l} value={l}>{t(`inventory.locations.${l}`)}</option>
               ))}
             </select>
           </div>
 
           <div className="inventory-control">
-            <label className="inventory-label">Type</label>
+            <label className="inventory-label">{t('inventory.filters.type')}</label>
             <select className="form-input" value={itemType} onChange={(e) => setItemType(e.target.value)}>
-              <option value="">All</option>
-              <option value="BOTTLE">BOTTLE</option>
-              <option value="GARNISH">GARNISH</option>
-              <option value="GLASS">GLASS</option>
+              <option value="">{t('inventory.itemTypes.all')}</option>
+              <option value="BOTTLE">{t('inventory.itemTypes.BOTTLE')}</option>
+              <option value="GARNISH">{t('inventory.itemTypes.GARNISH')}</option>
+              <option value="GLASS">{t('inventory.itemTypes.GLASS')}</option>
             </select>
           </div>
 
           <div className="inventory-control">
-            <label className="inventory-label">Subcategory</label>
+            <label className="inventory-label">{t('inventory.filters.subcategory')}</label>
             <select className="form-input" value={subcategoryFilter} onChange={(e) => setSubcategoryFilter(e.target.value)}>
-              <option value="">All</option>
+              <option value="">{t('inventory.itemTypes.all')}</option>
               {GROUP_ORDER.map((g) => (
-                <option key={g} value={g}>{g}</option>
+                <option key={g} value={g}>{t(`inventory.groups.${g}`)}</option>
               ))}
             </select>
           </div>
@@ -343,7 +356,7 @@ export default function InventoryPage() {
           {(tab === 'Movements') && (
             <>
               <div className="inventory-control">
-                <label className="inventory-label">From</label>
+                <label className="inventory-label">{t('common.from')}</label>
                 <input
                   className="form-input"
                   type="date"
@@ -352,7 +365,7 @@ export default function InventoryPage() {
                 />
               </div>
               <div className="inventory-control">
-                <label className="inventory-label">To</label>
+                <label className="inventory-label">{t('common.to')}</label>
                 <input
                   className="form-input"
                   type="date"
@@ -365,10 +378,10 @@ export default function InventoryPage() {
 
           {(tab === 'Items') && (
             <div className="inventory-control inventory-control-wide">
-              <label className="inventory-label">Search</label>
+              <label className="inventory-label">{t('common.search')}</label>
               <input
                 className="form-input"
-                placeholder="Search items..."
+                placeholder={t('inventory.searchItemsPlaceholder')}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
               />
@@ -377,40 +390,42 @@ export default function InventoryPage() {
         </div>
 
         <div className="inventory-tabs">
-          {TABS.map((t) => (
+          {TABS.map((tabKey) => (
             <button
-              key={t}
+              key={tabKey}
               type="button"
-              className={`inventory-tab ${tab === t ? 'active' : ''}`}
-              onClick={() => setTab(t)}
+              className={`inventory-tab ${tab === tabKey ? 'active' : ''}`}
+              onClick={() => setTab(tabKey)}
             >
-              {t}
+              {tabKey === 'Stock' ? t('inventory.tabs.stock') : tabKey === 'Items' ? t('inventory.tabs.items') : t('inventory.tabs.movements')}
             </button>
           ))}
         </div>
       </div>
 
       {error && <div className="error-message">{error}</div>}
-      {loading && <div className="loading">Loading...</div>}
+      {loading && <div className="loading">{t('common.loading')}</div>}
 
       {!loading && tab === 'Stock' && (
         <div className="inventory-section">
-          {(groupStockSections || []).map((section) => (
+          {(groupStockSections || []).length === 0 ? (
+            <div className="empty-state">{t('inventory.emptyGroup')}</div>
+          ) : (groupStockSections || []).map((section) => (
             <div key={section.key} style={{ marginTop: section.key === 'spirit' ? 0 : 18 }}>
               <h3 style={{ margin: '0 0 10px 0' }}>{section.title}</h3>
               {(section.items || []).length === 0 ? (
-                <div className="empty-state">No items in this group.</div>
+                <div className="empty-state">{t('inventory.emptyGroup')}</div>
               ) : (
                 <div className="inventory-table">
                   {location === 'ALL' ? (
                     <>
                       <div className="inventory-table-header inventory-table-header-stock-all">
-                        <div>Name</div>
-                        <div>Subcategory</div>
-                        <div className="right">BAR Qty</div>
-                        <div className="right">WH Qty</div>
-                        <div>Unit</div>
-                        <div className="right">Price</div>
+                        <div>{t('inventory.columns.name')}</div>
+                        <div>{t('inventory.columns.subcategory')}</div>
+                        <div className="right">{t('inventory.columns.barQty')}</div>
+                        <div className="right">{t('inventory.columns.whQty')}</div>
+                        <div>{t('inventory.columns.unit')}</div>
+                        <div className="right">{t('inventory.columns.price')}</div>
                       </div>
                       {(section.items || []).map((r) => (
                         <div key={r.inventory_item_id} className="inventory-table-row inventory-table-row-stock-all">
@@ -426,12 +441,12 @@ export default function InventoryPage() {
                   ) : (
                     <>
                       <div className="inventory-table-header inventory-table-header-stock">
-                        <div>Name</div>
-                        <div>Subcategory</div>
-                        <div className="right">Qty</div>
-                        <div className="right">Reserved</div>
-                        <div>Unit</div>
-                        <div className="right">Price</div>
+                        <div>{t('inventory.columns.name')}</div>
+                        <div>{t('inventory.columns.subcategory')}</div>
+                        <div className="right">{t('inventory.columns.qty')}</div>
+                        <div className="right">{t('inventory.columns.reserved')}</div>
+                        <div>{t('inventory.columns.unit')}</div>
+                        <div className="right">{t('inventory.columns.price')}</div>
                       </div>
                       {(section.items || []).map((r) => (
                         <div key={r.inventory_item_id} className="inventory-table-row inventory-table-row-stock">
@@ -454,27 +469,30 @@ export default function InventoryPage() {
 
       {!loading && tab === 'Items' && (
         <div className="inventory-section">
-          {(groupItemsSections || []).map((section) => (
-            <div key={section.key} style={{ marginTop: section.key === 'spirit' ? 0 : 18 }}>
-              <h3 style={{ margin: '0 0 10px 0' }}>{section.title}</h3>
-              {(section.items || []).length === 0 ? (
-                <div className="empty-state">No items in this group.</div>
-              ) : (
-                <div className="inventory-table">
+          {(groupItemsSections || []).length === 0 ? (
+            <div className="empty-state">{t('inventory.emptyGroup')}</div>
+          ) : (
+            (groupItemsSections || []).map((section) => (
+              <div key={section.key} style={{ marginTop: section.key === 'spirit' ? 0 : 18 }}>
+                <h3 style={{ margin: '0 0 10px 0' }}>{section.title}</h3>
+                {(section.items || []).length === 0 ? (
+                  <div className="empty-state">{t('inventory.emptyGroup')}</div>
+                ) : (
+                  <div className="inventory-table">
                   <div className={`inventory-table-header ${location === 'ALL' ? 'inventory-table-header-items-all' : 'inventory-table-header-items'}`}>
-                    <div>Name</div>
-                    <div>Unit</div>
-                    <div>Subcategory</div>
-                    <div className="right">Price</div>
+                    <div>{t('inventory.columns.name')}</div>
+                    <div>{t('inventory.columns.unit')}</div>
+                    <div>{t('inventory.columns.subcategory')}</div>
+                    <div className="right">{t('inventory.columns.price')}</div>
                     {location === 'ALL' ? (
                       <>
-                        <div className="right">BAR Qty</div>
-                        <div className="right">WH Qty</div>
+                        <div className="right">{t('inventory.columns.barQty')}</div>
+                        <div className="right">{t('inventory.columns.whQty')}</div>
                       </>
                     ) : (
-                      <div className="right">Qty ({location})</div>
+                      <div className="right">{t('inventory.columns.qty')} ({t(`inventory.locations.${location}`)})</div>
                     )}
-                    <div>Status</div>
+                    <div>{t('inventory.columns.status')}</div>
                     <div />
                   </div>
                   {(section.items || []).map((it) => {
@@ -545,11 +563,11 @@ export default function InventoryPage() {
                                 checked={!!editForm.is_active}
                                 onChange={(e) => setEditForm((p) => ({ ...p, is_active: e.target.checked }))}
                               />
-                              Active
+                              {t('inventory.status.activeToggle')}
                             </label>
                           ) : (
                             <span className={`pill ${it.is_active ? 'pill-ok' : 'pill-muted'}`}>
-                              {it.is_active ? 'ACTIVE' : 'INACTIVE'}
+                              {it.is_active ? t('inventory.status.active') : t('inventory.status.inactive')}
                             </span>
                           )}
                         </div>
@@ -558,15 +576,15 @@ export default function InventoryPage() {
                             isEditing ? (
                               <>
                                 <button type="button" className="button-primary" disabled={editForm.submitting} onClick={saveItem}>
-                                  Save
+                                  {t('common.save')}
                                 </button>
                                 <button type="button" className="button-secondary" disabled={editForm.submitting} onClick={cancelEditItem}>
-                                  Cancel
+                                  {t('common.cancel')}
                                 </button>
                               </>
                             ) : (
                               <button type="button" className="button-edit" onClick={() => startEditItem(it)}>
-                                Edit
+                                {t('common.edit')}
                               </button>
                             )
                           )}
@@ -575,16 +593,17 @@ export default function InventoryPage() {
                     )
                   })}
                 </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            ))
+          )}
 
           {isAdmin && editingItemId && (
             <div className="inventory-subpanel">
-              <div className="inventory-subpanel-title">Reorder settings</div>
+              <div className="inventory-subpanel-title">{t('inventory.reorder.title')}</div>
               <div className="inventory-subpanel-grid">
                 <div>
-                  <label className="inventory-label">Min level</label>
+                  <label className="inventory-label">{t('inventory.reorder.minLevel')}</label>
                   <input
                     className="form-input"
                     type="number"
@@ -594,7 +613,7 @@ export default function InventoryPage() {
                   />
                 </div>
                 <div>
-                  <label className="inventory-label">Reorder level</label>
+                  <label className="inventory-label">{t('inventory.reorder.reorderLevel')}</label>
                   <input
                     className="form-input"
                     type="number"
@@ -604,7 +623,7 @@ export default function InventoryPage() {
                   />
                 </div>
                 <div>
-                  <label className="inventory-label">Price</label>
+                  <label className="inventory-label">{t('inventory.reorder.price')}</label>
                   <input
                     className="form-input"
                     type="number"
@@ -614,7 +633,7 @@ export default function InventoryPage() {
                   />
                 </div>
                 <div>
-                  <label className="inventory-label">Currency</label>
+                  <label className="inventory-label">{t('inventory.reorder.currency')}</label>
                   <input
                     className="form-input"
                     value={editForm.currency}
@@ -624,7 +643,7 @@ export default function InventoryPage() {
               </div>
               <div className="inventory-subpanel-actions">
                 <button type="button" className="button-primary" disabled={editForm.submitting} onClick={saveItem}>
-                  Save settings
+                  {t('inventory.actions.saveSettings')}
                 </button>
               </div>
             </div>
@@ -639,18 +658,18 @@ export default function InventoryPage() {
               <div className="inventory-movement-row">
                 {location === 'ALL' && (
                   <div className="empty-state" style={{ gridColumn: '1 / -1', padding: '1rem' }}>
-                    Select <strong>BAR</strong> or <strong>WAREHOUSE</strong> to add a movement.
+                    {t('inventory.movement.selectLocationHelp')}
                   </div>
                 )}
                 <div className="inventory-control inventory-control-wide">
-                  <label className="inventory-label">Item</label>
+                  <label className="inventory-label">{t('inventory.movement.item')}</label>
                   <select
                     className="form-input"
                     value={movementForm.inventory_item_id}
                     onChange={(e) => setMovementForm((p) => ({ ...p, inventory_item_id: e.target.value }))}
                     disabled={location === 'ALL'}
                   >
-                    <option value="">Select item…</option>
+                    <option value="">{t('inventory.movement.selectItem')}</option>
                     {(items || [])
                       .filter((it) => it?.is_active)
                       .map((it) => (
@@ -662,12 +681,12 @@ export default function InventoryPage() {
                 </div>
 
                 <div className="inventory-control">
-                  <label className="inventory-label">Change</label>
+                  <label className="inventory-label">{t('inventory.columns.change')}</label>
                   <input
                     className="form-input"
                     type="number"
                     step="0.001"
-                    placeholder="+/-"
+                    placeholder={t('inventory.movement.changePlaceholder')}
                     value={movementForm.change}
                     onChange={(e) => setMovementForm((p) => ({ ...p, change: e.target.value }))}
                     disabled={location === 'ALL'}
@@ -675,18 +694,18 @@ export default function InventoryPage() {
                 </div>
 
                 <div className="inventory-control">
-                  <label className="inventory-label">Reason</label>
+                  <label className="inventory-label">{t('inventory.movement.reason')}</label>
                   <select
                     className="form-input"
                     value={movementForm.reason}
                     onChange={(e) => setMovementForm((p) => ({ ...p, reason: e.target.value }))}
                     disabled={location === 'ALL'}
                   >
-                    <option value="PURCHASE">PURCHASE</option>
-                    <option value="USAGE">USAGE</option>
-                    <option value="WASTE">WASTE</option>
-                    <option value="ADJUSTMENT">ADJUSTMENT</option>
-                    <option value="TRANSFER">TRANSFER</option>
+                    <option value="PURCHASE">{t('inventory.movementReasons.PURCHASE')}</option>
+                    <option value="USAGE">{t('inventory.movementReasons.USAGE')}</option>
+                    <option value="WASTE">{t('inventory.movementReasons.WASTE')}</option>
+                    <option value="ADJUSTMENT">{t('inventory.movementReasons.ADJUSTMENT')}</option>
+                    <option value="TRANSFER">{t('inventory.movementReasons.TRANSFER')}</option>
                   </select>
                 </div>
 
@@ -695,7 +714,7 @@ export default function InventoryPage() {
                   className="button-primary"
                   disabled={location === 'ALL' || movementForm.submitting || !movementForm.inventory_item_id}
                 >
-                  Add movement
+                  {t('inventory.actions.addMovement')}
                 </button>
               </div>
             </form>
@@ -703,25 +722,31 @@ export default function InventoryPage() {
 
           <div className="inventory-table">
             <div className={`inventory-table-header ${location === 'ALL' ? 'inventory-table-header-movements-all' : 'inventory-table-header-movements'}`}>
-              <div>When</div>
-              {location === 'ALL' && <div>Location</div>}
-              <div>Item</div>
-              <div>Subcategory</div>
-              <div className="right">Change</div>
-              <div>Reason</div>
+              <div>{t('inventory.columns.when')}</div>
+              {location === 'ALL' && <div>{t('inventory.columns.location')}</div>}
+              <div>{t('inventory.columns.item')}</div>
+              <div>{t('inventory.columns.subcategory')}</div>
+              <div className="right">{t('inventory.columns.change')}</div>
+              <div>{t('inventory.columns.reason')}</div>
             </div>
             {(movements || []).map((m) => (
               <div key={m.id} className={`inventory-table-row ${location === 'ALL' ? 'inventory-table-row-movements-all' : 'inventory-table-row-movements'}`}>
-                <div className="muted">{m.created_at ? new Date(m.created_at).toLocaleString() : ''}</div>
-                {location === 'ALL' && <div className="muted">{m.location}</div>}
+                <div className="muted">{m.created_at ? new Date(m.created_at).toLocaleString(lang === 'he' ? 'he-IL' : 'en-US') : ''}</div>
+                {location === 'ALL' && <div className="muted">{t(`inventory.locations.${m.location}`)}</div>}
                 <div className="name">{m.item_name || m.inventory_item_id}</div>
-                <div className="muted">{m.subcategory_name || ''}</div>
+                <div className="muted">
+                  {(() => {
+                    const raw = (m.subcategory_name || '').trim()
+                    if (!raw) return ''
+                    return t(`inventory.groups.${raw}`, { defaultValue: raw })
+                  })()}
+                </div>
                 <div className={`right ${Number(m.change) < 0 ? 'neg' : 'pos'}`}>{formatNumber(m.change)}</div>
                 <div className="muted">{m.reason || ''}</div>
               </div>
             ))}
             {(movements || []).length === 0 && (
-              <div className="empty-state">No movements yet.</div>
+              <div className="empty-state">{t('inventory.movementsEmpty')}</div>
             )}
           </div>
         </div>

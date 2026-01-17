@@ -457,9 +457,13 @@
         -webkit-overflow-scrolling: touch;
     }
 
-    /* Ensure the grid has enough minimum width; user can scroll horizontally if needed */
+    /*
+      IMPORTANT:
+      Do NOT force a min-width wider than the viewport. That can cause mobile browsers to
+      scale the entire page down (\"desktop-ish\" rendering) instead of fitting to device width.
+    */
     .cost-row {
-        min-width: 520px;
+        min-width: 0;
     }
 }
 

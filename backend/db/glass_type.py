@@ -11,6 +11,7 @@ class GlassType(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False, unique=True, index=True)
+    name_he = Column(String, nullable=True)
     capacity_ml = Column(Integer, nullable=True)
 
     recipes = relationship("CocktailRecipe", back_populates="glass_type")

@@ -1,8 +1,10 @@
 import { Navigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth()
+  const { t } = useTranslation()
 
   if (loading) {
     return (
@@ -12,7 +14,7 @@ const ProtectedRoute = ({ children }) => {
         alignItems: 'center',
         height: '100vh'
       }}>
-        <div>Loading...</div>
+        <div>{t('common.loading')}</div>
       </div>
     )
   }

@@ -13,9 +13,11 @@ class Bottle(Base):
     ingredient_id = Column(UUID(as_uuid=True), ForeignKey("ingredients.id", ondelete="CASCADE"), nullable=False, index=True)
 
     name = Column(String, nullable=False)
+    name_he = Column(String, nullable=True)
     volume_ml = Column(Integer, nullable=False)
     importer_id = Column(UUID(as_uuid=True), ForeignKey("importers.id", ondelete="SET NULL"), nullable=True)
     description = Column(Text, nullable=True)
+    description_he = Column(Text, nullable=True)
     is_default_cost = Column(Boolean, nullable=False, default=False)
 
     ingredient = relationship("Ingredient", back_populates="bottles")

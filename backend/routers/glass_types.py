@@ -13,5 +13,5 @@ async def list_glass_types(db: AsyncSession = Depends(get_async_session)):
     """List all glass types."""
     result = await db.execute(select(GlassTypeModel).order_by(GlassTypeModel.name))
     items = result.scalars().all()
-    return [{"id": g.id, "name": g.name, "capacity_ml": g.capacity_ml} for g in items]
+    return [{"id": g.id, "name": g.name, "name_he": getattr(g, "name_he", None), "capacity_ml": g.capacity_ml} for g in items]
 

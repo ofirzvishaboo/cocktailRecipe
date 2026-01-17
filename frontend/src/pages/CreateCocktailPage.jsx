@@ -1,10 +1,12 @@
 import { useNavigate, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import AddCocktailForm from '../components/cocktail/AddCocktailForm'
 import { useAuth } from '../contexts/AuthContext'
 
 const CreateCocktailPage = () => {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
+  const { t } = useTranslation()
 
   const handleCreateCocktail = (newCocktail) => {
     // Navigate to the detail page after successful creation
@@ -16,7 +18,7 @@ const CreateCocktailPage = () => {
     return (
       <div className="card">
         <div className="info-message">
-          <p>Please <Link to="/login">log in</Link> to create cocktail recipes.</p>
+          <p>{t('createCocktail.loginPrompt')} <Link to="/login">{t('createCocktail.loginLink')}</Link> {t('createCocktail.loginPromptSuffix')}</p>
         </div>
       </div>
     )
@@ -24,7 +26,7 @@ const CreateCocktailPage = () => {
 
   return (
     <div className="card">
-      <h2>Create New Cocktail</h2>
+      <h2>{t('createCocktail.title')}</h2>
       <AddCocktailForm AddCocktail={handleCreateCocktail} />
     </div>
   )

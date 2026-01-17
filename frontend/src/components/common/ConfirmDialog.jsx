@@ -1,15 +1,17 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function ConfirmDialog({
   open,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText,
+  cancelText,
   variant = 'danger', // 'danger' | 'primary'
   onConfirm,
   onCancel,
 }) {
+  const { t } = useTranslation()
   useEffect(() => {
     if (!open) return
 
@@ -24,6 +26,8 @@ export default function ConfirmDialog({
   if (!open) return null
 
   const isPlainString = typeof message === 'string'
+  const resolvedCancelText = cancelText ?? t('common.cancel')
+  const resolvedConfirmText = confirmText ?? t('common.confirm')
 
   return (
     <div className="modal-overlay" role="presentation" onMouseDown={onCancel}>
@@ -46,14 +50,14 @@ export default function ConfirmDialog({
         </div>
         <div className="modal-actions">
           <button type="button" className="button-secondary" onClick={onCancel}>
-            {cancelText}
+            {resolvedCancelText}
           </button>
           <button
             type="button"
             className={variant === 'danger' ? 'button-danger' : 'button-primary'}
             onClick={onConfirm}
           >
-            {confirmText}
+            {resolvedConfirmText}
           </button>
         </div>
       </div>

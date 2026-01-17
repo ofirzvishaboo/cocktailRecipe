@@ -9,6 +9,7 @@ class Ingredient(BaseModel):
 class IngredientRead(BaseModel):
     id: UUID
     name: str
+    name_he: Optional[str] = None
     brand_id: Optional[UUID] = None
     kind_id: Optional[UUID] = None
     subcategory_id: Optional[UUID] = None
@@ -17,6 +18,7 @@ class IngredientRead(BaseModel):
 
 class IngredientCreate(BaseModel):
     name: str
+    name_he: Optional[str] = None
     brand_id: Optional[UUID] = None
     kind_id: Optional[UUID] = None
     subcategory_id: Optional[UUID] = None
@@ -25,6 +27,7 @@ class IngredientCreate(BaseModel):
 
 class IngredientUpdate(BaseModel):
     name: Optional[str] = None
+    name_he: Optional[str] = None
     brand_id: Optional[UUID] = None
     kind_id: Optional[UUID] = None
     subcategory_id: Optional[UUID] = None
@@ -39,6 +42,7 @@ class IngredientDelete(BaseModel):
 class BrandRead(BaseModel):
     id: UUID
     name: str
+    name_he: Optional[str] = None
 
 
 class KindRead(BaseModel):
@@ -60,6 +64,7 @@ class ImporterRead(BaseModel):
 class GlassTypeRead(BaseModel):
     id: UUID
     name: str
+    name_he: Optional[str] = None
     capacity_ml: Optional[int] = None
 
 
@@ -67,25 +72,31 @@ class BottleRead(BaseModel):
     id: UUID
     ingredient_id: UUID
     name: str
+    name_he: Optional[str] = None
     volume_ml: int
     importer_id: Optional[UUID] = None
     description: Optional[str] = None
+    description_he: Optional[str] = None
     is_default_cost: bool
 
 
 class BottleCreate(BaseModel):
     name: str
+    name_he: Optional[str] = None
     volume_ml: int
     importer_id: Optional[UUID] = None
     description: Optional[str] = None
+    description_he: Optional[str] = None
     is_default_cost: bool = False
 
 
 class BottleUpdate(BaseModel):
     name: Optional[str] = None
+    name_he: Optional[str] = None
     volume_ml: Optional[int] = None
     importer_id: Optional[UUID] = None
     description: Optional[str] = None
+    description_he: Optional[str] = None
     is_default_cost: Optional[bool] = None
 
 

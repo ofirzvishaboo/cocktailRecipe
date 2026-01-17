@@ -1,0 +1,391 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "saving": "Saving...",
+    "save": "Save",
+    "edit": "Edit",
+    "search": "Search",
+    "from": "From",
+    "to": "To",
+    "ingredients": "Ingredients",
+    "ingredientName": "Ingredient name",
+    "quantity": "Quantity",
+    "bottleOptional": "Bottle (optional)",
+    "addIngredient": "Add Ingredient",
+    "remove": "Remove"
+  },
+  "nav": {
+    "title": "Cocktail Recipe Manager",
+    "cocktails": "Cocktails",
+    "ingredients": "Ingredients",
+    "scaler": "Cocktail Scaler",
+    "inventory": "Inventory",
+    "welcome": "Welcome, {{email}}",
+    "logout": "Logout",
+    "login": "Login",
+    "signup": "Sign Up",
+    "language": "Language",
+    "toggleMenu": "Toggle navigation menu"
+  },
+  "cocktails": {
+    "editTitle": "Edit Cocktail",
+    "searchPlaceholder": "Search by name or ingredients (e.g., vodka, lime)...",
+    "createButton": "Create Cocktail",
+    "sections": {
+      "classic": "Classic Cocktails",
+      "signature": "Signature Cocktails"
+    },
+    "actions": {
+      "edit": "Edit",
+      "remove": "Remove"
+    },
+    "image": {
+      "invalid": "Invalid Image",
+      "none": "No Image"
+    },
+    "ingredients": {
+      "more": "+{{count}} more"
+    },
+    "empty": {
+      "matching": "No cocktails found matching \"{{query}}\"",
+      "noneLoggedOut": "No cocktails found. Log in to create the first one!",
+      "noneLoggedIn": "No cocktails found.",
+      "noSearchMatch": "No cocktails match your search.",
+      "classicMatching": "No classic cocktails match \"{{query}}\"",
+      "classicNone": "No classic cocktails yet.",
+      "signatureMatching": "No signature cocktails match \"{{query}}\"",
+      "signatureNone": "No signature cocktails yet."
+    },
+    "deleteDialog": {
+      "title": "Delete cocktail?",
+      "message": "Are you sure you want to delete \"{{name}}\"? This cannot be undone.",
+      "confirm": "Delete"
+    },
+    "errors": {
+      "loadFailed": "Failed to load cocktails",
+      "updateFailed": "Failed to update cocktail",
+      "deleteFailed": "Failed to delete cocktail",
+      "missingId": "Cannot edit cocktail without ID"
+    }
+  },
+  "cocktailDetail": {
+    "loading": "Loading cocktail...",
+    "backToCocktails": "Back to Cocktails",
+    "editTitle": "Edit Cocktail",
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "image": {
+      "invalid": "Invalid Image",
+      "none": "No Image"
+    },
+    "meta": {
+      "createdBy": "Created by",
+      "created": "Created",
+      "glass": "Glass",
+      "garnish": "Garnish"
+    },
+    "sections": {
+      "ingredients": "Ingredients",
+      "cost": "Cost"
+    },
+    "unknown": "Unknown",
+    "ingredients": {
+      "none": "No ingredients listed."
+    },
+    "glass": {
+      "unknown": "Unknown glass"
+    },
+    "cost": {
+      "total": "Total",
+      "loading": "Loading cost...",
+      "noneLines": "No cost lines.",
+      "notAvailable": "Cost not available."
+    },
+    "errors": {
+      "notFound": "Cocktail not found",
+      "loadFailed": "Failed to load cocktail",
+      "deleteFailed": "Failed to delete cocktail",
+      "updateFailed": "Failed to update cocktail",
+      "costLoadFailed": "Failed to load cost"
+    }
+  },
+  "createCocktail": {
+    "title": "Create New Cocktail",
+    "loginPrompt": "Please",
+    "loginLink": "log in",
+    "loginPromptSuffix": "to create cocktail recipes."
+  },
+  "cocktailForm": {
+    "nameLabel": "Cocktail name",
+    "namePlaceholder": "Cocktail name",
+    "typeLabel": "Cocktail type",
+    "type": {
+      "signature": "Signature",
+      "classic": "Classic"
+    },
+    "descriptionLabel": "Description (optional)",
+    "descriptionPlaceholder": "Add a description for this cocktail...",
+    "glassLabel": "Glass type (optional)",
+    "glassPlaceholder": "Select a glass…",
+    "garnishLabel": "Garnish (optional)",
+    "garnishPlaceholder": "e.g. Lime wedge, orange peel...",
+    "preparationLabel": "Preparation Method (optional)",
+    "preparationPlaceholder": "e.g. Shake with ice, strain into glass...",
+    "batchTypeLabel": "Batch Type (optional)",
+    "batchTypePlaceholder": "Select batch type...",
+    "batchType": {
+      "base": "Base (no juice, no expiration)",
+      "batch": "Batch (contains juice, expires in 7 days)"
+    },
+    "imageLabel": "Cocktail Image",
+    "imagePreviewAlt": "Preview",
+    "removeImage": "Remove Image",
+    "save": "Save cocktail",
+    "update": "Update cocktail",
+    "alerts": {
+      "imageNotFile": "Please select an image file",
+      "imageCorrupt": "Image file appears to be corrupted or too small",
+      "imageTooLarge": "Image size should be less than 10MB",
+      "imageUploadFailed": "Failed to upload image. Please try again.",
+      "ingredientCreateFailed": "Failed to create a new ingredient. Are you logged in?",
+      "sessionExpired": "Your session expired. Please log in again, then retry saving.",
+      "saveFailed": "Failed to save cocktail. Please try again."
+    }
+  },
+  "scaler": {
+    "select": {
+      "title": "Select from Existing Cocktails",
+      "loading": "Loading cocktails...",
+      "noneAvailable": "No cocktails available. Create some cocktails first!",
+      "ingredientsCount": "{{count}} ingredient",
+      "ingredientsCount_plural": "{{count}} ingredients",
+      "selectButton": "Select"
+    },
+    "inputs": {
+      "cocktailName": "Cocktail Name:",
+      "cocktailNamePlaceholder": "Enter cocktail name",
+      "liters": "Desired Liters to Produce:",
+      "litersPlaceholder": "Enter liters",
+      "type": "Type:"
+    },
+    "expiration": {
+      "label": "Expires",
+      "forever": "Forever (no expiration)",
+      "juiceWarning": "Juice detected in ingredients — consider switching to Batch."
+    },
+    "results": {
+      "title": "Recipe Scaling Results",
+      "originalTotal": "Original Total Volume",
+      "desiredVolume": "Desired Volume",
+      "factor": "Scaling Factor",
+      "originalRecipe": "Original Recipe",
+      "scaledFor": "Scaled for {{liters}}L",
+      "ingredientFallback": "Ingredient {{n}}",
+      "excludedFromBase": "excluded from base",
+      "excluded": "excluded"
+    },
+    "cost": {
+      "title": "Cost Breakdown",
+      "loading": "Loading costs...",
+      "headers": {
+        "ingredient": "Ingredient",
+        "bottle": "Bottle",
+        "scaled": "Scaled",
+        "cost": "Cost"
+      },
+      "scaledTotal": "Scaled Total Cost"
+    },
+    "errors": {
+      "loadCocktailsFailed": "Failed to load cocktails",
+      "loadCostFailed": "Failed to load cost breakdown"
+    }
+  },
+  "inventory": {
+    "tabs": {
+      "stock": "Stock",
+      "items": "Items",
+      "movements": "Movements"
+    },
+    "filters": {
+      "location": "Location",
+      "type": "Type",
+      "subcategory": "Subcategory"
+    },
+    "searchItemsPlaceholder": "Search items...",
+    "locations": {
+      "ALL": "ALL",
+      "BAR": "BAR",
+      "WAREHOUSE": "WAREHOUSE"
+    },
+    "itemTypes": {
+      "all": "All",
+      "BOTTLE": "BOTTLE",
+      "GARNISH": "GARNISH",
+      "GLASS": "GLASS"
+    },
+    "groups": {
+      "Spirit": "Spirit",
+      "Liqueur": "Liqueur",
+      "Juice": "Juice",
+      "Syrup": "Syrup",
+      "Garnish": "Garnish",
+      "Glass": "Glass",
+      "Uncategorized": "Uncategorized"
+    },
+    "emptyGroup": "No items in this group.",
+    "columns": {
+      "name": "Name",
+      "subcategory": "Subcategory",
+      "unit": "Unit",
+      "price": "Price",
+      "qty": "Qty",
+      "reserved": "Reserved",
+      "barQty": "BAR Qty",
+      "whQty": "WH Qty",
+      "status": "Status",
+      "actions": "Actions",
+      "when": "When",
+      "location": "Location",
+      "item": "Item",
+      "change": "Change",
+      "reason": "Reason"
+    },
+    "status": {
+      "active": "ACTIVE",
+      "inactive": "INACTIVE",
+      "activeToggle": "Active"
+    },
+    "actions": {
+      "saveSettings": "Save settings",
+      "addMovement": "Add movement"
+    },
+    "movement": {
+      "selectLocationHelp": "Select BAR or WAREHOUSE to add a movement.",
+      "item": "Item",
+      "selectItem": "Select item…",
+      "changePlaceholder": "+/-",
+      "reason": "Reason"
+    },
+    "movementReasons": {
+      "PURCHASE": "PURCHASE",
+      "USAGE": "USAGE",
+      "WASTE": "WASTE",
+      "ADJUSTMENT": "ADJUSTMENT",
+      "TRANSFER": "TRANSFER"
+    },
+    "movementsEmpty": "No movements yet.",
+    "errors": {
+      "createMovementFailed": "Failed to create movement",
+      "loadStockFailed": "Failed to load stock",
+      "loadItemsFailed": "Failed to load items",
+      "loadMovementsFailed": "Failed to load movements",
+      "updateItemFailed": "Failed to update item"
+    },
+    "reorder": {
+      "title": "Reorder settings",
+      "minLevel": "Min level",
+      "reorderLevel": "Reorder level",
+      "price": "Price",
+      "currency": "Currency"
+    }
+  },
+  "ingredients": {
+    "searchPlaceholder": "Search ingredients...",
+    "addIngredient": "Add Ingredient",
+    "updateIngredient": "Update Ingredient",
+    "cancel": "Cancel",
+    "groupPlaceholder": "Group…",
+    "uncategorized": "Uncategorized",
+    "emptyGroup": "No ingredients in this group.",
+    "empty": {
+      "matching": "No ingredients found matching \"{{query}}\"",
+      "noneYet": "No ingredients yet.",
+      "noneYetAdminsOnly": "No ingredients yet. Only administrators can add ingredients.",
+      "noSearchMatch": "No ingredients match your search."
+    },
+    "subcategorySelect": {
+      "uncategorized": "Uncategorized",
+      "Spirit": "Spirit",
+      "Liqueur": "Liqueur",
+      "Juice": "Juice",
+      "Syrup": "Syrup",
+      "Garnish": "Garnish",
+      "Glass": "Glass"
+    },
+    "brands": {
+      "toggleShow": "Brands",
+      "toggleHide": "Hide Brands",
+      "title": "Brands / Bottles",
+      "refresh": "Refresh",
+      "loading": "Loading brands...",
+      "empty": "No brands yet.",
+      "addTitle": "Add Brand",
+      "brandName": "Brand name",
+      "sizeMl": "Bottle size (ml)",
+      "price": "Bottle price",
+      "sizeMlShort": "Size (ml)",
+      "priceShort": "Price",
+      "add": "Add",
+      "delete": "Delete"
+    },
+    "actions": {
+      "edit": "Edit",
+      "remove": "Remove"
+    },
+    "errors": {
+      "loadFailed": "Failed to load ingredients",
+      "loadTaxonomyFailed": "Failed to load ingredient taxonomy",
+      "createFailed": "Failed to create ingredient",
+      "updateFailed": "Failed to update ingredient",
+      "deleteFailed": "Failed to delete ingredient",
+      "updateGroupFailed": "Failed to update ingredient group",
+      "loadUsageFailed": "Failed to load usage list. Is the backend restarted?",
+      "invalidBottleFields": "Invalid bottle fields (name, size, and price are required)",
+      "loadBrandsFailed": "Failed to load brands",
+      "createBrandFailed": "Failed to create brand",
+      "updateBrandFailed": "Failed to update brand",
+      "deleteBrandFailed": "Failed to delete brand"
+    },
+    "deleteDialog": {
+      "title": "Delete ingredient?",
+      "usedBy": "This ingredient is being used by:",
+      "loading": "Loading…",
+      "noCocktails": "No cocktails",
+      "confirmQuestion": "Are you sure you want to delete \"{{name}}\"?",
+      "confirm": "Delete"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Login",
+      "email": "Email",
+      "password": "Password",
+      "emailPlaceholder": "Enter your email",
+      "passwordPlaceholder": "Enter your password",
+      "submit": "Login",
+      "submitting": "Logging in...",
+      "noAccount": "Don't have an account?",
+      "signupLink": "Sign up"
+    },
+    "signup": {
+      "title": "Sign Up",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "emailPlaceholder": "Enter your email",
+      "passwordPlaceholder": "Enter your password (min. 8 characters)",
+      "confirmPasswordPlaceholder": "Confirm your password",
+      "submit": "Sign Up",
+      "submitting": "Signing up...",
+      "haveAccount": "Already have an account?",
+      "loginLink": "Login",
+      "passwordsNoMatch": "Passwords do not match",
+      "passwordTooShort": "Password must be at least 8 characters long"
+    }
+  }
+}
+

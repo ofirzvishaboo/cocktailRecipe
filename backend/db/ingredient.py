@@ -11,6 +11,7 @@ class Ingredient(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False, unique=True)  # Unique ingredient names
+    name_he = Column(String, nullable=True)
 
     # Normalized fields (nullable for backfill)
     brand_id = Column(UUID(as_uuid=True), ForeignKey("brands.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -36,6 +37,7 @@ class Ingredient(Base):
         return {
             "id": self.id,
             "name": self.name,
+            "name_he": self.name_he,
             "brand_id": self.brand_id,
             "kind_id": self.kind_id,
             "subcategory_id": self.subcategory_id,

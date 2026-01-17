@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
 import '../../styles/auth.css'
 
@@ -11,6 +12,7 @@ const SignupPage = () => {
   const [loading, setLoading] = useState(false)
   const { signup } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -18,13 +20,13 @@ const SignupPage = () => {
 
     // Validate passwords match
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('auth.signup.passwordsNoMatch'))
       return
     }
 
     // Validate password length
     if (password.length < 8) {
-      setError('Password must be at least 8 characters long')
+      setError(t('auth.signup.passwordTooShort'))
       return
     }
 
@@ -44,54 +46,54 @@ const SignupPage = () => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h2>Sign Up</h2>
+        <h2>{t('auth.signup.title')}</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">{t('auth.signup.email')}</label>
             <input
               type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="Enter your email"
+              placeholder={t('auth.signup.emailPlaceholder')}
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">{t('auth.signup.password')}</label>
             <input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              placeholder="Enter your password (min. 8 characters)"
+              placeholder={t('auth.signup.passwordPlaceholder')}
               minLength={8}
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
+            <label htmlFor="confirmPassword">{t('auth.signup.confirmPassword')}</label>
             <input
               type="password"
               id="confirmPassword"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              placeholder="Confirm your password"
+              placeholder={t('auth.signup.confirmPasswordPlaceholder')}
             />
           </div>
 
           {error && <div className="error-message">{error}</div>}
 
           <button type="submit" className="auth-button" disabled={loading}>
-            {loading ? 'Signing up...' : 'Sign Up'}
+            {loading ? t('auth.signup.submitting') : t('auth.signup.submit')}
           </button>
         </form>
 
         <p className="auth-link">
-          Already have an account? <Link to="/login">Login</Link>
+          {t('auth.signup.haveAccount')} <Link to="/login">{t('auth.signup.loginLink')}</Link>
         </p>
       </div>
     </div>

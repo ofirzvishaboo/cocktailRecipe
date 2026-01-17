@@ -1,21 +1,24 @@
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 function IngredientInputs({
   ingredients,
   onIngredientChange,
   onAddIngredient,
   onRemoveIngredient,
-  addButtonLabel = 'Add Ingredient',
-  namePlaceholder = 'Ingredient name',
-  amountPlaceholder = 'Quantity',
+  addButtonLabel,
+  namePlaceholder,
+  amountPlaceholder,
   minIngredients = 1,
   amountStep = '0.1',
   nameSuggestions = [],
   showBottleSelect = false,
   brandOptionsByIndex = [],
-  bottlePlaceholder = 'Bottle (optional)',
+  bottlePlaceholder,
   brandDisabledByIndex = [],
 }) {
+  const { t, i18n } = useTranslation()
+  const lang = (i18n.language || 'en').split('-')[0]
   const ingredientNameRefs = useRef([])
   const prevLengthRef = useRef(ingredients.length)
   const isAddingRef = useRef(false)
@@ -32,14 +35,19 @@ function IngredientInputs({
     prevLengthRef.current = ingredients.length
   }, [ingredients.length])
 
+  const resolvedAddButtonLabel = addButtonLabel ?? t('common.addIngredient')
+  const resolvedNamePlaceholder = namePlaceholder ?? t('common.ingredientName')
+  const resolvedAmountPlaceholder = amountPlaceholder ?? t('common.quantity')
+  const resolvedBottlePlaceholder = bottlePlaceholder ?? t('common.bottleOptional')
+
   return (
     <div className="ingredients-section">
-      <h3>Ingredients</h3>
+      <h3>{t('common.ingredients')}</h3>
       {ingredients.map((ingredient, index) => (
         <div key={index} className="ingredient-row">
           <input
             type="text"
-            placeholder={namePlaceholder}
+            placeholder={resolvedNamePlaceholder}
             value={ingredient.name}
             onChange={(e) => onIngredientChange(index, 'name', e.target.value)}
             list={nameSuggestions.length ? 'ingredient-suggestions' : undefined}
@@ -56,7 +64,7 @@ function IngredientInputs({
           )}
           <input
             type="number"
-            placeholder={amountPlaceholder}
+            placeholder={resolvedAmountPlaceholder}
             value={ingredient.amount}
             onChange={(e) => onIngredientChange(index, 'amount', e.target.value)}
             min="0"
@@ -69,10 +77,12 @@ function IngredientInputs({
               className="brand-select"
               disabled={brandDisabledByIndex[index] === true}
             >
-              <option value="">{bottlePlaceholder}</option>
+              <option value="">{resolvedBottlePlaceholder}</option>
               {(brandOptionsByIndex[index] || []).map((b) => (
                 <option key={b.id} value={b.id}>
-                  {b.name} ({b.volume_ml}ml / {b.current_price?.price ?? '-' } {b.current_price?.currency ?? ''})
+                  {(lang === 'he' ? ((b?.name_he || '').trim() || (b?.name || '').trim()) : ((b?.name || '').trim() || (b?.name_he || '').trim()))}
+                  {' '}
+                  ({b.volume_ml}ml / {b.current_price?.price ?? '-' } {b.current_price?.currency ?? ''})
                 </option>
               ))}
             </select>
@@ -83,7 +93,7 @@ function IngredientInputs({
             className="remove-btn"
             disabled={ingredients.length <= minIngredients}
           >
-            Remove
+            {t('common.remove')}
           </button>
         </div>
       ))}
@@ -95,7 +105,7 @@ function IngredientInputs({
         }}
         className="add-btn"
       >
-        {addButtonLabel}
+        {resolvedAddButtonLabel}
       </button>
     </div>
   )

@@ -642,6 +642,7 @@ async def add_normalized_columns_if_missing(engine: AsyncEngine):
         await conn.execute(text("ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS subcategory_id UUID"))
         await conn.execute(text("ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS abv_percent NUMERIC(5,2)"))
         await conn.execute(text("ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS notes TEXT"))
+        await conn.execute(text("ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS name_he TEXT"))
 
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_ingredients_brand_id ON ingredients(brand_id)"))
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_ingredients_kind_id ON ingredients(kind_id)"))
@@ -703,6 +704,16 @@ async def add_normalized_columns_if_missing(engine: AsyncEngine):
         await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS is_base BOOLEAN DEFAULT FALSE"))
         await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS preparation_method TEXT"))
         await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS batch_type TEXT"))
+        await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS name_he TEXT"))
+        await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS description_he TEXT"))
+        await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS garnish_text_he TEXT"))
+        await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS preparation_method_he TEXT"))
+
+        # reference tables: brands / bottles / glass_types
+        await conn.execute(text("ALTER TABLE brands ADD COLUMN IF NOT EXISTS name_he TEXT"))
+        await conn.execute(text("ALTER TABLE glass_types ADD COLUMN IF NOT EXISTS name_he TEXT"))
+        await conn.execute(text("ALTER TABLE bottles ADD COLUMN IF NOT EXISTS name_he TEXT"))
+        await conn.execute(text("ALTER TABLE bottles ADD COLUMN IF NOT EXISTS description_he TEXT"))
 
         # populate defaults for existing rows
         await conn.execute(text("UPDATE cocktail_recipes SET updated_at = COALESCE(updated_at, created_at, NOW())"))

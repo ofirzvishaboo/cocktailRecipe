@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
 import '../../styles/auth.css'
 
@@ -10,6 +11,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -30,41 +32,41 @@ const LoginPage = () => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h2>Login</h2>
+        <h2>{t('auth.login.title')}</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">{t('auth.login.email')}</label>
             <input
               type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="Enter your email"
+              placeholder={t('auth.login.emailPlaceholder')}
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">{t('auth.login.password')}</label>
             <input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              placeholder="Enter your password"
+              placeholder={t('auth.login.passwordPlaceholder')}
             />
           </div>
 
           {error && <div className="error-message">{error}</div>}
 
           <button type="submit" className="auth-button" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? t('auth.login.submitting') : t('auth.login.submit')}
           </button>
         </form>
 
         <p className="auth-link">
-          Don't have an account? <Link to="/signup">Sign up</Link>
+          {t('auth.login.noAccount')} <Link to="/signup">{t('auth.login.signupLink')}</Link>
         </p>
       </div>
     </div>

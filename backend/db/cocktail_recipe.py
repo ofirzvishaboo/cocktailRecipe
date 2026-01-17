@@ -13,16 +13,20 @@ class CocktailRecipe(Base):
     # Stored in DB as 'user_id' (existing column), but semantically it's created_by_user_id
     created_by_user_id = Column("user_id", UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     name = Column(String, nullable=False)
+    name_he = Column(String, nullable=True)
     description = Column(Text, nullable=True)  # Optional description
+    description_he = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     glass_type_id = Column(UUID(as_uuid=True), ForeignKey("glass_types.id", ondelete="SET NULL"), nullable=True)
     picture_url = Column(String, nullable=True)  # replaces image_url
     garnish_text = Column(Text, nullable=True)
+    garnish_text_he = Column(Text, nullable=True)
     base_recipe_id = Column(UUID(as_uuid=True), ForeignKey("cocktail_recipes.id", ondelete="SET NULL"), nullable=True)
     is_base = Column(Boolean, nullable=False, default=False)
     preparation_method = Column(Text, nullable=True)
+    preparation_method_he = Column(Text, nullable=True)
     batch_type = Column(String, nullable=True)  # 'base' or 'batch'
 
     recipe_ingredients = relationship(

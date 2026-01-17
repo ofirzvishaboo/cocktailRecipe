@@ -34,15 +34,19 @@ class CocktailRecipe(BaseModel):
     created_by_user_id: UUID  # ID of the user who created this cocktail
     user: CocktailUser  # User information (name/email)
     name: str
+    name_he: Optional[str] = None
     description: Optional[str] = None  # Optional description
+    description_he: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     glass_type_id: Optional[UUID] = None
     picture_url: Optional[str] = None
     garnish_text: Optional[str] = None
+    garnish_text_he: Optional[str] = None
     base_recipe_id: Optional[UUID] = None
     is_base: bool = False
     preparation_method: Optional[str] = None
+    preparation_method_he: Optional[str] = None
     batch_type: Optional[str] = None  # 'base' or 'batch'
     ingredients: List[Ingredient]
     recipe_ingredients: Optional[List[RecipeIngredientInput]] = None
@@ -52,26 +56,34 @@ class CocktailRecipe(BaseModel):
 
 class CocktailRecipeCreate(BaseModel):
     name: str
+    name_he: Optional[str] = None
     description: Optional[str] = None  # Optional description
+    description_he: Optional[str] = None
     recipe_ingredients: List[RecipeIngredientInput]
     picture_url: Optional[str] = None
     garnish_text: Optional[str] = None
+    garnish_text_he: Optional[str] = None
     glass_type_id: Optional[UUID] = None
     base_recipe_id: Optional[UUID] = None
     is_base: bool = False
     preparation_method: Optional[str] = None
+    preparation_method_he: Optional[str] = None
     batch_type: Optional[str] = None  # 'base' or 'batch'
 
 class CocktailRecipeUpdate(BaseModel):
     name: str
+    name_he: Optional[str] = None
     description: Optional[str] = None  # Optional description
+    description_he: Optional[str] = None
     recipe_ingredients: List[RecipeIngredientInput]
     picture_url: Optional[str] = None
     garnish_text: Optional[str] = None
+    garnish_text_he: Optional[str] = None
     glass_type_id: Optional[UUID] = None
     base_recipe_id: Optional[UUID] = None
     is_base: bool = False
     preparation_method: Optional[str] = None
+    preparation_method_he: Optional[str] = None
     batch_type: Optional[str] = None  # 'base' or 'batch'
 
 class CocktailRecipeDelete(BaseModel):

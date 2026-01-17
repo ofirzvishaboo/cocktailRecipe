@@ -56,10 +56,12 @@ def _serialize_cocktail(c: CocktailRecipeModel) -> Dict:
                     "id": ri.id,
                     "ingredient_id": ri.ingredient_id,
                     "ingredient_name": ingredient.name if ingredient else None,
+                    "ingredient_name_he": getattr(ingredient, "name_he", None) if ingredient else None,
                     "quantity": float(ri.quantity),
                     "unit": ri.unit,
                     "bottle_id": ri.bottle_id,
                     "bottle_name": bottle.name if bottle else None,
+                    "bottle_name_he": getattr(bottle, "name_he", None) if bottle else None,
                     "bottle_volume_ml": bottle.volume_ml if bottle else None,
                     "is_garnish": ri.is_garnish,
                     "is_optional": ri.is_optional,
@@ -73,15 +75,19 @@ def _serialize_cocktail(c: CocktailRecipeModel) -> Dict:
         "created_by_user_id": c.created_by_user_id,
         "user": user_data,
         "name": c.name,
+        "name_he": getattr(c, "name_he", None),
         "description": c.description,
+        "description_he": getattr(c, "description_he", None),
         "created_at": c.created_at.isoformat() if c.created_at else None,
         "updated_at": c.updated_at.isoformat() if c.updated_at else None,
         "glass_type_id": c.glass_type_id,
         "picture_url": c.picture_url,
         "garnish_text": c.garnish_text,
+        "garnish_text_he": getattr(c, "garnish_text_he", None),
         "base_recipe_id": c.base_recipe_id,
         "is_base": c.is_base,
         "preparation_method": c.preparation_method,
+        "preparation_method_he": getattr(c, "preparation_method_he", None),
         "batch_type": c.batch_type,
         "recipe_ingredients": recipe_ingredients,
     }
@@ -139,13 +145,17 @@ async def create_cocktail_recipe(
         # Create cocktail recipe
         cocktail_model = CocktailRecipeModel(
             name=cocktail.name,
+            name_he=cocktail.name_he,
             description=cocktail.description,
+            description_he=cocktail.description_he,
             picture_url=cocktail.picture_url,
             garnish_text=cocktail.garnish_text,
+            garnish_text_he=cocktail.garnish_text_he,
             glass_type_id=cocktail.glass_type_id,
             base_recipe_id=cocktail.base_recipe_id,
             is_base=bool(cocktail.is_base),
             preparation_method=cocktail.preparation_method,
+            preparation_method_he=cocktail.preparation_method_he,
             batch_type=cocktail.batch_type,
             created_by_user_id=user.id,
         )
@@ -216,13 +226,17 @@ async def update_cocktail_recipe(
     try:
         # Update cocktail name, description, and image
         cocktail_model.name = cocktail.name
+        cocktail_model.name_he = cocktail.name_he
         cocktail_model.description = cocktail.description
+        cocktail_model.description_he = cocktail.description_he
         cocktail_model.picture_url = cocktail.picture_url
         cocktail_model.garnish_text = cocktail.garnish_text
+        cocktail_model.garnish_text_he = cocktail.garnish_text_he
         cocktail_model.glass_type_id = cocktail.glass_type_id
         cocktail_model.base_recipe_id = cocktail.base_recipe_id
         cocktail_model.is_base = bool(cocktail.is_base)
         cocktail_model.preparation_method = cocktail.preparation_method
+        cocktail_model.preparation_method_he = cocktail.preparation_method_he
         cocktail_model.batch_type = cocktail.batch_type
 
         # Replace normalized recipe ingredients

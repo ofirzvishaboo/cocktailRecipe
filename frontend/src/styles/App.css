@@ -73,6 +73,28 @@
   min-width: 0;
 }
 
+/* RTL support (only when <html dir="rtl">) */
+html[dir="rtl"] .navbar-container {
+  direction: rtl;
+}
+
+html[dir="rtl"] .navbar-links {
+  direction: rtl;
+}
+
+html[dir="rtl"] .navbar-nav,
+html[dir="rtl"] .navbar-auth {
+  direction: rtl;
+}
+
+html[dir="rtl"] .lang-toggle {
+  flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .navbar-user {
+  direction: ltr;
+}
+
 .navbar-toggle {
   display: none;
   flex-direction: column;
@@ -147,6 +169,37 @@
   background: var(--danger-hover) !important;
 }
 
+/* Language toggle */
+.lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.lang-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0.45rem 0.65rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.lang-btn:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.lang-btn.active {
+  background: var(--primary);
+  color: white;
+}
+
 /* Main Content */
 .main-content {
   max-width: 1280px;
@@ -165,7 +218,7 @@
 
 /* Cocktails List */
 .cocktails-list {
-  text-align: left;
+  text-align: start;
   margin-top: 2rem;
 }
 
@@ -366,7 +419,7 @@
 
 .cocktails-list ul ul {
   margin-top: 0.75rem;
-  padding-left: 1.5rem;
+  padding-inline-start: 1.5rem;
 }
 
 .cocktails-list ul ul li {
@@ -716,7 +769,7 @@
 
 /* Ingredients List */
 .ingredients-list {
-  text-align: left;
+  text-align: start;
 }
 
 .ingredients-list h3 {
@@ -972,6 +1025,11 @@
   .navbar-container {
     flex-direction: row;
     align-items: center;
+    flex-wrap: wrap;
+  }
+
+  html[dir="rtl"] .navbar-container {
+    direction: rtl;
   }
 
   .navbar-title {
@@ -1018,8 +1076,12 @@
   .navbar-user,
   .logout-button {
     width: 100%;
-    text-align: left;
+    text-align: start;
     justify-content: flex-start;
+  }
+
+  html[dir="rtl"] .navbar-user {
+    justify-content: flex-end;
   }
 
   .main-content {
@@ -1144,7 +1206,7 @@
   }
 
   .cocktails-list ul ul {
-    padding-left: 0;
+    padding-inline-start: 0;
   }
 
   .cocktails-list ul ul li {
@@ -1156,13 +1218,13 @@
     grid-template-columns: 1fr;
     gap: 0.75rem;
     align-items: start;
-    text-align: left;
+    text-align: start;
     width: 100%;
   }
 
   .ingredient-item-content strong {
     flex: 1;
-    text-align: left;
+    text-align: start;
   }
 
   /* Make all ingredient action buttons match a consistent layout on mobile */
@@ -1317,7 +1379,7 @@
 
 .meta-item strong {
   color: #333;
-  margin-right: 0.5rem;
+  margin-inline-end: 0.5rem;
 }
 
 .meta-grid {
@@ -1521,7 +1583,7 @@
 
   .cost-pill {
     width: 100%;
-    text-align: left;
+    text-align: start;
     white-space: normal;
   }
 

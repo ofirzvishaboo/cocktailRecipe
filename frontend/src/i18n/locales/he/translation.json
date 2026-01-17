@@ -1,0 +1,391 @@
+{
+  "common": {
+    "loading": "טוען...",
+    "cancel": "ביטול",
+    "confirm": "אישור",
+    "saving": "שומר...",
+    "save": "שמור",
+    "edit": "ערוך",
+    "search": "חיפוש",
+    "from": "מ־",
+    "to": "עד",
+    "ingredients": "מרכיבים",
+    "ingredientName": "שם מרכיב",
+    "quantity": "כמות",
+    "bottleOptional": "בקבוק (לא חובה)",
+    "addIngredient": "הוסף מרכיב",
+    "remove": "הסר"
+  },
+  "nav": {
+    "title": "מנהל מתכוני קוקטיילים",
+    "cocktails": "קוקטיילים",
+    "ingredients": "מרכיבים",
+    "scaler": "מחשבון באצ׳",
+    "inventory": "מלאי",
+    "welcome": "ברוך הבא, {{email}}",
+    "logout": "התנתק",
+    "login": "התחברות",
+    "signup": "הרשמה",
+    "language": "שפה",
+    "toggleMenu": "פתח/סגור תפריט"
+  },
+  "cocktails": {
+    "editTitle": "עריכת קוקטייל",
+    "searchPlaceholder": "חפש לפי שם או מרכיבים (למשל: וודקה, ליים)...",
+    "createButton": "צור קוקטייל",
+    "sections": {
+      "classic": "קלאסיקות",
+      "signature": "סיגנצ׳ר"
+    },
+    "actions": {
+      "edit": "ערוך",
+      "remove": "מחק"
+    },
+    "image": {
+      "invalid": "תמונה לא תקינה",
+      "none": "אין תמונה"
+    },
+    "ingredients": {
+      "more": "+{{count}} נוספים"
+    },
+    "empty": {
+      "matching": "לא נמצאו קוקטיילים שמתאימים ל־\"{{query}}\"",
+      "noneLoggedOut": "לא נמצאו קוקטיילים. התחבר כדי ליצור את הראשון!",
+      "noneLoggedIn": "לא נמצאו קוקטיילים.",
+      "noSearchMatch": "אין קוקטיילים שמתאימים לחיפוש שלך.",
+      "classicMatching": "אין קלאסיקות שמתאימות ל־\"{{query}}\"",
+      "classicNone": "אין קלאסיקות עדיין.",
+      "signatureMatching": "אין סיגנצ׳ר שמתאים ל־\"{{query}}\"",
+      "signatureNone": "אין סיגנצ׳ר עדיין."
+    },
+    "deleteDialog": {
+      "title": "למחוק קוקטייל?",
+      "message": "בטוח שברצונך למחוק את \"{{name}}\"? פעולה זו אינה הפיכה.",
+      "confirm": "מחק"
+    },
+    "errors": {
+      "loadFailed": "טעינת הקוקטיילים נכשלה",
+      "updateFailed": "עדכון הקוקטייל נכשל",
+      "deleteFailed": "מחיקת הקוקטייל נכשלה",
+      "missingId": "לא ניתן לערוך קוקטייל ללא מזהה"
+    }
+  },
+  "cocktailDetail": {
+    "loading": "טוען קוקטייל...",
+    "backToCocktails": "חזרה לקוקטיילים",
+    "editTitle": "עריכת קוקטייל",
+    "actions": {
+      "edit": "ערוך",
+      "delete": "מחק"
+    },
+    "image": {
+      "invalid": "תמונה לא תקינה",
+      "none": "אין תמונה"
+    },
+    "meta": {
+      "createdBy": "נוצר על ידי",
+      "created": "נוצר",
+      "glass": "כוס",
+      "garnish": "קישוט"
+    },
+    "sections": {
+      "ingredients": "מרכיבים",
+      "cost": "עלות"
+    },
+    "unknown": "לא ידוע",
+    "ingredients": {
+      "none": "אין מרכיבים ברשימה."
+    },
+    "glass": {
+      "unknown": "כוס לא ידועה"
+    },
+    "cost": {
+      "total": "סה״כ",
+      "loading": "טוען עלות...",
+      "noneLines": "אין שורות עלות.",
+      "notAvailable": "עלות לא זמינה."
+    },
+    "errors": {
+      "notFound": "הקוקטייל לא נמצא",
+      "loadFailed": "טעינת הקוקטייל נכשלה",
+      "deleteFailed": "מחיקת הקוקטייל נכשלה",
+      "updateFailed": "עדכון הקוקטייל נכשל",
+      "costLoadFailed": "טעינת העלות נכשלה"
+    }
+  },
+  "createCocktail": {
+    "title": "צור קוקטייל חדש",
+    "loginPrompt": "כדי ליצור מתכונים,",
+    "loginLink": "התחבר",
+    "loginPromptSuffix": "."
+  },
+  "cocktailForm": {
+    "nameLabel": "שם הקוקטייל",
+    "namePlaceholder": "שם הקוקטייל",
+    "typeLabel": "סוג קוקטייל",
+    "type": {
+      "signature": "סיגנצ׳ר",
+      "classic": "קלאסי"
+    },
+    "descriptionLabel": "תיאור (לא חובה)",
+    "descriptionPlaceholder": "הוסף תיאור לקוקטייל...",
+    "glassLabel": "כוס (לא חובה)",
+    "glassPlaceholder": "בחר כוס…",
+    "garnishLabel": "קישוט (לא חובה)",
+    "garnishPlaceholder": "למשל: פלח ליים, קליפת תפוז...",
+    "preparationLabel": "שיטת הכנה (לא חובה)",
+    "preparationPlaceholder": "למשל: לשקשק עם קרח, לסנן לכוס...",
+    "batchTypeLabel": "סוג באצ׳ (לא חובה)",
+    "batchTypePlaceholder": "בחר סוג באצ׳...",
+    "batchType": {
+      "base": "בייס (בלי מיצים, בלי תפוגה)",
+      "batch": "באצ׳ (עם מיצים, תפוגה 7 ימים)"
+    },
+    "imageLabel": "תמונת קוקטייל",
+    "imagePreviewAlt": "תצוגה מקדימה",
+    "removeImage": "הסר תמונה",
+    "save": "שמור קוקטייל",
+    "update": "עדכן קוקטייל",
+    "alerts": {
+      "imageNotFile": "בחר קובץ תמונה",
+      "imageCorrupt": "נראה שקובץ התמונה פגום או קטן מדי",
+      "imageTooLarge": "גודל התמונה צריך להיות קטן מ־10MB",
+      "imageUploadFailed": "העלאת התמונה נכשלה. נסה שוב.",
+      "ingredientCreateFailed": "יצירת מרכיב חדש נכשלה. אתה מחובר?",
+      "sessionExpired": "ההתחברות שלך פגה. התחבר שוב ונסה לשמור מחדש.",
+      "saveFailed": "שמירת הקוקטייל נכשלה. נסה שוב."
+    }
+  },
+  "scaler": {
+    "select": {
+      "title": "בחר מתוך קוקטיילים קיימים",
+      "loading": "טוען קוקטיילים...",
+      "noneAvailable": "אין קוקטיילים זמינים. צור קודם כמה קוקטיילים!",
+      "ingredientsCount": "{{count}} מרכיב",
+      "ingredientsCount_plural": "{{count}} מרכיבים",
+      "selectButton": "בחר"
+    },
+    "inputs": {
+      "cocktailName": "שם הקוקטייל:",
+      "cocktailNamePlaceholder": "הכנס שם קוקטייל",
+      "liters": "ליטרים להכנה:",
+      "litersPlaceholder": "הכנס ליטרים",
+      "type": "סוג:"
+    },
+    "expiration": {
+      "label": "תפוגה",
+      "forever": "ללא תפוגה",
+      "juiceWarning": "זוהו מיצים במרכיבים — מומלץ לעבור ל־באצ׳."
+    },
+    "results": {
+      "title": "תוצאות סקיילינג למתכון",
+      "originalTotal": "נפח מקורי כולל",
+      "desiredVolume": "נפח רצוי",
+      "factor": "מקדם סקיילינג",
+      "originalRecipe": "מתכון מקורי",
+      "scaledFor": "מוגדל עבור {{liters}} ל׳",
+      "ingredientFallback": "מרכיב {{n}}",
+      "excludedFromBase": "הוסר מהבייס",
+      "excluded": "הוסר"
+    },
+    "cost": {
+      "title": "פירוט עלויות",
+      "loading": "טוען עלויות...",
+      "headers": {
+        "ingredient": "מרכיב",
+        "bottle": "בקבוק",
+        "scaled": "מוגדל",
+        "cost": "עלות"
+      },
+      "scaledTotal": "עלות כוללת (מוגדל)"
+    },
+    "errors": {
+      "loadCocktailsFailed": "טעינת הקוקטיילים נכשלה",
+      "loadCostFailed": "טעינת פירוט העלויות נכשלה"
+    }
+  },
+  "inventory": {
+    "tabs": {
+      "stock": "מלאי",
+      "items": "פריטים",
+      "movements": "תנועות"
+    },
+    "filters": {
+      "location": "מיקום",
+      "type": "סוג",
+      "subcategory": "תת־קטגוריה"
+    },
+    "searchItemsPlaceholder": "חפש פריטים...",
+    "locations": {
+      "ALL": "הכל",
+      "BAR": "בר",
+      "WAREHOUSE": "מחסן"
+    },
+    "itemTypes": {
+      "all": "הכל",
+      "BOTTLE": "בקבוק",
+      "GARNISH": "קישוט",
+      "GLASS": "כוס"
+    },
+    "groups": {
+      "Spirit": "ספיריט",
+      "Liqueur": "ליקר",
+      "Juice": "מיץ",
+      "Syrup": "סירופ",
+      "Garnish": "קישוט",
+      "Glass": "כוס",
+      "Uncategorized": "ללא קטגוריה"
+    },
+    "emptyGroup": "אין פריטים בקבוצה הזו.",
+    "columns": {
+      "name": "שם",
+      "subcategory": "תת־קטגוריה",
+      "unit": "יחידה",
+      "price": "מחיר",
+      "qty": "כמות",
+      "reserved": "שמורה",
+      "barQty": "בר",
+      "whQty": "מחסן",
+      "status": "סטטוס",
+      "actions": "פעולות",
+      "when": "מתי",
+      "location": "מיקום",
+      "item": "פריט",
+      "change": "שינוי",
+      "reason": "סיבה"
+    },
+    "status": {
+      "active": "פעיל",
+      "inactive": "לא פעיל",
+      "activeToggle": "פעיל"
+    },
+    "actions": {
+      "saveSettings": "שמור הגדרות",
+      "addMovement": "הוסף תנועה"
+    },
+    "movement": {
+      "selectLocationHelp": "בחר בר או מחסן כדי להוסיף תנועה.",
+      "item": "פריט",
+      "selectItem": "בחר פריט…",
+      "changePlaceholder": "+/-",
+      "reason": "סיבה"
+    },
+    "movementReasons": {
+      "PURCHASE": "רכישה",
+      "USAGE": "שימוש",
+      "WASTE": "בזבוז",
+      "ADJUSTMENT": "התאמה",
+      "TRANSFER": "העברה"
+    },
+    "movementsEmpty": "אין תנועות עדיין.",
+    "errors": {
+      "createMovementFailed": "יצירת התנועה נכשלה",
+      "loadStockFailed": "טעינת המלאי נכשלה",
+      "loadItemsFailed": "טעינת הפריטים נכשלה",
+      "loadMovementsFailed": "טעינת התנועות נכשלה",
+      "updateItemFailed": "עדכון הפריט נכשל"
+    },
+    "reorder": {
+      "title": "הגדרות הזמנה",
+      "minLevel": "מינימום",
+      "reorderLevel": "רמת הזמנה",
+      "price": "מחיר",
+      "currency": "מטבע"
+    }
+  },
+  "ingredients": {
+    "searchPlaceholder": "חפש מרכיבים...",
+    "addIngredient": "הוסף מרכיב",
+    "updateIngredient": "עדכן מרכיב",
+    "cancel": "ביטול",
+    "groupPlaceholder": "קבוצה…",
+    "uncategorized": "ללא קטגוריה",
+    "emptyGroup": "אין מרכיבים בקבוצה הזו.",
+    "empty": {
+      "matching": "לא נמצאו מרכיבים שמתאימים ל־\"{{query}}\"",
+      "noneYet": "אין מרכיבים עדיין.",
+      "noneYetAdminsOnly": "אין מרכיבים עדיין. רק מנהלים יכולים להוסיף מרכיבים.",
+      "noSearchMatch": "אין מרכיבים שמתאימים לחיפוש שלך."
+    },
+    "subcategorySelect": {
+      "uncategorized": "ללא קטגוריה",
+      "Spirit": "ספיריט",
+      "Liqueur": "ליקר",
+      "Juice": "מיץ",
+      "Syrup": "סירופ",
+      "Garnish": "קישוט",
+      "Glass": "כוס"
+    },
+    "brands": {
+      "toggleShow": "מותגים",
+      "toggleHide": "הסתר מותגים",
+      "title": "מותגים / בקבוקים",
+      "refresh": "רענן",
+      "loading": "טוען מותגים...",
+      "empty": "אין מותגים עדיין.",
+      "addTitle": "הוסף מותג",
+      "brandName": "שם מותג",
+      "sizeMl": "גודל בקבוק (מ״ל)",
+      "price": "מחיר בקבוק",
+      "sizeMlShort": "גודל (מ״ל)",
+      "priceShort": "מחיר",
+      "add": "הוסף",
+      "delete": "מחק"
+    },
+    "actions": {
+      "edit": "ערוך",
+      "remove": "הסר"
+    },
+    "errors": {
+      "loadFailed": "טעינת המרכיבים נכשלה",
+      "loadTaxonomyFailed": "טעינת טקסונומיית המרכיבים נכשלה",
+      "createFailed": "יצירת מרכיב נכשלה",
+      "updateFailed": "עדכון המרכיב נכשל",
+      "deleteFailed": "מחיקת המרכיב נכשלה",
+      "updateGroupFailed": "עדכון קבוצת המרכיב נכשל",
+      "loadUsageFailed": "טעינת רשימת שימושים נכשלה. האם השרת אותחל מחדש?",
+      "invalidBottleFields": "שדות בקבוק לא תקינים (שם, גודל ומחיר חובה)",
+      "loadBrandsFailed": "טעינת המותגים נכשלה",
+      "createBrandFailed": "יצירת מותג נכשלה",
+      "updateBrandFailed": "עדכון מותג נכשל",
+      "deleteBrandFailed": "מחיקת מותג נכשלה"
+    },
+    "deleteDialog": {
+      "title": "למחוק מרכיב?",
+      "usedBy": "המרכיב בשימוש אצל:",
+      "loading": "טוען…",
+      "noCocktails": "אין קוקטיילים",
+      "confirmQuestion": "בטוח שברצונך למחוק את \"{{name}}\"?",
+      "confirm": "מחק"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "התחברות",
+      "email": "אימייל",
+      "password": "סיסמה",
+      "emailPlaceholder": "הכנס אימייל",
+      "passwordPlaceholder": "הכנס סיסמה",
+      "submit": "התחבר",
+      "submitting": "מתחבר...",
+      "noAccount": "אין לך חשבון?",
+      "signupLink": "הרשם"
+    },
+    "signup": {
+      "title": "הרשמה",
+      "email": "אימייל",
+      "password": "סיסמה",
+      "confirmPassword": "אימות סיסמה",
+      "emailPlaceholder": "הכנס אימייל",
+      "passwordPlaceholder": "הכנס סיסמה (מינ׳ 8 תווים)",
+      "confirmPasswordPlaceholder": "אמת סיסמה",
+      "submit": "הרשם",
+      "submitting": "נרשם...",
+      "haveAccount": "כבר יש לך חשבון?",
+      "loginLink": "התחבר",
+      "passwordsNoMatch": "הסיסמאות לא תואמות",
+      "passwordTooShort": "הסיסמה חייבת להיות לפחות 8 תווים"
+    }
+  }
+}
+

@@ -12,7 +12,7 @@ router = APIRouter()
 async def list_brands(db: AsyncSession = Depends(get_async_session)):
     res = await db.execute(select(BrandModel).order_by(func.lower(BrandModel.name).asc()))
     brands = res.scalars().all()
-    return [{"id": b.id, "name": b.name} for b in brands]
+    return [{"id": b.id, "name": b.name, "name_he": getattr(b, "name_he", None)} for b in brands]
 
 
 @router.get("/suggestions", response_model=List[str])

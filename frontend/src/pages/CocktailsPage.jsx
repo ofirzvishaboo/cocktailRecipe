@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import AddCocktailForm from '../components/cocktail/AddCocktailForm'
 import api from '../api'
 import { useAuth } from '../contexts/AuthContext'
@@ -8,6 +9,8 @@ import ConfirmDialog from '../components/common/ConfirmDialog'
 const CocktailsPage = () => {
   const { user, isAuthenticated, isAdmin } = useAuth()
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
+  const lang = (i18n.language || 'en').split('-')[0]
   const [cocktails, setCocktails] = useState([])
   const [filteredCocktails, setFilteredCocktails] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -18,13 +21,26 @@ const CocktailsPage = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [pendingDeleteCocktailId, setPendingDeleteCocktailId] = useState(null)
 
-  const getIngredientNames = (cocktail) => {
+  const displayCocktailName = useCallback((cocktail) => {
+    if (!cocktail) return ''
+    const he = (cocktail.name_he || '').trim()
+    const en = (cocktail.name || '').trim()
+    return lang === 'he' ? (he || en) : (en || he)
+  }, [lang])
+
+  const displayIngredientName = useCallback((ri) => {
+    const he = (ri?.ingredient_name_he || '').trim()
+    const en = (ri?.ingredient_name || '').trim()
+    return lang === 'he' ? (he || en) : (en || he)
+  }, [lang])
+
+  const getIngredientNames = useCallback((cocktail) => {
     const ris = cocktail?.recipe_ingredients
     if (Array.isArray(ris) && ris.length > 0) {
-      return ris.map((ri) => (ri.ingredient_name || '').trim()).filter(Boolean)
+      return ris.map((ri) => displayIngredientName(ri)).filter(Boolean)
     }
     return []
-  }
+  }, [displayIngredientName])
 
   const getIngredientChips = (cocktail, max = 7) => {
     const names = getIngredientNames(cocktail)
@@ -70,7 +86,8 @@ const CocktailsPage = () => {
         } else {
           // Search by cocktail name OR single ingredient
           const filtered = updatedCocktails.filter(cocktail => {
-            const nameMatch = cocktail.name && cocktail.name.toLowerCase().startsWith(query)
+            const name = displayCocktailName(cocktail)
+            const nameMatch = name && name.toLowerCase().startsWith(query)
             const ingredientMatch = getIngredientNames(cocktail).some((n) => n.toLowerCase().includes(query))
             return nameMatch || ingredientMatch
           })
@@ -78,7 +95,7 @@ const CocktailsPage = () => {
         }
       }
     } catch (e) {
-      setError('Failed to delete cocktail')
+      setError(t('cocktails.errors.deleteFailed'))
       console.error('Failed to delete cocktail', e)
     } finally {
       setDeleteConfirmOpen(false)
@@ -88,7 +105,7 @@ const CocktailsPage = () => {
 
   const editCocktail = (cocktail) => {
     if (!cocktail.id) {
-      setError('Cannot edit cocktail without ID')
+      setError(t('cocktails.errors.missingId'))
       return
     }
     setEditingCocktail(cocktail)
@@ -125,7 +142,8 @@ const CocktailsPage = () => {
         } else {
           // Search by cocktail name OR single ingredient
           const filtered = updatedCocktails.filter(cocktail => {
-            const nameMatch = cocktail.name && cocktail.name.toLowerCase().startsWith(query)
+            const name = displayCocktailName(cocktail)
+            const nameMatch = name && name.toLowerCase().startsWith(query)
             const ingredientMatch = getIngredientNames(cocktail).some((n) => n.toLowerCase().includes(query))
             return nameMatch || ingredientMatch
           })
@@ -133,7 +151,7 @@ const CocktailsPage = () => {
         }
       }
     } catch (e) {
-      setError('Failed to update cocktail')
+      setError(t('cocktails.errors.updateFailed'))
       console.error('Failed to update cocktail', e)
     }
   }
@@ -150,14 +168,14 @@ const CocktailsPage = () => {
         setCocktails(res.data || [])
         setFilteredCocktails(res.data || [])
       } catch (e) {
-        setError('Failed to load cocktails')
+        setError(t('cocktails.errors.loadFailed'))
         console.error('Failed to load cocktails', e)
       } finally {
         setLoading(false)
       }
     }
     load()
-  }, [])
+  }, [t])
 
   // Filter cocktails based on search query
   useEffect(() => {
@@ -187,7 +205,8 @@ const CocktailsPage = () => {
         // Search by cocktail name OR single ingredient
         const filtered = cocktails.filter(cocktail => {
           // Check if name matches
-          const nameMatch = cocktail.name && cocktail.name.toLowerCase().startsWith(query)
+          const name = displayCocktailName(cocktail)
+          const nameMatch = name && name.toLowerCase().startsWith(query)
 
           // Check if any ingredient matches
           const ingredientMatch = getIngredientNames(cocktail).some((n) => n.toLowerCase().includes(query))
@@ -197,7 +216,7 @@ const CocktailsPage = () => {
         setFilteredCocktails(filtered)
       }
     }
-  }, [searchQuery, cocktails])
+  }, [searchQuery, cocktails, displayCocktailName, getIngredientNames])
 
   const classicCocktails = useMemo(() => {
     return (filteredCocktails || []).filter((c) => !!c?.is_base)
@@ -216,7 +235,7 @@ const CocktailsPage = () => {
     <div className="card">
       {editingCocktail ? (
         <div>
-          <h3>Edit Cocktail</h3>
+          <h3>{t('cocktails.editTitle')}</h3>
           <AddCocktailForm
             AddCocktail={updateCocktail}
             initialCocktail={editingCocktail}
@@ -230,7 +249,7 @@ const CocktailsPage = () => {
             <div className={`search-container ${!isAuthenticated ? 'search-container-full' : ''}`}>
               <input
                 type="text"
-                placeholder="Search by name or ingredients (e.g., vodka, lime)..."
+                placeholder={t('cocktails.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="search-input"
@@ -241,33 +260,33 @@ const CocktailsPage = () => {
                 onClick={() => navigate('/create-cocktail')}
                 className="button-primary"
               >
-                Create Cocktail
+                {t('cocktails.createButton')}
               </button>
             )}
           </div>
 
           <div className="cocktails-list">
 
-            {loading && <div className="loading">Loading...</div>}
+            {loading && <div className="loading">{t('common.loading')}</div>}
             {error && <div className="error-message">{error}</div>}
             {!loading && !error && (
               <>
                 {(classicCocktails.length === 0 && signatureCocktails.length === 0) ? (
                   <p>
                     {searchQuery.trim()
-                      ? `No cocktails found matching "${searchQuery}"`
+                      ? t('cocktails.empty.matching', { query: searchQuery })
                       : cocktails.length === 0
-                        ? `No cocktails found. ${!isAuthenticated ? 'Log in to create the first one!' : ''}`
-                        : 'No cocktails match your search.'}
+                        ? (isAuthenticated ? t('cocktails.empty.noneLoggedIn') : t('cocktails.empty.noneLoggedOut'))
+                        : t('cocktails.empty.noSearchMatch')}
                   </p>
                 ) : (
                   <>
-                    <h3>Classic Cocktails</h3>
+                    <h3>{t('cocktails.sections.classic')}</h3>
                     {classicCocktails.length === 0 ? (
                       <div className="empty-state">
                         {searchQuery.trim()
-                          ? `No classic cocktails match "${searchQuery}"`
-                          : 'No classic cocktails yet.'}
+                          ? t('cocktails.empty.classicMatching', { query: searchQuery })
+                          : t('cocktails.empty.classicNone')}
                       </div>
                     ) : (
                       <ul className="cocktails-grid">
@@ -281,7 +300,7 @@ const CocktailsPage = () => {
                                     {c.picture_url && !failedImages.has(c.id) ? (
                                       <img
                                         src={c.picture_url}
-                                        alt={c.name}
+                                        alt={displayCocktailName(c)}
                                         className="cocktail-card-image"
                                         onError={() => {
                                           setFailedImages((prev) => new Set(prev).add(c.id))
@@ -289,19 +308,21 @@ const CocktailsPage = () => {
                                       />
                                     ) : (
                                       <div className="cocktail-card-image-placeholder">
-                                        {c.picture_url ? 'Invalid Image' : 'No Image'}
+                                        {c.picture_url ? t('cocktails.image.invalid') : t('cocktails.image.none')}
                                       </div>
                                     )}
                                   </div>
                                   <div className="cocktail-card-body">
-                                    <div className="cocktail-card-title">{c.name}</div>
+                                    <div className="cocktail-card-title">{displayCocktailName(c)}</div>
                                     {(chips.shown.length > 0) && (
                                       <div className="ingredient-chips">
                                         {chips.shown.map((name) => (
                                           <span key={name} className="ingredient-chip">{name}</span>
                                         ))}
                                         {chips.remaining > 0 && (
-                                          <span className="ingredient-chip ingredient-chip-more">+{chips.remaining} more</span>
+                                          <span className="ingredient-chip ingredient-chip-more">
+                                            {t('cocktails.ingredients.more', { count: chips.remaining })}
+                                          </span>
                                         )}
                                       </div>
                                     )}
@@ -315,13 +336,13 @@ const CocktailsPage = () => {
                                       className="button-edit"
                                       disabled={!c.id}
                                     >
-                                      Edit
+                                      {t('cocktails.actions.edit')}
                                     </button>
                                     <button
                                       onClick={() => requestRemoveCocktail(c.id)}
                                       className="button-remove"
                                     >
-                                      Remove
+                                      {t('cocktails.actions.remove')}
                                     </button>
                                   </div>
                                 )}
@@ -332,12 +353,12 @@ const CocktailsPage = () => {
                       </ul>
                     )}
 
-                    <h3 style={{ marginTop: '1.5rem' }}>Signature Cocktails</h3>
+                    <h3 style={{ marginTop: '1.5rem' }}>{t('cocktails.sections.signature')}</h3>
                     {signatureCocktails.length === 0 ? (
                       <div className="empty-state">
                         {searchQuery.trim()
-                          ? `No signature cocktails match "${searchQuery}"`
-                          : 'No signature cocktails yet.'}
+                          ? t('cocktails.empty.signatureMatching', { query: searchQuery })
+                          : t('cocktails.empty.signatureNone')}
                       </div>
                     ) : (
                       <ul className="cocktails-grid">
@@ -351,7 +372,7 @@ const CocktailsPage = () => {
                                     {c.picture_url && !failedImages.has(c.id) ? (
                                       <img
                                         src={c.picture_url}
-                                        alt={c.name}
+                                        alt={displayCocktailName(c)}
                                         className="cocktail-card-image"
                                         onError={() => {
                                           setFailedImages((prev) => new Set(prev).add(c.id))
@@ -359,19 +380,21 @@ const CocktailsPage = () => {
                                       />
                                     ) : (
                                       <div className="cocktail-card-image-placeholder">
-                                        {c.picture_url ? 'Invalid Image' : 'No Image'}
+                                        {c.picture_url ? t('cocktails.image.invalid') : t('cocktails.image.none')}
                                       </div>
                                     )}
                                   </div>
                                   <div className="cocktail-card-body">
-                                    <div className="cocktail-card-title">{c.name}</div>
+                                    <div className="cocktail-card-title">{displayCocktailName(c)}</div>
                                     {(chips.shown.length > 0) && (
                                       <div className="ingredient-chips">
                                         {chips.shown.map((name) => (
                                           <span key={name} className="ingredient-chip">{name}</span>
                                         ))}
                                         {chips.remaining > 0 && (
-                                          <span className="ingredient-chip ingredient-chip-more">+{chips.remaining} more</span>
+                                          <span className="ingredient-chip ingredient-chip-more">
+                                            {t('cocktails.ingredients.more', { count: chips.remaining })}
+                                          </span>
                                         )}
                                       </div>
                                     )}
@@ -385,13 +408,13 @@ const CocktailsPage = () => {
                                       className="button-edit"
                                       disabled={!c.id}
                                     >
-                                      Edit
+                                      {t('cocktails.actions.edit')}
                                     </button>
                                     <button
                                       onClick={() => requestRemoveCocktail(c.id)}
                                       className="button-remove"
                                     >
-                                      Remove
+                                      {t('cocktails.actions.remove')}
                                     </button>
                                   </div>
                                 )}
@@ -411,10 +434,10 @@ const CocktailsPage = () => {
 
       <ConfirmDialog
         open={deleteConfirmOpen}
-        title="Delete cocktail?"
-        message={`Are you sure you want to delete "${cocktails.find(c => c.id === pendingDeleteCocktailId)?.name || ''}"? This cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t('cocktails.deleteDialog.title')}
+        message={t('cocktails.deleteDialog.message', { name: displayCocktailName(cocktails.find(c => c.id === pendingDeleteCocktailId)) })}
+        confirmText={t('cocktails.deleteDialog.confirm')}
+        cancelText={t('common.cancel')}
         variant="danger"
         onCancel={() => {
           setDeleteConfirmOpen(false)

@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import api from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 
 function IngredientsPage() {
   const { isAdmin, isAuthenticated } = useAuth()
+  const { t, i18n } = useTranslation()
+  const lang = (i18n.language || 'en').split('-')[0]
   const [ingredients, setIngredients] = useState([])
   const [filteredIngredients, setFilteredIngredients] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -30,16 +33,13 @@ function IngredientsPage() {
   const [editingBrandById, setEditingBrandById] = useState({})
   const [form, setForm] = useState({
     name: '',
+    name_he: '',
     subcategory_id: '',
     brand_name: '',
     bottle_size_ml: '',
     bottle_price: '',
     submitting: false,
   })
-
-  useEffect(() => {
-    loadIngredients()
-  }, [])
 
   useEffect(() => {
     const loadTaxonomy = async () => {
@@ -72,11 +72,11 @@ function IngredientsPage() {
         })
       } catch (e) {
         console.error('Failed to load taxonomy', e)
-        setTaxonomy((p) => ({ ...p, loading: false, error: 'Failed to load ingredient taxonomy' }))
+        setTaxonomy((p) => ({ ...p, loading: false, error: t('ingredients.errors.loadTaxonomyFailed') }))
       }
     }
     loadTaxonomy()
-  }, [])
+  }, [t])
 
   const loadBrandSuggestions = async () => {
     try {
@@ -92,7 +92,7 @@ function IngredientsPage() {
     loadBrandSuggestions()
   }, [])
 
-  const loadIngredients = async () => {
+  const loadIngredients = useCallback(async () => {
     try {
       setLoading(true)
       const res = await api.get('/ingredients/')
@@ -100,21 +100,40 @@ function IngredientsPage() {
       setFilteredIngredients(res.data || [])
       setError('')
     } catch (e) {
-      setError('Failed to load ingredients')
+      setError(t('ingredients.errors.loadFailed'))
       console.error('Failed to load ingredients', e)
     } finally {
       setLoading(false)
     }
+  }, [t])
+
+  const subcategoryLabel = (name) => {
+    const raw = (name || '').trim()
+    if (!raw) return ''
+    return t(`ingredients.subcategorySelect.${raw}`, { defaultValue: raw })
   }
+
+  const displayName = (obj) => {
+    const he = (obj?.name_he || '').trim()
+    const en = (obj?.name || '').trim()
+    return lang === 'he' ? (he || en) : (en || he)
+  }
+
+  useEffect(() => {
+    loadIngredients()
+  }, [loadIngredients])
 
   // Filter ingredients based on search query
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredIngredients(ingredients)
     } else {
-      const filtered = ingredients.filter(ing =>
-        ing.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      const q = searchQuery.toLowerCase()
+      const filtered = ingredients.filter((ing) => {
+        const en = (ing?.name || '').toLowerCase()
+        const he = (ing?.name_he || '').toLowerCase()
+        return en.includes(q) || he.includes(q)
+      })
       setFilteredIngredients(filtered)
     }
   }, [searchQuery, ingredients])
@@ -128,10 +147,11 @@ function IngredientsPage() {
 
       if (editingIngredient) {
         // Update existing ingredient
-        await api.put(`/ingredients/${editingIngredient.id}`, { name: form.name })
+        const nameEn = (form.name || '').trim() || (form.name_he || '').trim()
+        await api.put(`/ingredients/${editingIngredient.id}`, { name: nameEn, name_he: form.name_he || null })
         const updatedIngredients = ingredients.map(ing =>
           ing.id === editingIngredient.id
-            ? { ...ing, name: form.name }
+            ? { ...ing, name: nameEn, name_he: form.name_he || null }
             : ing
         )
         setIngredients(updatedIngredients)
@@ -140,15 +160,19 @@ function IngredientsPage() {
         if (!searchQuery.trim()) {
           setFilteredIngredients(updatedIngredients)
         } else {
-          const filtered = updatedIngredients.filter(ing =>
-            ing.name.toLowerCase().includes(searchQuery.toLowerCase())
-          )
+          const q = searchQuery.toLowerCase()
+          const filtered = updatedIngredients.filter((ing) => {
+            const en = (ing?.name || '').toLowerCase()
+            const he = (ing?.name_he || '').toLowerCase()
+            return en.includes(q) || he.includes(q)
+          })
           setFilteredIngredients(filtered)
         }
       } else {
         // Create new ingredient
         const res = await api.post('/ingredients/', {
-          name: form.name,
+          name: (form.name || '').trim() || (form.name_he || '').trim(),
+          name_he: (form.name_he || '').trim() || null,
           // ensure the Kind is set to our Ingredient taxonomy kind if present
           kind_id: taxonomy.ingredientKind?.id || undefined,
           subcategory_id: form.subcategory_id ? form.subcategory_id : null,
@@ -156,7 +180,10 @@ function IngredientsPage() {
         const updatedIngredients = [...ingredients, res.data]
         setIngredients(updatedIngredients)
         // Update filtered list if search matches
-        if (!searchQuery.trim() || res.data.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        const q = searchQuery.toLowerCase()
+        const en = (res.data?.name || '').toLowerCase()
+        const he = (res.data?.name_he || '').toLowerCase()
+        if (!searchQuery.trim() || en.includes(q) || he.includes(q)) {
           setFilteredIngredients(updatedIngredients)
         }
 
@@ -167,7 +194,7 @@ function IngredientsPage() {
         const hasBottleFields = bottleName || form.bottle_size_ml || form.bottle_price
         if (hasBottleFields) {
           if (!bottleName || Number.isNaN(bottleSizeMl) || Number.isNaN(bottlePrice)) {
-            throw new Error('Invalid bottle fields (name, size, and price are required)')
+            throw new Error(t('ingredients.errors.invalidBottleFields'))
           }
           const bottleRes = await api.post(`/ingredients/${res.data.id}/bottles`, {
             name: bottleName,
@@ -187,10 +214,10 @@ function IngredientsPage() {
         }
       }
 
-      setForm({ name: '', subcategory_id: '', brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
+      setForm({ name: '', name_he: '', subcategory_id: '', brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
       setShowAddForm(false)
     } catch (e) {
-      setError(editingIngredient ? 'Failed to update ingredient' : 'Failed to create ingredient')
+      setError(editingIngredient ? t('ingredients.errors.updateFailed') : t('ingredients.errors.createFailed'))
       console.error('Failed to save ingredient', e)
     } finally {
       setForm(prev => ({ ...prev, submitting: false }))
@@ -208,7 +235,7 @@ function IngredientsPage() {
       console.error('Failed to load ingredient usage', e)
       setPendingDeleteUsedBy({
         loading: false,
-        error: 'Failed to load usage list. Is the backend restarted?',
+        error: t('ingredients.errors.loadUsageFailed'),
         cocktails: [],
       })
     }
@@ -232,7 +259,7 @@ function IngredientsPage() {
         setFilteredIngredients(filtered)
       }
     } catch (e) {
-      setError('Failed to delete ingredient')
+      setError(t('ingredients.errors.deleteFailed'))
       console.error('Failed to delete ingredient', e)
     } finally {
       setDeleteConfirmOpen(false)
@@ -243,12 +270,12 @@ function IngredientsPage() {
 
   const editIngredient = (ingredient) => {
     setEditingIngredient(ingredient)
-    setForm({ name: ingredient.name, subcategory_id: ingredient.subcategory_id || '', brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
+    setForm({ name: ingredient.name, name_he: ingredient.name_he || '', subcategory_id: ingredient.subcategory_id || '', brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
   }
 
   const cancelEdit = () => {
     setEditingIngredient(null)
-    setForm({ name: '', subcategory_id: '', brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
+    setForm({ name: '', name_he: '', subcategory_id: '', brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
     setShowAddForm(false)
   }
 
@@ -265,7 +292,7 @@ function IngredientsPage() {
       setFilteredIngredients((prev) => (Array.isArray(prev) ? prev.map(patch) : prev))
     } catch (e) {
       console.error('Failed to update ingredient subcategory', e)
-      setError('Failed to update ingredient group')
+      setError(t('ingredients.errors.updateGroupFailed'))
     }
   }
 
@@ -277,11 +304,11 @@ function IngredientsPage() {
     for (const name of GROUP_ORDER) {
       const id = idByName[name.toLowerCase()]
       const list = id ? items.filter((i) => i.subcategory_id === id) : []
-      sections.push({ key: name.toLowerCase(), title: name, items: list })
+      sections.push({ key: name.toLowerCase(), title: t(`inventory.groups.${name}`), items: list })
     }
     const knownIds = new Set(Object.values(idByName))
     const uncategorized = items.filter((i) => !i.subcategory_id || !knownIds.has(i.subcategory_id))
-    sections.push({ key: 'uncategorized', title: 'Uncategorized', items: uncategorized })
+    sections.push({ key: 'uncategorized', title: t('ingredients.uncategorized'), items: uncategorized })
     return sections
   })()
 
@@ -298,6 +325,7 @@ function IngredientsPage() {
         id: b.id,
         ingredient_id: b.ingredient_id,
         brand_name: b.name,
+        brand_name_he: b.name_he,
         bottle_size_ml: b.volume_ml,
         bottle_price: b.current_price?.price ?? '',
       }))
@@ -308,7 +336,7 @@ function IngredientsPage() {
     } catch (e) {
       setBrandsByIngredientId((prev) => ({
         ...prev,
-        [ingredientId]: { loading: false, error: 'Failed to load brands', brands: prev?.[ingredientId]?.brands || [] },
+        [ingredientId]: { loading: false, error: t('ingredients.errors.loadBrandsFailed'), brands: prev?.[ingredientId]?.brands || [] },
       }))
       console.error('Failed to load brands', e)
     }
@@ -332,6 +360,7 @@ function IngredientsPage() {
       ...prev,
       [ingredientId]: {
         brand_name: prev?.[ingredientId]?.brand_name ?? '',
+        brand_name_he: prev?.[ingredientId]?.brand_name_he ?? '',
         bottle_size_ml: prev?.[ingredientId]?.bottle_size_ml ?? '',
         bottle_price: prev?.[ingredientId]?.bottle_price ?? '',
         submitting: prev?.[ingredientId]?.submitting ?? false,
@@ -343,14 +372,17 @@ function IngredientsPage() {
   const createBrand = async (ingredientId) => {
     const bf = brandFormByIngredientId[ingredientId] || {}
     const brandName = (bf.brand_name || '').trim()
+    const brandNameHe = (bf.brand_name_he || '').trim()
     const bottleSizeMl = parseInt(bf.bottle_size_ml, 10)
     const bottlePrice = parseFloat(bf.bottle_price)
-    if (!brandName || Number.isNaN(bottleSizeMl) || Number.isNaN(bottlePrice)) return
+    const nameEn = brandName || brandNameHe
+    if (!nameEn || Number.isNaN(bottleSizeMl) || Number.isNaN(bottlePrice)) return
 
     try {
       updateBrandForm(ingredientId, { submitting: true })
       const bottleRes = await api.post(`/ingredients/${ingredientId}/bottles`, {
-        name: brandName,
+        name: nameEn,
+        name_he: brandNameHe || null,
         volume_ml: bottleSizeMl,
         is_default_cost: false,
       })
@@ -358,12 +390,12 @@ function IngredientsPage() {
         price: bottlePrice,
         currency: 'ILS',
       })
-      updateBrandForm(ingredientId, { brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
+      updateBrandForm(ingredientId, { brand_name: '', brand_name_he: '', bottle_size_ml: '', bottle_price: '', submitting: false })
       await loadBrands(ingredientId)
       await loadBrandSuggestions()
     } catch (e) {
       updateBrandForm(ingredientId, { submitting: false })
-      setError('Failed to create brand')
+      setError(t('ingredients.errors.createBrandFailed'))
       console.error('Failed to create brand', e)
     }
   }
@@ -373,6 +405,7 @@ function IngredientsPage() {
       ...prev,
       [brand.id]: {
         brand_name: brand.brand_name ?? '',
+        brand_name_he: brand.brand_name_he ?? '',
         bottle_size_ml: brand.bottle_size_ml ?? '',
         bottle_price: brand.bottle_price ?? '',
         submitting: false,
@@ -399,14 +432,17 @@ function IngredientsPage() {
     const eb = editingBrandById[brandId]
     if (!eb) return
     const brandName = (eb.brand_name || '').trim()
+    const brandNameHe = (eb.brand_name_he || '').trim()
     const bottleSizeMl = parseInt(eb.bottle_size_ml, 10)
     const bottlePrice = parseFloat(eb.bottle_price)
-    if (!brandName || Number.isNaN(bottleSizeMl) || Number.isNaN(bottlePrice)) return
+    const nameEn = brandName || brandNameHe
+    if (!nameEn || Number.isNaN(bottleSizeMl) || Number.isNaN(bottlePrice)) return
 
     try {
       updateEditingBrand(brandId, { submitting: true })
       await api.put(`/ingredients/bottles/${brandId}`, {
-        name: brandName,
+        name: nameEn,
+        name_he: brandNameHe || null,
         volume_ml: bottleSizeMl,
       })
       // Add a new price record (simple approach)
@@ -419,7 +455,7 @@ function IngredientsPage() {
       await loadBrandSuggestions()
     } catch (e) {
       updateEditingBrand(brandId, { submitting: false })
-      setError('Failed to update brand')
+      setError(t('ingredients.errors.updateBrandFailed'))
       console.error('Failed to update brand', e)
     }
   }
@@ -429,7 +465,7 @@ function IngredientsPage() {
       await api.delete(`/ingredients/bottles/${brandId}`)
       await loadBrands(ingredientId)
     } catch (e) {
-      setError('Failed to delete brand')
+      setError(t('ingredients.errors.deleteBrandFailed'))
       console.error('Failed to delete brand', e)
     }
   }
@@ -440,7 +476,7 @@ function IngredientsPage() {
         <div className={`search-container ${!isAdmin ? 'search-container-full' : ''}`}>
           <input
             type="text"
-            placeholder="Search ingredients..."
+            placeholder={t('ingredients.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
@@ -451,7 +487,7 @@ function IngredientsPage() {
             onClick={() => setShowAddForm(!showAddForm)}
             className="button-primary"
           >
-            {showAddForm ? 'Cancel' : 'Add Ingredient'}
+            {showAddForm ? t('common.cancel') : t('ingredients.addIngredient')}
           </button>
         )}
       </div>
@@ -463,9 +499,9 @@ function IngredientsPage() {
               <div className="form-row">
                 <input
                   type="text"
-                  placeholder="Ingredient name"
-                  value={form.name}
-                  onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder={t('common.ingredientName')}
+                  value={lang === 'he' ? form.name_he : form.name}
+                  onChange={(e) => setForm(prev => (lang === 'he' ? { ...prev, name_he: e.target.value } : { ...prev, name: e.target.value }))}
                   className="form-input"
                 />
                 {isAdmin && taxonomy.subcategories.length > 0 && (
@@ -474,15 +510,15 @@ function IngredientsPage() {
                     value={form.subcategory_id}
                     onChange={(e) => setForm(prev => ({ ...prev, subcategory_id: e.target.value }))}
                   >
-                    <option value="">Group…</option>
+                    <option value="">{t('ingredients.groupPlaceholder')}</option>
                     {taxonomy.subcategories.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
+                      <option key={s.id} value={s.id}>{subcategoryLabel(s.name)}</option>
                     ))}
                   </select>
                 )}
                 <input
                   type="text"
-                  placeholder="Brand (optional)"
+                  placeholder={t('ingredients.brands.brandName')}
                   value={form.brand_name}
                   onChange={(e) => setForm(prev => ({ ...prev, brand_name: e.target.value }))}
                   list="brand-suggestions-global"
@@ -490,7 +526,7 @@ function IngredientsPage() {
                 />
                 <input
                   type="number"
-                  placeholder="Bottle size (ml)"
+                  placeholder={t('ingredients.brands.sizeMl')}
                   value={form.bottle_size_ml}
                   onChange={(e) => setForm(prev => ({ ...prev, bottle_size_ml: e.target.value }))}
                   className="form-input form-input-small"
@@ -499,7 +535,7 @@ function IngredientsPage() {
                 />
                 <input
                   type="number"
-                  placeholder="Bottle price"
+                  placeholder={t('ingredients.brands.price')}
                   value={form.bottle_price}
                   onChange={(e) => setForm(prev => ({ ...prev, bottle_price: e.target.value }))}
                   className="form-input form-input-small"
@@ -511,7 +547,7 @@ function IngredientsPage() {
                   disabled={form.submitting || !form.name.trim()}
                   className="button-primary"
                 >
-                  Add Ingredient
+                  {t('ingredients.addIngredient')}
                 </button>
               </div>
             </form>
@@ -521,9 +557,9 @@ function IngredientsPage() {
               <div className="form-row">
                 <input
                   type="text"
-                  placeholder="Ingredient name"
-                  value={form.name}
-                  onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder={t('common.ingredientName')}
+                  value={lang === 'he' ? form.name_he : form.name}
+                  onChange={(e) => setForm(prev => (lang === 'he' ? { ...prev, name_he: e.target.value } : { ...prev, name: e.target.value }))}
                   className="form-input"
                 />
                 <button
@@ -531,14 +567,14 @@ function IngredientsPage() {
                   disabled={form.submitting || !form.name.trim()}
                   className="button-primary"
                 >
-                  Update Ingredient
+                  {t('ingredients.updateIngredient')}
                 </button>
                 <button
                   type="button"
                   onClick={cancelEdit}
                   className="button-secondary"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             </form>
@@ -549,29 +585,29 @@ function IngredientsPage() {
       {error && <div className="error-message">{error}</div>}
 
       <div className="ingredients-list">
-        {loading && <div className="loading">Loading...</div>}
+        {loading && <div className="loading">{t('common.loading')}</div>}
         {!loading && (
           <div>
             {filteredIngredients.length === 0 ? (
               <div className="empty-state">
                 {searchQuery.trim()
-                  ? `No ingredients found matching "${searchQuery}"`
+                  ? t('ingredients.empty.matching', { query: searchQuery })
                   : ingredients.length === 0
-                    ? `No ingredients yet. ${!isAdmin ? 'Only administrators can add ingredients.' : ''}`
-                    : 'No ingredients match your search.'}
+                    ? (isAdmin ? t('ingredients.empty.noneYet') : t('ingredients.empty.noneYetAdminsOnly'))
+                    : t('ingredients.empty.noSearchMatch')}
               </div>
             ) : (
               groupedSections.map((section) => (
                 <div key={section.key} style={{ marginTop: section.key === 'spirit' ? 0 : 18 }}>
                   <h3 style={{ margin: '0 0 10px 0' }}>{section.title}</h3>
                   {(section.items || []).length === 0 ? (
-                    <div className="empty-state">No ingredients in this group.</div>
+                    <div className="empty-state">{t('ingredients.emptyGroup')}</div>
                   ) : (
                     <ul>
                       {section.items.map((ing) => (
                         <li key={ing.id} className="ingredient-item">
                   <div className="ingredient-item-content">
-                    <strong>{ing.name}</strong>
+                    <strong>{displayName(ing)}</strong>
                     <div className="ingredient-actions">
                       {isAdmin && taxonomy.subcategories.length > 0 && (
                         <select
@@ -579,9 +615,9 @@ function IngredientsPage() {
                           value={ing.subcategory_id || ''}
                           onChange={(e) => setIngredientSubcategory(ing.id, e.target.value)}
                         >
-                          <option value="">Uncategorized</option>
+                          <option value="">{t('ingredients.subcategorySelect.uncategorized')}</option>
                           {taxonomy.subcategories.map((s) => (
-                            <option key={s.id} value={s.id}>{s.name}</option>
+                            <option key={s.id} value={s.id}>{subcategoryLabel(s.name)}</option>
                           ))}
                         </select>
                       )}
@@ -591,7 +627,7 @@ function IngredientsPage() {
                           className="button-secondary button-brands"
                           type="button"
                         >
-                          {expandedIngredientIds.has(ing.id) ? 'Hide Brands' : 'Brands'}
+                          {expandedIngredientIds.has(ing.id) ? t('ingredients.brands.toggleHide') : t('ingredients.brands.toggleShow')}
                         </button>
                       )}
                     {isAdmin && (
@@ -601,14 +637,14 @@ function IngredientsPage() {
                           className="button-edit"
                             type="button"
                         >
-                          Edit
+                          {t('ingredients.actions.edit')}
                         </button>
                         <button
                             onClick={() => requestRemoveIngredient(ing.id)}
                           className="button-remove"
                             type="button"
                         >
-                          Remove
+                          {t('ingredients.actions.remove')}
                           </button>
                         </>
                       )}
@@ -618,13 +654,13 @@ function IngredientsPage() {
                   {expandedIngredientIds.has(ing.id) && (
                     <div className="brands-panel">
                       <div className="brands-header">
-                        <h4>Brands / Bottles</h4>
+                        <h4>{t('ingredients.brands.title')}</h4>
                         <button type="button" className="button-secondary" onClick={() => loadBrands(ing.id)}>
-                          Refresh
+                          {t('ingredients.brands.refresh')}
                         </button>
                       </div>
 
-                      {brandsByIngredientId?.[ing.id]?.loading && <div className="loading">Loading brands...</div>}
+                      {brandsByIngredientId?.[ing.id]?.loading && <div className="loading">{t('ingredients.brands.loading')}</div>}
                       {brandsByIngredientId?.[ing.id]?.error && (
                         <div className="error-message">{brandsByIngredientId[ing.id].error}</div>
                       )}
@@ -632,7 +668,7 @@ function IngredientsPage() {
                       {!brandsByIngredientId?.[ing.id]?.loading && (
                         <div className="brands-list">
                           {(brandsByIngredientId?.[ing.id]?.brands || []).length === 0 ? (
-                            <div className="empty-state">No brands yet.</div>
+                            <div className="empty-state">{t('ingredients.brands.empty')}</div>
                           ) : (
                             (brandsByIngredientId?.[ing.id]?.brands || []).map((b) => {
                               const eb = editingBrandById[b.id]
@@ -643,16 +679,16 @@ function IngredientsPage() {
                                     <>
                                       <input
                                         className="form-input"
-                                        value={eb.brand_name}
-                                        onChange={(e) => updateEditingBrand(b.id, { brand_name: e.target.value })}
-                                        placeholder="Brand name"
+                                        value={lang === 'he' ? (eb.brand_name_he || '') : eb.brand_name}
+                                        onChange={(e) => updateEditingBrand(b.id, lang === 'he' ? { brand_name_he: e.target.value } : { brand_name: e.target.value })}
+                                        placeholder={t('ingredients.brands.brandName')}
                                         list="brand-suggestions-global"
                                       />
                                       <input
                                         className="form-input form-input-small"
                                         value={eb.bottle_size_ml}
                                         onChange={(e) => updateEditingBrand(b.id, { bottle_size_ml: e.target.value })}
-                                        placeholder="Size (ml)"
+                                        placeholder={t('ingredients.brands.sizeMlShort')}
                                         type="number"
                                         min="1"
                                         step="1"
@@ -661,7 +697,7 @@ function IngredientsPage() {
                                         className="form-input form-input-small"
                                         value={eb.bottle_price}
                                         onChange={(e) => updateEditingBrand(b.id, { bottle_price: e.target.value })}
-                                        placeholder="Price"
+                                        placeholder={t('ingredients.brands.priceShort')}
                                         type="number"
                                         min="0"
                                         step="0.01"
@@ -674,7 +710,7 @@ function IngredientsPage() {
                                             disabled={eb.submitting}
                                             onClick={() => saveBrand(b.id, ing.id)}
                                           >
-                                            Save
+                                            {t('common.save')}
                                           </button>
                                           <button
                                             type="button"
@@ -682,7 +718,7 @@ function IngredientsPage() {
                                             disabled={eb.submitting}
                                             onClick={() => cancelEditBrand(b.id)}
                                           >
-                                            Cancel
+                                            {t('common.cancel')}
                                           </button>
                                         </div>
                                       )}
@@ -690,21 +726,21 @@ function IngredientsPage() {
                                   ) : (
                                     <>
                                       <div className="brand-display">
-                                        <strong>{b.brand_name}</strong>
+                                        <strong>{lang === 'he' ? ((b.brand_name_he || '').trim() || (b.brand_name || '').trim()) : ((b.brand_name || '').trim() || (b.brand_name_he || '').trim())}</strong>
                                         <span>{b.bottle_size_ml} ml</span>
                                         <span>{b.bottle_price}</span>
                                       </div>
                                       {isAdmin && (
                                         <div className="brand-actions">
                                           <button type="button" className="button-edit" onClick={() => startEditBrand(b)}>
-                                            Edit
+                                            {t('common.edit')}
                                           </button>
                                           <button
                                             type="button"
                                             className="button-remove"
                                             onClick={() => deleteBrand(b.id, ing.id)}
                                           >
-                                            Delete
+                                            {t('ingredients.brands.delete')}
                                           </button>
                                         </div>
                                       )}
@@ -719,20 +755,20 @@ function IngredientsPage() {
 
                       {isAdmin && (
                         <div className="brand-create">
-                          <h4>Add Brand</h4>
+                          <h4>{t('ingredients.brands.addTitle')}</h4>
                           <div className="brand-row">
                             <input
                               className="form-input"
-                              value={brandFormByIngredientId?.[ing.id]?.brand_name ?? ''}
-                              onChange={(e) => updateBrandForm(ing.id, { brand_name: e.target.value })}
-                              placeholder="Brand name"
+                              value={lang === 'he' ? (brandFormByIngredientId?.[ing.id]?.brand_name_he ?? '') : (brandFormByIngredientId?.[ing.id]?.brand_name ?? '')}
+                              onChange={(e) => updateBrandForm(ing.id, lang === 'he' ? { brand_name_he: e.target.value } : { brand_name: e.target.value })}
+                              placeholder={t('ingredients.brands.brandName')}
                               list="brand-suggestions-global"
                             />
                             <input
                               className="form-input form-input-small"
                               value={brandFormByIngredientId?.[ing.id]?.bottle_size_ml ?? ''}
                               onChange={(e) => updateBrandForm(ing.id, { bottle_size_ml: e.target.value })}
-                              placeholder="Bottle size (ml)"
+                              placeholder={t('ingredients.brands.sizeMl')}
                               type="number"
                               min="1"
                               step="1"
@@ -741,7 +777,7 @@ function IngredientsPage() {
                               className="form-input form-input-small"
                               value={brandFormByIngredientId?.[ing.id]?.bottle_price ?? ''}
                               onChange={(e) => updateBrandForm(ing.id, { bottle_price: e.target.value })}
-                              placeholder="Bottle price"
+                              placeholder={t('ingredients.brands.price')}
                               type="number"
                               min="0"
                               step="0.01"
@@ -752,7 +788,7 @@ function IngredientsPage() {
                               disabled={brandFormByIngredientId?.[ing.id]?.submitting}
                               onClick={() => createBrand(ing.id)}
                             >
-                              Add
+                              {t('ingredients.brands.add')}
                             </button>
                           </div>
                       </div>
@@ -772,14 +808,14 @@ function IngredientsPage() {
 
       <ConfirmDialog
         open={deleteConfirmOpen}
-        title="Delete ingredient?"
+        title={t('ingredients.deleteDialog.title')}
         message={
           <div>
             <div style={{ marginBottom: 8 }}>
-              This ingredient is being used by:
+              {t('ingredients.deleteDialog.usedBy')}
             </div>
             {pendingDeleteUsedBy.loading ? (
-              <div style={{ marginBottom: 12 }}>Loading…</div>
+              <div style={{ marginBottom: 12 }}>{t('ingredients.deleteDialog.loading')}</div>
             ) : pendingDeleteUsedBy.error ? (
               <div style={{ marginBottom: 12 }}>{pendingDeleteUsedBy.error}</div>
             ) : Array.isArray(pendingDeleteUsedBy.cocktails) && pendingDeleteUsedBy.cocktails.length > 0 ? (
@@ -789,15 +825,15 @@ function IngredientsPage() {
                 ))}
               </ul>
             ) : (
-              <div style={{ marginBottom: 12 }}>No cocktails</div>
+              <div style={{ marginBottom: 12 }}>{t('ingredients.deleteDialog.noCocktails')}</div>
             )}
             <div>
-              Are you sure you want to delete &quot;{ingredients.find(i => i.id === pendingDeleteIngredientId)?.name || ''}&quot;?
+              {t('ingredients.deleteDialog.confirmQuestion', { name: ingredients.find(i => i.id === pendingDeleteIngredientId)?.name || '' })}
             </div>
           </div>
         }
-        confirmText="Delete"
-        cancelText="Cancel"
+        confirmText={t('ingredients.deleteDialog.confirm')}
+        cancelText={t('common.cancel')}
         variant="danger"
         onCancel={() => {
           setDeleteConfirmOpen(false)
