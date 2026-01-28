@@ -92,11 +92,13 @@ class CocktailRecipeDelete(BaseModel):
 
 class CocktailIngredientCostLine(BaseModel):
     ingredient_name: str
+    ingredient_name_he: Optional[str] = None
     quantity: float
     unit: str
     scaled_quantity: float
     bottle_id: Optional[UUID] = None
     bottle_name: Optional[str] = None
+    bottle_name_he: Optional[str] = None
     bottle_volume_ml: Optional[int] = None
     price_minor: Optional[int] = None
     currency: Optional[str] = None

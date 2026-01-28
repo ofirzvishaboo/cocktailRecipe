@@ -68,6 +68,12 @@ class GlassTypeRead(BaseModel):
     capacity_ml: Optional[int] = None
 
 
+class GlassTypeUpdate(BaseModel):
+    name: Optional[str] = None
+    name_he: Optional[str] = None
+    capacity_ml: Optional[int] = None
+
+
 class BottleRead(BaseModel):
     id: UUID
     ingredient_id: UUID
