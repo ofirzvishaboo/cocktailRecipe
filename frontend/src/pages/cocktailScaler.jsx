@@ -10,9 +10,9 @@ export default function CocktailScaler() {
     const { t, i18n } = useTranslation()
     const lang = (i18n.language || 'en').split('-')[0]
     const [recipeName, setRecipeName] = useState('');
-    const [ingredients, setIngredients] = useState([{ name: '', amount: '', unit: 'ml', bottle_id: '' }]);
+    const [ingredients, setIngredients] = useState([{ ingredient_id: '', name: '', name_he: '', amount: '', unit: 'ml', bottle_id: '' }]);
     const [desiredLiters, setDesiredLiters] = useState('');
-    const [batchType, setBatchType] = useState('base'); // 'base' | 'batch'
+    const [batchType, setBatchType] = useState('batch'); // 'base' | 'batch'
     const [batchTypeUserOverride, setBatchTypeUserOverride] = useState(false);
     const [cocktails, setCocktails] = useState([]);
     const [filteredCocktails, setFilteredCocktails] = useState([]);
@@ -31,7 +31,7 @@ export default function CocktailScaler() {
     const [savingBrands, setSavingBrands] = useState(false);
 
     const addIngredient = () => {
-        setIngredients([...ingredients, { name: '', amount: '', unit: 'ml', bottle_id: '' }]);
+        setIngredients([...ingredients, { ingredient_id: '', name: '', name_he: '', amount: '', unit: 'ml', bottle_id: '' }]);
         setBrandOptionsByIndex((prev) => [...prev, []]);
     };
 
@@ -45,8 +45,13 @@ export default function CocktailScaler() {
     const handleIngredientChange = (index, field, value) => {
         const updatedIngredients = ingredients.map((ingredient, i) => {
             if (i !== index) return ingredient;
-            if (field === 'name') {
-                return { ...ingredient, name: value, bottle_id: '' };
+            if (field === 'name' || field === 'name_he') {
+                const next = { ...ingredient, [field]: value, bottle_id: '' };
+                // If user fills Hebrew and English is still empty, auto-fill English to keep downstream logic stable.
+                if (field === 'name_he' && !(next?.name || '').trim() && (value || '').trim()) {
+                    next.name = value
+                }
+                return next;
             }
             return { ...ingredient, [field]: value };
         });
@@ -54,10 +59,11 @@ export default function CocktailScaler() {
 
         if (!batchTypeUserOverride) {
             const nextHasJuice = computeHasJuiceForIngredients(updatedIngredients)
-            setBatchType(nextHasJuice ? 'batch' : 'base')
+            // Default is "batch"; only auto-switch to batch when juice is detected.
+            if (nextHasJuice) setBatchType('batch')
         }
 
-        if (field === 'name') syncBrandOptionsForRow(index, value);
+        if (field === 'name' || field === 'name_he') syncBrandOptionsForRow(index, value);
         if (field === 'bottle_id') persistBrandSelection(updatedIngredients);
     };
 
@@ -114,7 +120,11 @@ export default function CocktailScaler() {
     const findIngredientByName = (name) => {
         const n = (name || '').trim().toLowerCase()
         if (!n) return null
-        return (ingredientsCatalog || []).find((i) => (i.name || '').trim().toLowerCase() === n) || null
+        return (ingredientsCatalog || []).find((i) => {
+            const en = (i?.name || '').trim().toLowerCase()
+            const he = (i?.name_he || '').trim().toLowerCase()
+            return en === n || he === n
+        }) || null
     }
 
 
@@ -122,7 +132,8 @@ export default function CocktailScaler() {
     useEffect(() => {
         if (batchTypeUserOverride) return
         const nextHasJuice = computeHasJuiceForIngredients(ingredients)
-        setBatchType(nextHasJuice ? 'batch' : 'base')
+        // Default is "batch"; only auto-switch to batch when juice is detected.
+        if (nextHasJuice) setBatchType('batch')
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ingredientsCatalog])
 
@@ -186,9 +197,32 @@ export default function CocktailScaler() {
         return lang === 'he' ? (he || en) : (en || he)
     }, [lang])
 
+    const getSearchableCocktailNames = useCallback((cocktail) => {
+        const out = []
+        const en = (cocktail?.name || '').trim()
+        const he = (cocktail?.name_he || '').trim()
+        if (en) out.push(en)
+        if (he && he !== en) out.push(he)
+        return out
+    }, [])
+
+    const getSearchableIngredientNames = useCallback((ri) => {
+        const out = []
+        // Supports recipe ingredients (ingredient_name / ingredient_name_he) and local rows (name / name_he)
+        const en = (ri?.ingredient_name ?? ri?.name ?? '').trim()
+        const he = (ri?.ingredient_name_he ?? ri?.name_he ?? '').trim()
+        if (en) out.push(en)
+        if (he && he !== en) out.push(he)
+        return out
+    }, [])
+
     const displayIngredientName = useCallback((ri) => {
-        const he = (ri?.ingredient_name_he || '').trim()
-        const en = (ri?.ingredient_name || '').trim()
+        // Supports:
+        // - Cocktail recipe ingredient objects: ingredient_name / ingredient_name_he
+        // - Local UI rows: name / name_he
+        // - Cost breakdown lines: ingredient_name / ingredient_name_he
+        const he = (ri?.ingredient_name_he ?? ri?.name_he ?? '').trim()
+        const en = (ri?.ingredient_name ?? ri?.name ?? '').trim()
         return lang === 'he' ? (he || en) : (en || he)
     }, [lang])
 
@@ -220,8 +254,8 @@ export default function CocktailScaler() {
         return bottles
     }
 
-    const syncBrandOptionsForRow = async (index, ingredientName) => {
-        const ingredientId = findIngredientIdByName(ingredientName)
+    const syncBrandOptionsForRow = async (index, ingredientName, ingredientIdOverride) => {
+        const ingredientId = ingredientIdOverride || findIngredientIdByName(ingredientName)
         if (!ingredientId) {
             setBrandOptionsByIndex((prev) => {
                 const next = [...prev]
@@ -252,9 +286,13 @@ export default function CocktailScaler() {
 
         // Use the cocktail's stored names/quantities as canonical; only apply bottle ids from UI
         const bottleByName = {}
+        const bottleByIngredientId = {}
         currentIngredients.forEach((ing) => {
-            const key = (ing.name || '').trim().toLowerCase()
-            if (key) bottleByName[key] = ing.bottle_id || ''
+            const keyEn = (ing?.name || '').trim().toLowerCase()
+            const keyHe = (ing?.name_he || '').trim().toLowerCase()
+            if (keyEn) bottleByName[keyEn] = ing.bottle_id || ''
+            if (keyHe) bottleByName[keyHe] = ing.bottle_id || ''
+            if (ing?.ingredient_id) bottleByIngredientId[ing.ingredient_id] = ing.bottle_id || ''
         })
 
         const payload = {
@@ -267,7 +305,9 @@ export default function CocktailScaler() {
                     ingredient_id: ri.ingredient_id,
                     quantity: ri.quantity,
                     unit: ri.unit,
-                    bottle_id: bottleByName[key] ? bottleByName[key] : null,
+                    bottle_id: bottleByIngredientId[ri.ingredient_id]
+                        ? bottleByIngredientId[ri.ingredient_id]
+                        : (bottleByName[key] ? bottleByName[key] : null),
                     sort_order: ri.sort_order ?? (idx + 1),
                     is_garnish: !!ri.is_garnish,
                     is_optional: !!ri.is_optional,
@@ -282,12 +322,14 @@ export default function CocktailScaler() {
             setSelectedCocktail(updated)
             // Keep local ingredient brand selections aligned with saved cocktail
             const formattedIngredients = (updated.recipe_ingredients || []).map((ri) => ({
+                ingredient_id: ri.ingredient_id || '',
                 name: ri.ingredient_name || '',
+                name_he: ri.ingredient_name_he || '',
                 amount: String(ri.quantity),
                 unit: ri.unit || 'ml',
                 bottle_id: ri.bottle_id || '',
             }))
-            setIngredients(formattedIngredients.length ? formattedIngredients : [{ name: '', amount: '', unit: 'ml', bottle_id: '' }])
+            setIngredients(formattedIngredients.length ? formattedIngredients : [{ ingredient_id: '', name: '', name_he: '', amount: '', unit: 'ml', bottle_id: '' }])
             setBrandOptionsByIndex((prev) => {
                 const next = formattedIngredients.map((_, idx) => prev[idx] || [])
                 return next
@@ -304,6 +346,11 @@ export default function CocktailScaler() {
 
     useEffect(() => {
         const loadCost = async () => {
+            if (!isAdmin) {
+                setCostData(null);
+                setCostError('');
+                return;
+            }
             if (!selectedCocktailId) {
                 setCostData(null);
                 setCostError('');
@@ -332,7 +379,7 @@ export default function CocktailScaler() {
 
         loadCost();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedCocktailId, desiredLiters, ingredients, batchType]);
+    }, [selectedCocktailId, desiredLiters, ingredients, batchType, isAdmin]);
 
     // Filter cocktails based on search query
     useEffect(() => {
@@ -347,13 +394,14 @@ export default function CocktailScaler() {
                 const ingredientQueries = query.split(',').map(q => q.trim()).filter(q => q.length > 0);
 
                 const filtered = cocktails.filter(cocktail => {
-                    const names = getIngredientNamesForCocktail(cocktail).map((n) => n.toLowerCase())
+                    const names = (cocktail?.recipe_ingredients || [])
+                        .flatMap((ri) => getSearchableIngredientNames(ri))
+                        .map((n) => n.toLowerCase())
                     if (names.length === 0) return false;
 
-                    // Check if all ingredient queries match (using startsWith)
-                    // Each query must match at least one ingredient
+                    // Each query must match at least one ingredient (substring match)
                     return ingredientQueries.every(ingQuery => {
-                        return names.some((n) => n.startsWith(ingQuery))
+                        return names.some((n) => n.includes(ingQuery))
                     });
                 });
                 setFilteredCocktails(filtered);
@@ -361,19 +409,19 @@ export default function CocktailScaler() {
                 // Search by cocktail name OR single ingredient
                 const filtered = cocktails.filter(cocktail => {
                     // Check if name matches
-                    const nm = displayCocktailName(cocktail)
-                    const nameMatch = nm && nm.toLowerCase().startsWith(query);
+                    const nameMatch = getSearchableCocktailNames(cocktail).some((n) => n.toLowerCase().includes(query));
 
                     // Check if any ingredient matches
-                    const ingredientMatch = getIngredientNamesForCocktail(cocktail)
-                        .some((n) => n.toLowerCase().startsWith(query));
+                    const ingredientMatch = (cocktail?.recipe_ingredients || []).some((ri) =>
+                        getSearchableIngredientNames(ri).some((n) => n.toLowerCase().includes(query))
+                    );
 
                     return nameMatch || ingredientMatch;
                 });
                 setFilteredCocktails(filtered);
             }
         }
-    }, [searchQuery, cocktails, displayCocktailName, getIngredientNamesForCocktail]);
+    }, [searchQuery, cocktails, getSearchableCocktailNames, getSearchableIngredientNames]);
 
     const handleAddCocktail = (cocktail) => {
         setSelectedCocktailId(cocktail.id);
@@ -383,7 +431,9 @@ export default function CocktailScaler() {
 
         if (ris.length > 0) {
             const formattedIngredients = ris.map((ri) => ({
+                ingredient_id: ri.ingredient_id || '',
                 name: ri.ingredient_name || '',
+                name_he: ri.ingredient_name_he || '',
                 amount: String(ri.quantity ?? ''),
                 unit: ri.unit || 'ml',
                 bottle_id: ri.bottle_id || '',
@@ -394,7 +444,7 @@ export default function CocktailScaler() {
             setBrandOptionsByIndex(formattedIngredients.map(() => []));
             // Preload bottle options for each row
             formattedIngredients.forEach((row, idx) => {
-                syncBrandOptionsForRow(idx, row.name);
+                syncBrandOptionsForRow(idx, row.name, row.ingredient_id);
             })
 
             // Use batch_type from model, or auto-compute if not set
@@ -404,30 +454,23 @@ export default function CocktailScaler() {
                 // If batch_type is 'base', filter out juice ingredients
                 if (cocktail.batch_type === 'base') {
                     const baseOnly = formattedIngredients.filter((ing) => {
-                        const ri = ris.find((r) => r.ingredient_name === ing.name)
+                        const ri = ris.find((r) => (r.ingredient_id && ing.ingredient_id) ? (r.ingredient_id === ing.ingredient_id) : (r.ingredient_name === ing.name))
                         return ri && (ri.subcategory_name || '').trim().toLowerCase() !== 'juice'
                     })
-                    setIngredients(baseOnly.length ? baseOnly : [{ name: '', amount: '', unit: 'ml', bottle_id: '' }])
+                    setIngredients(baseOnly.length ? baseOnly : [{ ingredient_id: '', name: '', name_he: '', amount: '', unit: 'ml', bottle_id: '' }])
                 }
             } else {
+                // No explicit batch_type saved on the cocktail → keep UI default as "batch".
                 setBatchTypeUserOverride(false)
-                const nextHasJuice = computeHasJuiceForIngredients(formattedIngredients)
-                setBatchType(nextHasJuice ? 'batch' : 'base')
-                // If auto-detected as 'base', filter out juice ingredients
-                if (!nextHasJuice) {
-                    const baseOnly = formattedIngredients.filter((ing) => {
-                        const ri = ris.find((r) => r.ingredient_name === ing.name)
-                        return ri && (ri.subcategory_name || '').trim().toLowerCase() !== 'juice'
-                    })
-                    setIngredients(baseOnly.length ? baseOnly : [{ name: '', amount: '', unit: 'ml', bottle_id: '' }])
-                }
+                setBatchType('batch')
+                setIngredients(formattedIngredients)
             }
         } else {
             setOriginalIngredients([]);
-            setIngredients([{ name: '', amount: '', unit: 'ml', bottle_id: '' }]);
+            setIngredients([{ ingredient_id: '', name: '', name_he: '', amount: '', unit: 'ml', bottle_id: '' }]);
             setBrandOptionsByIndex([[]]);
             setBatchTypeUserOverride(false)
-            setBatchType('base')
+            setBatchType('batch')
         }
     };
 
@@ -579,6 +622,7 @@ export default function CocktailScaler() {
 
                 <IngredientInputs
                     ingredients={ingredients}
+                    lang={lang}
                     onIngredientChange={handleIngredientChange}
                     onAddIngredient={addIngredient}
                     onRemoveIngredient={removeIngredient}
@@ -589,6 +633,7 @@ export default function CocktailScaler() {
                         brandOptionsByIndex={brandOptionsByIndex}
                         bottlePlaceholder={savingBrands ? t('common.saving') : t('common.bottleOptional')}
                         brandDisabledByIndex={ingredients.map(() => selectedCocktailId ? !canEditSelectedCocktail() : false)}
+                        showPrices={!!isAdmin}
                 />
                 </div>
 
@@ -607,7 +652,7 @@ export default function CocktailScaler() {
                                 <h4>{t('scaler.results.originalRecipe')}</h4>
                                 {ingredientsForScaling.map((ingredient, index) => (
                                     <div key={index} className="quantity-item">
-                                        <span className="ingredient-name">{ingredient.name || t('scaler.results.ingredientFallback', { n: index + 1 })}</span>
+                                        <span className="ingredient-name">{displayIngredientName(ingredient) || t('scaler.results.ingredientFallback', { n: index + 1 })}</span>
                                         <span className="ingredient-amount">{ingredient.amount || 0} {ingredient.unit || 'ml'}</span>
                                     </div>
                                 ))}
@@ -615,7 +660,7 @@ export default function CocktailScaler() {
                                     <>
                                         {juiceIngredients.map((ingredient, index) => (
                                             <div key={`juice-${index}`} className="quantity-item quantity-item-excluded">
-                                                <span className="ingredient-name">{ingredient.name || t('scaler.results.ingredientFallback', { n: index + 1 })}</span>
+                                                <span className="ingredient-name">{displayIngredientName(ingredient) || t('scaler.results.ingredientFallback', { n: index + 1 })}</span>
                                                 <span className="ingredient-amount">{ingredient.amount || 0} {ingredient.unit || 'ml'} <em>({t('scaler.results.excludedFromBase')})</em></span>
                                             </div>
                                         ))}
@@ -627,7 +672,7 @@ export default function CocktailScaler() {
                                 <h4>{t('scaler.results.scaledFor', { liters: desiredLiters })}</h4>
                                 {ingredientsForScaling.map((ingredient, index) => (
                                     <div key={index} className="quantity-item">
-                                        <span className="ingredient-name">{ingredient.name || t('scaler.results.ingredientFallback', { n: index + 1 })}</span>
+                                        <span className="ingredient-name">{displayIngredientName(ingredient) || t('scaler.results.ingredientFallback', { n: index + 1 })}</span>
                                         <span className="ingredient-amount">{getScaledAmount(ingredient.amount)} {ingredient.unit || 'ml'}</span>
                                     </div>
                                 ))}
@@ -635,7 +680,7 @@ export default function CocktailScaler() {
                                     <>
                                         {juiceIngredients.map((ingredient, index) => (
                                             <div key={`juice-${index}`} className="quantity-item quantity-item-excluded">
-                                                <span className="ingredient-name">{ingredient.name || t('scaler.results.ingredientFallback', { n: index + 1 })}</span>
+                                                <span className="ingredient-name">{displayIngredientName(ingredient) || t('scaler.results.ingredientFallback', { n: index + 1 })}</span>
                                                 <span className="ingredient-amount"><em>({t('scaler.results.excluded')})</em></span>
                                             </div>
                                         ))}
@@ -646,7 +691,7 @@ export default function CocktailScaler() {
                     </div>
                 )}
 
-                    {selectedCocktailId && (
+                    {isAdmin && selectedCocktailId && (
                         <div className="results-section cost-section">
                             <h3>{t('scaler.cost.title')}</h3>
                             {costLoading && <div className="loading">{t('scaler.cost.loading')}</div>}
@@ -663,7 +708,7 @@ export default function CocktailScaler() {
                                         </div>
                                         {Array.isArray(costData.lines) && costData.lines.map((line, idx) => (
                                             <div key={`${line.ingredient_name}-${idx}`} className="cost-row">
-                                                <span className="cost-ingredient">{line.ingredient_name}</span>
+                                                <span className="cost-ingredient">{displayIngredientName(line)}</span>
                                                 <span className="cost-brand">{line.bottle_name || '-'}</span>
                                                 <span className="cost-ml">{Math.round((Number(line.scaled_quantity) || 0) * 100) / 100} {line.unit || ''}</span>
                                                 <span className="cost-value">{formatMoney(line.ingredient_cost)}</span>

@@ -73,3 +73,10 @@ button:focus-visible {
   outline: 3px solid var(--primary-soft);
   outline-offset: 2px;
 }
+
+/* Form controls should inherit font */
+input,
+select,
+textarea {
+  font-family: inherit;
+}

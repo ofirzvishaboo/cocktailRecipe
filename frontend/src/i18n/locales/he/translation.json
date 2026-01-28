@@ -14,7 +14,16 @@
     "quantity": "כמות",
     "bottleOptional": "בקבוק (לא חובה)",
     "addIngredient": "הוסף מרכיב",
-    "remove": "הסר"
+    "remove": "הסר",
+    "addHebrew": "הוסף בעברית",
+    "editHebrew": "ערוך בעברית",
+    "units": {
+      "ml": "מ״ל",
+      "oz": "אונ׳"
+    },
+    "currencies": {
+      "ILS": "₪"
+    }
   },
   "nav": {
     "title": "מנהל מתכוני קוקטיילים",
@@ -22,7 +31,7 @@
     "ingredients": "מרכיבים",
     "scaler": "מחשבון באצ׳",
     "inventory": "מלאי",
-    "welcome": "ברוך הבא, {{email}}",
+    "welcome": "ברוך הבא, {{name}}",
     "logout": "התנתק",
     "login": "התחברות",
     "signup": "הרשמה",
@@ -34,8 +43,8 @@
     "searchPlaceholder": "חפש לפי שם או מרכיבים (למשל: וודקה, ליים)...",
     "createButton": "צור קוקטייל",
     "sections": {
-      "classic": "קלאסיקות",
-      "signature": "סיגנצ׳ר"
+      "classic": "קוקטיילים קלאסיים",
+      "signature": "קוקטיילים סיגנצ׳ר"
     },
     "actions": {
       "edit": "ערוך",
@@ -86,7 +95,8 @@
       "createdBy": "נוצר על ידי",
       "created": "נוצר",
       "glass": "כוס",
-      "garnish": "קישוט"
+      "garnish": "קישוט",
+      "preparation": "אופן הכנה"
     },
     "sections": {
       "ingredients": "מרכיבים",
@@ -232,6 +242,7 @@
       "Liqueur": "ליקר",
       "Juice": "מיץ",
       "Syrup": "סירופ",
+      "Sparkling": "מוגז",
       "Garnish": "קישוט",
       "Glass": "כוס",
       "Uncategorized": "ללא קטגוריה"
@@ -265,6 +276,7 @@
     },
     "movement": {
       "selectLocationHelp": "בחר בר או מחסן כדי להוסיף תנועה.",
+      "currentStock": "מלאי נוכחי",
       "item": "פריט",
       "selectItem": "בחר פריט…",
       "changePlaceholder": "+/-",
@@ -313,6 +325,7 @@
       "Liqueur": "ליקר",
       "Juice": "מיץ",
       "Syrup": "סירופ",
+      "Sparkling": "מוגז",
       "Garnish": "קישוט",
       "Glass": "כוס"
     },
@@ -373,6 +386,10 @@
     },
     "signup": {
       "title": "הרשמה",
+      "firstName": "שם פרטי",
+      "firstNamePlaceholder": "ישראל",
+      "lastName": "שם משפחה",
+      "lastNamePlaceholder": "ישראלי",
       "email": "אימייל",
       "password": "סיסמה",
       "confirmPassword": "אימות סיסמה",

@@ -21,10 +21,13 @@ class UserProfile(schemas.BaseUser[UUID]):
         from_attributes = True
 
 class UserRead(schemas.BaseUser[UUID]):
-    pass
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
 
 class UserCreate(schemas.BaseUserCreate):
-    pass
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
 
 class UserUpdate(schemas.BaseUserUpdate):
-    pass
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None

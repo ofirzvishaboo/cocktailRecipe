@@ -14,7 +14,16 @@
     "quantity": "Quantity",
     "bottleOptional": "Bottle (optional)",
     "addIngredient": "Add Ingredient",
-    "remove": "Remove"
+    "remove": "Remove",
+    "addHebrew": "Add Hebrew",
+    "editHebrew": "Edit Hebrew",
+    "units": {
+      "ml": "ml",
+      "oz": "oz"
+    },
+    "currencies": {
+      "ILS": "ILS"
+    }
   },
   "nav": {
     "title": "Cocktail Recipe Manager",
@@ -22,7 +31,7 @@
     "ingredients": "Ingredients",
     "scaler": "Cocktail Scaler",
     "inventory": "Inventory",
-    "welcome": "Welcome, {{email}}",
+    "welcome": "Welcome, {{name}}",
     "logout": "Logout",
     "login": "Login",
     "signup": "Sign Up",
@@ -86,7 +95,8 @@
       "createdBy": "Created by",
       "created": "Created",
       "glass": "Glass",
-      "garnish": "Garnish"
+      "garnish": "Garnish",
+      "preparation": "Preparation"
     },
     "sections": {
       "ingredients": "Ingredients",
@@ -232,6 +242,7 @@
       "Liqueur": "Liqueur",
       "Juice": "Juice",
       "Syrup": "Syrup",
+      "Sparkling": "Sparkling",
       "Garnish": "Garnish",
       "Glass": "Glass",
       "Uncategorized": "Uncategorized"
@@ -265,6 +276,7 @@
     },
     "movement": {
       "selectLocationHelp": "Select BAR or WAREHOUSE to add a movement.",
+      "currentStock": "Current stock",
       "item": "Item",
       "selectItem": "Select item…",
       "changePlaceholder": "+/-",
@@ -313,6 +325,7 @@
       "Liqueur": "Liqueur",
       "Juice": "Juice",
       "Syrup": "Syrup",
+      "Sparkling": "Sparkling",
       "Garnish": "Garnish",
       "Glass": "Glass"
     },
@@ -373,6 +386,10 @@
     },
     "signup": {
       "title": "Sign Up",
+      "firstName": "First name",
+      "firstNamePlaceholder": "John",
+      "lastName": "Last name",
+      "lastNamePlaceholder": "Doe",
       "email": "Email",
       "password": "Password",
       "confirmPassword": "Confirm Password",

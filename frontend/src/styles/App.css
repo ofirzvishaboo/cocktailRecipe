@@ -75,11 +75,26 @@
 
 /* RTL support (only when <html dir="rtl">) */
 html[dir="rtl"] .navbar-container {
-  direction: rtl;
+  /* Keep flex "end" on the right, but reorder items for RTL layout */
+  direction: ltr;
 }
 
 html[dir="rtl"] .navbar-links {
   direction: rtl;
+}
+
+/* Desktop RTL: title on the right, links next to it */
+html[dir="rtl"] .navbar-left {
+  direction: rtl;
+  order: 3;
+}
+
+html[dir="rtl"] .navbar-links {
+  order: 1;
+}
+
+html[dir="rtl"] .navbar-toggle {
+  order: 2;
 }
 
 html[dir="rtl"] .navbar-nav,
@@ -179,6 +194,11 @@ html[dir="rtl"] .navbar-user {
   background: rgba(255, 255, 255, 0.85);
 }
 
+.lang-toggle--dropdown {
+  position: relative;
+  overflow: visible;
+}
+
 .lang-btn {
   border: none;
   background: transparent;
@@ -190,6 +210,18 @@ html[dir="rtl"] .navbar-user {
   transition: background 0.2s ease, color 0.2s ease;
 }
 
+.lang-btn--trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lang-btn--trigger::after {
+  content: "▾";
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+
 .lang-btn:hover {
   background: var(--primary-soft);
   color: var(--primary);
@@ -198,6 +230,47 @@ html[dir="rtl"] .navbar-user {
 .lang-btn.active {
   background: var(--primary);
   color: white;
+}
+
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  inset-inline-end: 0;
+  min-width: 130px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  padding: 0.35rem;
+  z-index: 50;
+}
+
+.lang-menu-item {
+  width: 100%;
+  text-align: start;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.lang-menu-item:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.lang-menu-item.active {
+  background: var(--primary);
+  color: white;
+}
+
+.lang-btn--trigger:focus-visible,
+.lang-menu-item:focus-visible {
+  outline: 3px solid rgba(47, 127, 247, 0.35);
+  outline-offset: 2px;
 }
 
 /* Main Content */
@@ -222,12 +295,43 @@ html[dir="rtl"] .navbar-user {
   margin-top: 2rem;
 }
 
+.cocktails-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.cocktails-tab {
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cocktails-tab.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(47, 127, 247, 0.25);
+}
+
+.cocktails-tab:focus-visible {
+  outline: 3px solid rgba(47, 127, 247, 0.35);
+  outline-offset: 2px;
+}
+
 .cocktails-list h3 {
   color: var(--text);
   margin-bottom: 1.5rem;
   font-size: 1.5rem;
   border-bottom: 2px solid var(--border);
   padding-bottom: 0.5rem;
+  text-align: center;
 }
 
 .cocktails-list ul {
@@ -351,6 +455,8 @@ html[dir="rtl"] .navbar-user {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+  align-items: center;
+  text-align: center;
 }
 
 .cocktail-card-title {
@@ -433,6 +539,7 @@ html[dir="rtl"] .navbar-user {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.25rem;
+  justify-content: center;
 }
 
 .ingredient-chip {
@@ -1029,7 +1136,18 @@ html[dir="rtl"] .navbar-user {
   }
 
   html[dir="rtl"] .navbar-container {
-    direction: rtl;
+    direction: ltr;
+  }
+
+  /* Mobile RTL: keep header row (toggle + title), links stack below */
+  html[dir="rtl"] .navbar-toggle {
+    order: 1;
+  }
+  html[dir="rtl"] .navbar-left {
+    order: 2;
+  }
+  html[dir="rtl"] .navbar-links {
+    order: 3;
   }
 
   .navbar-title {
@@ -1078,6 +1196,24 @@ html[dir="rtl"] .navbar-user {
     width: 100%;
     text-align: start;
     justify-content: flex-start;
+  }
+
+  /* Language dropdown should behave like a full-width control on mobile */
+  .lang-toggle--dropdown {
+    width: 100%;
+  }
+
+  .lang-btn--trigger {
+    width: 100%;
+    justify-content: space-between;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .lang-menu {
+    inset-inline-start: 0;
+    inset-inline-end: 0;
+    min-width: 0;
   }
 
   html[dir="rtl"] .navbar-user {
@@ -1633,6 +1769,14 @@ html[dir="rtl"] .navbar-user {
   background: var(--surface-muted);
   border-radius: 8px;
   border-left: 4px solid var(--primary);
+}
+
+.cocktail-description--desc {
+  margin-bottom: 0.5rem;
+}
+
+.cocktail-description--prep {
+  margin-top: 0.5rem;
 }
 
 .cocktail-description p {

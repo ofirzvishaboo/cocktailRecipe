@@ -20,6 +20,7 @@ const CocktailsPage = () => {
   const [failedImages, setFailedImages] = useState(new Set())
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [pendingDeleteCocktailId, setPendingDeleteCocktailId] = useState(null)
+  const [activeTab, setActiveTab] = useState('classic') // 'classic' | 'signature'
 
   const displayCocktailName = useCallback((cocktail) => {
     if (!cocktail) return ''
@@ -33,6 +34,24 @@ const CocktailsPage = () => {
     const en = (ri?.ingredient_name || '').trim()
     return lang === 'he' ? (he || en) : (en || he)
   }, [lang])
+
+  const getSearchableCocktailNames = useCallback((cocktail) => {
+    const out = []
+    const en = (cocktail?.name || '').trim()
+    const he = (cocktail?.name_he || '').trim()
+    if (en) out.push(en)
+    if (he && he !== en) out.push(he)
+    return out
+  }, [])
+
+  const getSearchableIngredientNames = useCallback((ri) => {
+    const out = []
+    const en = (ri?.ingredient_name || '').trim()
+    const he = (ri?.ingredient_name_he || '').trim()
+    if (en) out.push(en)
+    if (he && he !== en) out.push(he)
+    return out
+  }, [])
 
   const getIngredientNames = useCallback((cocktail) => {
     const ris = cocktail?.recipe_ingredients
@@ -73,7 +92,9 @@ const CocktailsPage = () => {
           const ingredientQueries = query.split(',').map(q => q.trim()).filter(q => q.length > 0)
 
           const filtered = updatedCocktails.filter(cocktail => {
-            const names = getIngredientNames(cocktail).map((n) => n.toLowerCase())
+            const names = (cocktail?.recipe_ingredients || [])
+              .flatMap((ri) => getSearchableIngredientNames(ri))
+              .map((n) => n.toLowerCase())
             if (names.length === 0) return false
 
             return ingredientQueries.every((ingQuery) => {
@@ -86,9 +107,10 @@ const CocktailsPage = () => {
         } else {
           // Search by cocktail name OR single ingredient
           const filtered = updatedCocktails.filter(cocktail => {
-            const name = displayCocktailName(cocktail)
-            const nameMatch = name && name.toLowerCase().startsWith(query)
-            const ingredientMatch = getIngredientNames(cocktail).some((n) => n.toLowerCase().includes(query))
+            const nameMatch = getSearchableCocktailNames(cocktail).some((n) => n.toLowerCase().includes(query))
+            const ingredientMatch = (cocktail?.recipe_ingredients || []).some((ri) =>
+              getSearchableIngredientNames(ri).some((n) => n.toLowerCase().includes(query))
+            )
             return nameMatch || ingredientMatch
           })
           setFilteredCocktails(filtered)
@@ -129,7 +151,9 @@ const CocktailsPage = () => {
           const ingredientQueries = query.split(',').map(q => q.trim()).filter(q => q.length > 0)
 
           const filtered = updatedCocktails.filter(cocktail => {
-            const names = getIngredientNames(cocktail).map((n) => n.toLowerCase())
+            const names = (cocktail?.recipe_ingredients || [])
+              .flatMap((ri) => getSearchableIngredientNames(ri))
+              .map((n) => n.toLowerCase())
             if (names.length === 0) return false
 
             return ingredientQueries.every((ingQuery) => {
@@ -142,9 +166,10 @@ const CocktailsPage = () => {
         } else {
           // Search by cocktail name OR single ingredient
           const filtered = updatedCocktails.filter(cocktail => {
-            const name = displayCocktailName(cocktail)
-            const nameMatch = name && name.toLowerCase().startsWith(query)
-            const ingredientMatch = getIngredientNames(cocktail).some((n) => n.toLowerCase().includes(query))
+            const nameMatch = getSearchableCocktailNames(cocktail).some((n) => n.toLowerCase().includes(query))
+            const ingredientMatch = (cocktail?.recipe_ingredients || []).some((ri) =>
+              getSearchableIngredientNames(ri).some((n) => n.toLowerCase().includes(query))
+            )
             return nameMatch || ingredientMatch
           })
           setFilteredCocktails(filtered)
@@ -190,7 +215,9 @@ const CocktailsPage = () => {
         const ingredientQueries = query.split(',').map(q => q.trim()).filter(q => q.length > 0)
 
         const filtered = cocktails.filter(cocktail => {
-          const names = getIngredientNames(cocktail).map((n) => n.toLowerCase())
+          const names = (cocktail?.recipe_ingredients || [])
+            .flatMap((ri) => getSearchableIngredientNames(ri))
+            .map((n) => n.toLowerCase())
           if (names.length === 0) return false
 
           // Each query must match at least one ingredient (substring match)
@@ -205,26 +232,57 @@ const CocktailsPage = () => {
         // Search by cocktail name OR single ingredient
         const filtered = cocktails.filter(cocktail => {
           // Check if name matches
-          const name = displayCocktailName(cocktail)
-          const nameMatch = name && name.toLowerCase().startsWith(query)
+          const nameMatch = getSearchableCocktailNames(cocktail).some((n) => n.toLowerCase().includes(query))
 
           // Check if any ingredient matches
-          const ingredientMatch = getIngredientNames(cocktail).some((n) => n.toLowerCase().includes(query))
+          const ingredientMatch = (cocktail?.recipe_ingredients || []).some((ri) =>
+            getSearchableIngredientNames(ri).some((n) => n.toLowerCase().includes(query))
+          )
 
           return nameMatch || ingredientMatch
         })
         setFilteredCocktails(filtered)
       }
     }
-  }, [searchQuery, cocktails, displayCocktailName, getIngredientNames])
+  }, [searchQuery, cocktails, getIngredientNames, getSearchableCocktailNames, getSearchableIngredientNames])
+
+  const viewerCocktails = useMemo(() => {
+    // Logged-out users should only see Classic cocktails.
+    return isAuthenticated ? (cocktails || []) : (cocktails || []).filter((c) => !!c?.is_base)
+  }, [cocktails, isAuthenticated])
+
+  const viewerFilteredCocktails = useMemo(() => {
+    // Logged-out users should only see Classic cocktails.
+    return isAuthenticated ? (filteredCocktails || []) : (filteredCocktails || []).filter((c) => !!c?.is_base)
+  }, [filteredCocktails, isAuthenticated])
 
   const classicCocktails = useMemo(() => {
-    return (filteredCocktails || []).filter((c) => !!c?.is_base)
-  }, [filteredCocktails])
+    return (viewerFilteredCocktails || []).filter((c) => !!c?.is_base)
+  }, [viewerFilteredCocktails])
 
   const signatureCocktails = useMemo(() => {
-    return (filteredCocktails || []).filter((c) => !c?.is_base)
-  }, [filteredCocktails])
+    if (!isAuthenticated) return []
+    return (viewerFilteredCocktails || []).filter((c) => !c?.is_base)
+  }, [viewerFilteredCocktails, isAuthenticated])
+
+  const isSearching = !!(searchQuery || '').trim()
+
+  useEffect(() => {
+    // Logged-out users should never be on Signature tab.
+    if (!isAuthenticated && activeTab !== 'classic') {
+      setActiveTab('classic')
+    }
+  }, [activeTab, isAuthenticated])
+
+  useEffect(() => {
+    // During search, keep the UI on a tab that has results when possible.
+    if (!isAuthenticated) return
+    if (!isSearching) return
+    const classicHas = classicCocktails.length > 0
+    const sigHas = signatureCocktails.length > 0
+    if (activeTab === 'classic' && !classicHas && sigHas) setActiveTab('signature')
+    if (activeTab === 'signature' && !sigHas && classicHas) setActiveTab('classic')
+  }, [activeTab, classicCocktails.length, signatureCocktails.length, isAuthenticated, isSearching])
 
   // Check if the current user owns this cocktail
   const isOwner = (cocktail) => {
@@ -275,154 +333,179 @@ const CocktailsPage = () => {
                   <p>
                     {searchQuery.trim()
                       ? t('cocktails.empty.matching', { query: searchQuery })
-                      : cocktails.length === 0
+                      : viewerCocktails.length === 0
                         ? (isAuthenticated ? t('cocktails.empty.noneLoggedIn') : t('cocktails.empty.noneLoggedOut'))
                         : t('cocktails.empty.noSearchMatch')}
                   </p>
                 ) : (
                   <>
-                    <h3>{t('cocktails.sections.classic')}</h3>
-                    {classicCocktails.length === 0 ? (
-                      <div className="empty-state">
-                        {searchQuery.trim()
-                          ? t('cocktails.empty.classicMatching', { query: searchQuery })
-                          : t('cocktails.empty.classicNone')}
+                    {isAuthenticated && (
+                      <div className="cocktails-tabs" role="tablist" aria-label={t('cocktails.tabs.label', { defaultValue: 'Cocktail sections' })}>
+                        <button
+                          type="button"
+                          role="tab"
+                          aria-selected={activeTab === 'classic'}
+                          className={`cocktails-tab ${activeTab === 'classic' ? 'active' : ''}`}
+                          onClick={() => setActiveTab('classic')}
+                        >
+                          {t('cocktails.sections.classic')}
+                        </button>
+                        <button
+                          type="button"
+                          role="tab"
+                          aria-selected={activeTab === 'signature'}
+                          className={`cocktails-tab ${activeTab === 'signature' ? 'active' : ''}`}
+                          onClick={() => setActiveTab('signature')}
+                        >
+                          {t('cocktails.sections.signature')}
+                        </button>
                       </div>
-                    ) : (
-                      <ul className="cocktails-grid">
-                        {classicCocktails.map((c) => {
-                          const chips = getIngredientChips(c)
-                          return (
-                            <li key={c.id || c.name}>
-                              <div className="cocktail-card">
-                                <Link to={`/cocktails/${c.id}`} className="cocktail-card-link">
-                                  <div className="cocktail-card-media">
-                                    {c.picture_url && !failedImages.has(c.id) ? (
-                                      <img
-                                        src={c.picture_url}
-                                        alt={displayCocktailName(c)}
-                                        className="cocktail-card-image"
-                                        onError={() => {
-                                          setFailedImages((prev) => new Set(prev).add(c.id))
-                                        }}
-                                      />
-                                    ) : (
-                                      <div className="cocktail-card-image-placeholder">
-                                        {c.picture_url ? t('cocktails.image.invalid') : t('cocktails.image.none')}
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="cocktail-card-body">
-                                    <div className="cocktail-card-title">{displayCocktailName(c)}</div>
-                                    {(chips.shown.length > 0) && (
-                                      <div className="ingredient-chips">
-                                        {chips.shown.map((name) => (
-                                          <span key={name} className="ingredient-chip">{name}</span>
-                                        ))}
-                                        {chips.remaining > 0 && (
-                                          <span className="ingredient-chip ingredient-chip-more">
-                                            {t('cocktails.ingredients.more', { count: chips.remaining })}
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                </Link>
-
-                                {isAuthenticated && isOwner(c) && (
-                                  <div className="cocktail-card-actions">
-                                    <button
-                                      onClick={() => editCocktail(c)}
-                                      className="button-edit"
-                                      disabled={!c.id}
-                                    >
-                                      {t('cocktails.actions.edit')}
-                                    </button>
-                                    <button
-                                      onClick={() => requestRemoveCocktail(c.id)}
-                                      className="button-remove"
-                                    >
-                                      {t('cocktails.actions.remove')}
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </li>
-                          )
-                        })}
-                      </ul>
                     )}
 
-                    <h3 style={{ marginTop: '1.5rem' }}>{t('cocktails.sections.signature')}</h3>
-                    {signatureCocktails.length === 0 ? (
-                      <div className="empty-state">
-                        {searchQuery.trim()
-                          ? t('cocktails.empty.signatureMatching', { query: searchQuery })
-                          : t('cocktails.empty.signatureNone')}
-                      </div>
-                    ) : (
-                      <ul className="cocktails-grid">
-                        {signatureCocktails.map((c) => {
-                          const chips = getIngredientChips(c)
-                          return (
-                            <li key={c.id || c.name}>
-                              <div className="cocktail-card">
-                                <Link to={`/cocktails/${c.id}`} className="cocktail-card-link">
-                                  <div className="cocktail-card-media">
-                                    {c.picture_url && !failedImages.has(c.id) ? (
-                                      <img
-                                        src={c.picture_url}
-                                        alt={displayCocktailName(c)}
-                                        className="cocktail-card-image"
-                                        onError={() => {
-                                          setFailedImages((prev) => new Set(prev).add(c.id))
-                                        }}
-                                      />
-                                    ) : (
-                                      <div className="cocktail-card-image-placeholder">
-                                        {c.picture_url ? t('cocktails.image.invalid') : t('cocktails.image.none')}
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="cocktail-card-body">
-                                    <div className="cocktail-card-title">{displayCocktailName(c)}</div>
-                                    {(chips.shown.length > 0) && (
-                                      <div className="ingredient-chips">
-                                        {chips.shown.map((name) => (
-                                          <span key={name} className="ingredient-chip">{name}</span>
-                                        ))}
-                                        {chips.remaining > 0 && (
-                                          <span className="ingredient-chip ingredient-chip-more">
-                                            {t('cocktails.ingredients.more', { count: chips.remaining })}
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                </Link>
+                    {(activeTab === 'classic' || !isAuthenticated) && (
+                      classicCocktails.length === 0 ? (
+                        <div className="empty-state">
+                          {isSearching
+                            ? t('cocktails.empty.classicMatching', { query: searchQuery })
+                            : t('cocktails.empty.classicNone')}
+                        </div>
+                      ) : (
+                        <ul className="cocktails-grid">
+                          {classicCocktails.map((c) => {
+                            const chips = getIngredientChips(c)
+                            return (
+                              <li key={c.id || c.name}>
+                                <div className="cocktail-card">
+                                  <Link to={`/cocktails/${c.id}`} className="cocktail-card-link">
+                                    <div className="cocktail-card-media">
+                                      {c.picture_url && !failedImages.has(c.id) ? (
+                                        <img
+                                          src={c.picture_url}
+                                          alt={displayCocktailName(c)}
+                                          className="cocktail-card-image"
+                                          onError={() => {
+                                            setFailedImages((prev) => new Set(prev).add(c.id))
+                                          }}
+                                        />
+                                      ) : (
+                                        <div className="cocktail-card-image-placeholder">
+                                          {c.picture_url ? t('cocktails.image.invalid') : t('cocktails.image.none')}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="cocktail-card-body">
+                                      <div className="cocktail-card-title">{displayCocktailName(c)}</div>
+                                      {(chips.shown.length > 0) && (
+                                        <div className="ingredient-chips">
+                                          {chips.shown.map((name) => (
+                                            <span key={name} className="ingredient-chip">{name}</span>
+                                          ))}
+                                          {chips.remaining > 0 && (
+                                            <span className="ingredient-chip ingredient-chip-more">
+                                              {t('cocktails.ingredients.more', { count: chips.remaining })}
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </Link>
 
-                                {isAuthenticated && isOwner(c) && (
-                                  <div className="cocktail-card-actions">
-                                    <button
-                                      onClick={() => editCocktail(c)}
-                                      className="button-edit"
-                                      disabled={!c.id}
-                                    >
-                                      {t('cocktails.actions.edit')}
-                                    </button>
-                                    <button
-                                      onClick={() => requestRemoveCocktail(c.id)}
-                                      className="button-remove"
-                                    >
-                                      {t('cocktails.actions.remove')}
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </li>
-                          )
-                        })}
-                      </ul>
+                                  {isAuthenticated && isOwner(c) && (
+                                    <div className="cocktail-card-actions">
+                                      <button
+                                        onClick={() => editCocktail(c)}
+                                        className="button-edit"
+                                        disabled={!c.id}
+                                      >
+                                        {t('cocktails.actions.edit')}
+                                      </button>
+                                      <button
+                                        onClick={() => requestRemoveCocktail(c.id)}
+                                        className="button-remove"
+                                      >
+                                        {t('cocktails.actions.remove')}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      )
+                    )}
+
+                    {isAuthenticated && activeTab === 'signature' && (
+                      signatureCocktails.length === 0 ? (
+                        <div className="empty-state">
+                          {isSearching
+                            ? t('cocktails.empty.signatureMatching', { query: searchQuery })
+                            : t('cocktails.empty.signatureNone')}
+                        </div>
+                      ) : (
+                        <ul className="cocktails-grid">
+                          {signatureCocktails.map((c) => {
+                            const chips = getIngredientChips(c)
+                            return (
+                              <li key={c.id || c.name}>
+                                <div className="cocktail-card">
+                                  <Link to={`/cocktails/${c.id}`} className="cocktail-card-link">
+                                    <div className="cocktail-card-media">
+                                      {c.picture_url && !failedImages.has(c.id) ? (
+                                        <img
+                                          src={c.picture_url}
+                                          alt={displayCocktailName(c)}
+                                          className="cocktail-card-image"
+                                          onError={() => {
+                                            setFailedImages((prev) => new Set(prev).add(c.id))
+                                          }}
+                                        />
+                                      ) : (
+                                        <div className="cocktail-card-image-placeholder">
+                                          {c.picture_url ? t('cocktails.image.invalid') : t('cocktails.image.none')}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="cocktail-card-body">
+                                      <div className="cocktail-card-title">{displayCocktailName(c)}</div>
+                                      {(chips.shown.length > 0) && (
+                                        <div className="ingredient-chips">
+                                          {chips.shown.map((name) => (
+                                            <span key={name} className="ingredient-chip">{name}</span>
+                                          ))}
+                                          {chips.remaining > 0 && (
+                                            <span className="ingredient-chip ingredient-chip-more">
+                                              {t('cocktails.ingredients.more', { count: chips.remaining })}
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </Link>
+
+                                  {isAuthenticated && isOwner(c) && (
+                                    <div className="cocktail-card-actions">
+                                      <button
+                                        onClick={() => editCocktail(c)}
+                                        className="button-edit"
+                                        disabled={!c.id}
+                                      >
+                                        {t('cocktails.actions.edit')}
+                                      </button>
+                                      <button
+                                        onClick={() => requestRemoveCocktail(c.id)}
+                                        className="button-remove"
+                                      >
+                                        {t('cocktails.actions.remove')}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      )
                     )}
                   </>
                 )}

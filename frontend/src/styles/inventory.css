@@ -16,6 +16,12 @@
   min-width: 0;
 }
 
+.inventory-control-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .inventory-control-wide {
   grid-column: span 1;
 }
@@ -97,6 +103,16 @@
   grid-template-columns: 2fr 0.9fr 1.1fr 0.9fr 0.8fr 0.8fr 0.9fr 1.2fr;
 }
 
+.inventory-table-header-items-view,
+.inventory-table-row-items-view {
+  grid-template-columns: 2fr 0.9fr 1.1fr 0.9fr 0.8fr;
+}
+
+.inventory-table-header-items-all-view,
+.inventory-table-row-items-all-view {
+  grid-template-columns: 2fr 0.9fr 1.1fr 0.8fr 0.8fr 0.8fr;
+}
+
 .inventory-table-header-movements,
 .inventory-table-row-movements {
   grid-template-columns: 1.2fr 2fr 1.1fr 0.8fr 0.8fr;
@@ -112,9 +128,19 @@
   grid-template-columns: 2fr 1.1fr 0.8fr 0.8fr 0.8fr 0.9fr;
 }
 
+.inventory-table-header-stock-all-noprice,
+.inventory-table-row-stock-all-noprice {
+  grid-template-columns: 2fr 1.1fr 0.8fr 0.8fr 0.8fr;
+}
+
 .inventory-table-header-stock,
 .inventory-table-row-stock {
   grid-template-columns: 2fr 1.1fr 0.8fr 0.8fr 0.8fr 0.9fr;
+}
+
+.inventory-table-header-stock-noprice,
+.inventory-table-row-stock-noprice {
+  grid-template-columns: 2fr 1.1fr 0.8fr 0.8fr 0.8fr;
 }
 
 .name {
@@ -220,6 +246,36 @@
   align-items: end;
 }
 
+.inventory-movement-stock {
+  margin-top: 0.25rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.inventory-movement-stock-title {
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+
+.inventory-movement-stock-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.inventory-movement-stock-cell {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 @media (max-width: 900px) {
   .inventory-controls {
     grid-template-columns: 1fr;
@@ -297,6 +353,13 @@
   .inventory-table-row-stock > div:nth-child(5)::before { content: var(--inv_lbl_unit, "Unit"); }
   .inventory-table-row-stock > div:nth-child(6)::before { content: var(--inv_lbl_price, "Price"); }
 
+  /* STOCK (single location, no price): Name, Subcategory, Qty, Reserved, Unit */
+  .inventory-table-row-stock-noprice > div:nth-child(1)::before { content: var(--inv_lbl_name, "Name"); }
+  .inventory-table-row-stock-noprice > div:nth-child(2)::before { content: var(--inv_lbl_subcategory, "Subcategory"); }
+  .inventory-table-row-stock-noprice > div:nth-child(3)::before { content: var(--inv_lbl_qty, "Qty"); }
+  .inventory-table-row-stock-noprice > div:nth-child(4)::before { content: var(--inv_lbl_reserved, "Reserved"); }
+  .inventory-table-row-stock-noprice > div:nth-child(5)::before { content: var(--inv_lbl_unit, "Unit"); }
+
   /* STOCK (ALL): Name, Subcategory, BAR Qty, WH Qty, Unit, Price */
   .inventory-table-row-stock-all > div:nth-child(1)::before { content: var(--inv_lbl_name, "Name"); }
   .inventory-table-row-stock-all > div:nth-child(2)::before { content: var(--inv_lbl_subcategory, "Subcategory"); }
@@ -304,6 +367,13 @@
   .inventory-table-row-stock-all > div:nth-child(4)::before { content: var(--inv_lbl_wh_qty, "WH Qty"); }
   .inventory-table-row-stock-all > div:nth-child(5)::before { content: var(--inv_lbl_unit, "Unit"); }
   .inventory-table-row-stock-all > div:nth-child(6)::before { content: var(--inv_lbl_price, "Price"); }
+
+  /* STOCK (ALL, no price): Name, Subcategory, BAR Qty, WH Qty, Unit */
+  .inventory-table-row-stock-all-noprice > div:nth-child(1)::before { content: var(--inv_lbl_name, "Name"); }
+  .inventory-table-row-stock-all-noprice > div:nth-child(2)::before { content: var(--inv_lbl_subcategory, "Subcategory"); }
+  .inventory-table-row-stock-all-noprice > div:nth-child(3)::before { content: var(--inv_lbl_bar_qty, "BAR Qty"); }
+  .inventory-table-row-stock-all-noprice > div:nth-child(4)::before { content: var(--inv_lbl_wh_qty, "WH Qty"); }
+  .inventory-table-row-stock-all-noprice > div:nth-child(5)::before { content: var(--inv_lbl_unit, "Unit"); }
 
   /* ITEMS (single location): Name, Unit, Subcategory, Price, Qty, Status, Actions */
   .inventory-table-row-items > div:nth-child(1)::before { content: var(--inv_lbl_name, "Name"); }
@@ -314,6 +384,13 @@
   .inventory-table-row-items > div:nth-child(6)::before { content: var(--inv_lbl_status, "Status"); }
   .inventory-table-row-items > div:nth-child(7)::before { content: var(--inv_lbl_actions, "Actions"); }
 
+  /* ITEMS (single location, view): Name, Unit, Subcategory, Qty, Status */
+  .inventory-table-row-items-view > div:nth-child(1)::before { content: var(--inv_lbl_name, "Name"); }
+  .inventory-table-row-items-view > div:nth-child(2)::before { content: var(--inv_lbl_unit, "Unit"); }
+  .inventory-table-row-items-view > div:nth-child(3)::before { content: var(--inv_lbl_subcategory, "Subcategory"); }
+  .inventory-table-row-items-view > div:nth-child(4)::before { content: var(--inv_lbl_qty, "Qty"); }
+  .inventory-table-row-items-view > div:nth-child(5)::before { content: var(--inv_lbl_status, "Status"); }
+
   /* ITEMS (ALL): Name, Unit, Subcategory, Price, BAR Qty, WH Qty, Status, Actions */
   .inventory-table-row-items-all > div:nth-child(1)::before { content: var(--inv_lbl_name, "Name"); }
   .inventory-table-row-items-all > div:nth-child(2)::before { content: var(--inv_lbl_unit, "Unit"); }
@@ -323,6 +400,14 @@
   .inventory-table-row-items-all > div:nth-child(6)::before { content: var(--inv_lbl_wh_qty, "WH Qty"); }
   .inventory-table-row-items-all > div:nth-child(7)::before { content: var(--inv_lbl_status, "Status"); }
   .inventory-table-row-items-all > div:nth-child(8)::before { content: var(--inv_lbl_actions, "Actions"); }
+
+  /* ITEMS (ALL, view): Name, Unit, Subcategory, BAR Qty, WH Qty, Status */
+  .inventory-table-row-items-all-view > div:nth-child(1)::before { content: var(--inv_lbl_name, "Name"); }
+  .inventory-table-row-items-all-view > div:nth-child(2)::before { content: var(--inv_lbl_unit, "Unit"); }
+  .inventory-table-row-items-all-view > div:nth-child(3)::before { content: var(--inv_lbl_subcategory, "Subcategory"); }
+  .inventory-table-row-items-all-view > div:nth-child(4)::before { content: var(--inv_lbl_bar_qty, "BAR Qty"); }
+  .inventory-table-row-items-all-view > div:nth-child(5)::before { content: var(--inv_lbl_wh_qty, "WH Qty"); }
+  .inventory-table-row-items-all-view > div:nth-child(6)::before { content: var(--inv_lbl_status, "Status"); }
 
   /* MOVEMENTS (single location): When, Item, Subcategory, Change, Reason */
   .inventory-table-row-movements > div:nth-child(1)::before { content: var(--inv_lbl_when, "When"); }

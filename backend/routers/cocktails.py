@@ -70,6 +70,8 @@ def _serialize_cocktail(c: CocktailRecipeModel) -> Dict:
                 }
             )
 
+    glass_type = getattr(c, "glass_type", None)
+
     return {
         "id": c.id,
         "created_by_user_id": c.created_by_user_id,
@@ -81,6 +83,9 @@ def _serialize_cocktail(c: CocktailRecipeModel) -> Dict:
         "created_at": c.created_at.isoformat() if c.created_at else None,
         "updated_at": c.updated_at.isoformat() if c.updated_at else None,
         "glass_type_id": c.glass_type_id,
+        # Convenience fields (matches `backend/db/cocktail_recipe.py` `to_schema`)
+        "glass_type_name": glass_type.name if glass_type else None,
+        "glass_type_name_he": getattr(glass_type, "name_he", None) if glass_type else None,
         "picture_url": c.picture_url,
         "garnish_text": c.garnish_text,
         "garnish_text_he": getattr(c, "garnish_text_he", None),
@@ -102,6 +107,7 @@ async def get_cocktails(db: AsyncSession = Depends(get_async_session)):
             selectinload(CocktailRecipeModel.recipe_ingredients).selectinload(RecipeIngredientModel.ingredient).selectinload(IngredientModel.subcategory),
             selectinload(CocktailRecipeModel.recipe_ingredients).selectinload(RecipeIngredientModel.bottle),
             selectinload(CocktailRecipeModel.user),
+            selectinload(CocktailRecipeModel.glass_type),
         )
     )
     cocktails = result.scalars().all()
@@ -117,6 +123,7 @@ async def get_cocktail_recipe(cocktail_id: UUID, db: AsyncSession = Depends(get_
             selectinload(CocktailRecipeModel.recipe_ingredients).selectinload(RecipeIngredientModel.ingredient).selectinload(IngredientModel.subcategory),
             selectinload(CocktailRecipeModel.recipe_ingredients).selectinload(RecipeIngredientModel.bottle),
             selectinload(CocktailRecipeModel.user),
+            selectinload(CocktailRecipeModel.glass_type),
         )
         .where(CocktailRecipeModel.id == cocktail_id)
     )
@@ -186,6 +193,7 @@ async def create_cocktail_recipe(
                 selectinload(CocktailRecipeModel.recipe_ingredients).selectinload(RecipeIngredientModel.ingredient).selectinload(IngredientModel.subcategory),
                 selectinload(CocktailRecipeModel.recipe_ingredients).selectinload(RecipeIngredientModel.bottle),
                 selectinload(CocktailRecipeModel.user),
+                selectinload(CocktailRecipeModel.glass_type),
             )
             .where(CocktailRecipeModel.id == cocktail_model.id)
         )
@@ -270,6 +278,7 @@ async def update_cocktail_recipe(
                 selectinload(CocktailRecipeModel.recipe_ingredients).selectinload(RecipeIngredientModel.ingredient).selectinload(IngredientModel.subcategory),
                 selectinload(CocktailRecipeModel.recipe_ingredients).selectinload(RecipeIngredientModel.bottle),
                 selectinload(CocktailRecipeModel.user),
+                selectinload(CocktailRecipeModel.glass_type),
             )
             .where(CocktailRecipeModel.id == cocktail_id)
         )
@@ -324,9 +333,13 @@ async def delete_cocktail_recipe(
 async def get_no_juice_cocktail(
     cocktail_id: UUID,
     scale_factor: float = 1.0,
+    user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_async_session),
 ):
     """Compute ingredient and total cost for a cocktail (scaled) excluding juice ingredients."""
+    if not user.is_superuser:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
+
     result = await db.execute(
         select(CocktailRecipeModel)
         .options(
@@ -399,11 +412,13 @@ async def get_no_juice_cocktail(
         lines.append(
             {
                 "ingredient_name": ri.ingredient.name if ri.ingredient else "Unknown",
+                "ingredient_name_he": getattr(ri.ingredient, "name_he", None) if ri.ingredient else None,
                 "quantity": qty,
                 "unit": unit,
                 "scaled_quantity": scaled_qty,
                 "bottle_id": bottle.id if bottle else None,
                 "bottle_name": bottle.name if bottle else None,
+                "bottle_name_he": getattr(bottle, "name_he", None) if bottle else None,
                 "bottle_volume_ml": bottle.volume_ml if bottle else None,
                 "price_minor": price_minor,
                 "currency": currency,
@@ -424,9 +439,13 @@ async def get_no_juice_cocktail(
 async def get_cocktail_cost(
     cocktail_id: UUID,
     scale_factor: float = 1.0,
+    user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_async_session),
 ):
     """Compute ingredient and total cost for a cocktail (scaled). Uses bottles + bottle_prices + recipe_ingredients."""
+    if not user.is_superuser:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
+
     result = await db.execute(
         select(CocktailRecipeModel)
         .options(
@@ -501,11 +520,13 @@ async def get_cocktail_cost(
         lines.append(
             {
                 "ingredient_name": ri.ingredient.name if ri.ingredient else "Unknown",
+                "ingredient_name_he": getattr(ri.ingredient, "name_he", None) if ri.ingredient else None,
                 "quantity": qty,
                 "unit": unit,
                 "scaled_quantity": scaled_qty,
                 "bottle_id": bottle.id if bottle else None,
                 "bottle_name": bottle.name if bottle else None,
+                "bottle_name_he": getattr(bottle, "name_he", None) if bottle else None,
                 "bottle_volume_ml": bottle.volume_ml if bottle else None,
                 "price_minor": price_minor,
                 "currency": currency,

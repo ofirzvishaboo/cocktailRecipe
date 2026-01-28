@@ -54,6 +54,21 @@ async def add_missing_user_columns(engine: AsyncEngine):
             else:
                 print(f"{column_name} column already exists in users table")
 
+        # Optional profile fields (keep nullable for backward compatibility)
+        optional_text_columns = ["first_name", "last_name"]
+        for column_name in optional_text_columns:
+            if column_name not in existing_columns:
+                print(f"Adding {column_name} column to users table...")
+                await conn.execute(
+                    text(f"""
+                        ALTER TABLE users
+                        ADD COLUMN {column_name} TEXT
+                    """)
+                )
+                print(f"Successfully added {column_name} column to users table")
+            else:
+                print(f"{column_name} column already exists in users table")
+
         # Handle the 'role' column if it exists - make it nullable or add default
         if 'role' in existing_columns:
             print("Found 'role' column in users table. Making it nullable to avoid conflicts...")
@@ -473,9 +488,9 @@ async def recreate_inventory_v3_tables(engine: AsyncEngine):
 async def ensure_ingredient_taxonomy(engine: AsyncEngine):
     """
     Ensure Kind='Ingredient' and its Subcategories exist:
-    Spirit, Liqueur, Juice, Syrup, Garnish.
+    Spirit, Liqueur, Juice, Syrup, Sparkling, Garnish.
     """
-    subcats = ["Spirit", "Liqueur", "Juice", "Syrup", "Garnish"]
+    subcats = ["Spirit", "Liqueur", "Juice", "Syrup", "Sparkling", "Garnish"]
     async with engine.begin() as conn:
         # Kind
         res = await conn.execute(

@@ -22,6 +22,11 @@ const CocktailDetailPage = () => {
   const [costLoading, setCostLoading] = useState(false)
   const [costError, setCostError] = useState('')
   const [glassTypesById, setGlassTypesById] = useState({})
+  const [metaEdit, setMetaEdit] = useState({ glass: false, garnish: false })
+  const [metaDraft, setMetaDraft] = useState({ glass_name_he: '', garnish_text_he: '' })
+  const [metaSaving, setMetaSaving] = useState(false)
+  const [metaSaveError, setMetaSaveError] = useState('')
+  const [ingredientsByNameLower, setIngredientsByNameLower] = useState({})
 
   useEffect(() => {
     const loadCocktail = async () => {
@@ -42,7 +47,7 @@ const CocktailDetailPage = () => {
       }
     }
     loadCocktail()
-  }, [id])
+  }, [id, t])
 
   useEffect(() => {
     const loadGlassTypes = async () => {
@@ -62,8 +67,44 @@ const CocktailDetailPage = () => {
   }, [])
 
   useEffect(() => {
+    // If garnish has no explicit Hebrew field, try to map garnish_text to an Ingredient.name_he
+    // so that translations added via the Ingredients page can still show up here.
+    const shouldLoad =
+      lang === 'he' &&
+      !!(cocktail?.garnish_text || '').trim() &&
+      !(cocktail?.garnish_text_he || '').trim()
+
+    if (!shouldLoad) return
+
+    const load = async () => {
+      try {
+        const res = await api.get('/ingredients/')
+        const list = Array.isArray(res.data) ? res.data : []
+        const byLower = {}
+        for (const ing of list) {
+          const en = (ing?.name || '').trim().toLowerCase()
+          const he = (ing?.name_he || '').trim().toLowerCase()
+          if (en) byLower[en] = ing
+          if (he) byLower[he] = ing
+        }
+        setIngredientsByNameLower(byLower)
+      } catch (e) {
+        console.error('Failed to load ingredients for garnish translation', e)
+        setIngredientsByNameLower({})
+      }
+    }
+
+    load()
+  }, [cocktail?.garnish_text, cocktail?.garnish_text_he, lang])
+
+  useEffect(() => {
     const loadCost = async () => {
       if (!id) return
+      if (!isAdmin) {
+        setCostData(null)
+        setCostError('')
+        return
+      }
       try {
         setCostLoading(true)
         setCostError('')
@@ -78,13 +119,38 @@ const CocktailDetailPage = () => {
       }
     }
     loadCost()
-  }, [id])
+  }, [id, t, isAdmin])
+
+  useEffect(() => {
+    // Keep inline edit drafts in sync with loaded data
+    const glassTypeId = cocktail?.glass_type_id ? String(cocktail.glass_type_id) : ''
+    const glassType = glassTypeId ? glassTypesById[glassTypeId] : null
+    setMetaDraft({
+      glass_name_he: glassType?.name_he || '',
+      garnish_text_he: cocktail?.garnish_text_he || '',
+    })
+    setMetaSaveError('')
+    setMetaEdit({ glass: false, garnish: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cocktail?.id, cocktail?.glass_type_id, glassTypesById])
+
+  const displayUnit = (unit) => {
+    const key = (unit || '').trim().toLowerCase()
+    if (!key) return ''
+    return t(`common.units.${key}`, { defaultValue: unit })
+  }
+
+  const displayCurrency = (currency) => {
+    const key = (currency || '').trim().toUpperCase()
+    if (!key) return t('common.currencies.ILS', { defaultValue: 'ILS' })
+    return t(`common.currencies.${key}`, { defaultValue: key })
+  }
 
   const formatMoney = (value, currency) => {
     const n = Number(value)
     if (Number.isNaN(n)) return '-'
-    const c = (currency || '').toUpperCase()
-    return `${n.toFixed(2)} ${c || 'ILS'}`
+    const c = displayCurrency(currency || 'ILS')
+    return `${n.toFixed(2)} ${c}`
   }
 
   const handleDelete = async () => {
@@ -112,6 +178,73 @@ const CocktailDetailPage = () => {
 
   const isOwner = () => {
     return isAuthenticated && user && cocktail && (isAdmin || cocktail.created_by_user_id === user.id)
+  }
+
+  const buildCocktailUpdatePayload = (overrides = {}) => {
+    const ris = Array.isArray(cocktail?.recipe_ingredients) ? cocktail.recipe_ingredients : []
+    return {
+      name: (cocktail?.name || '').trim() || (cocktail?.name_he || '').trim(),
+      name_he: (cocktail?.name_he || '').trim() || null,
+      description: (cocktail?.description || '').trim() || null,
+      description_he: (cocktail?.description_he || '').trim() || null,
+      picture_url: cocktail?.picture_url || null,
+      garnish_text: (cocktail?.garnish_text || '').trim() || null,
+      garnish_text_he: (cocktail?.garnish_text_he || '').trim() || null,
+      glass_type_id: cocktail?.glass_type_id || null,
+      base_recipe_id: cocktail?.base_recipe_id || null,
+      is_base: !!cocktail?.is_base,
+      preparation_method: (cocktail?.preparation_method || '').trim() || null,
+      preparation_method_he: (cocktail?.preparation_method_he || '').trim() || null,
+      batch_type: cocktail?.batch_type || null,
+      recipe_ingredients: ris.map((ri, idx) => ({
+        ingredient_id: ri.ingredient_id,
+        quantity: Number(ri.quantity || 0),
+        unit: (ri.unit || 'ml').toLowerCase(),
+        bottle_id: ri.bottle_id || null,
+        is_garnish: !!ri.is_garnish,
+        is_optional: !!ri.is_optional,
+        sort_order: ri.sort_order ?? (idx + 1),
+      })),
+      ...overrides,
+    }
+  }
+
+  const saveGarnishHebrew = async () => {
+    if (!id) return
+    if (!isOwner()) return
+    try {
+      setMetaSaving(true)
+      setMetaSaveError('')
+      const payload = buildCocktailUpdatePayload({
+        garnish_text_he: (metaDraft.garnish_text_he || '').trim() || null,
+      })
+      const res = await api.put(`/cocktail-recipes/${id}`, payload)
+      setCocktail(res.data)
+      setMetaEdit((p) => ({ ...p, garnish: false }))
+    } catch (e) {
+      console.error('Failed to save garnish Hebrew', e)
+      setMetaSaveError(t('cocktailDetail.errors.updateFailed'))
+    } finally {
+      setMetaSaving(false)
+    }
+  }
+
+  const saveGlassHebrew = async () => {
+    const glassTypeId = cocktail?.glass_type_id ? String(cocktail.glass_type_id) : ''
+    if (!glassTypeId) return
+    if (!isAdmin) return
+    try {
+      setMetaSaving(true)
+      setMetaSaveError('')
+      const res = await api.put(`/glass-types/${glassTypeId}`, { name_he: (metaDraft.glass_name_he || '').trim() || null })
+      setGlassTypesById((prev) => ({ ...prev, [glassTypeId]: res.data }))
+      setMetaEdit((p) => ({ ...p, glass: false }))
+    } catch (e) {
+      console.error('Failed to save glass type Hebrew', e)
+      setMetaSaveError(t('cocktailDetail.errors.updateFailed'))
+    } finally {
+      setMetaSaving(false)
+    }
   }
 
   if (loading) {
@@ -149,11 +282,25 @@ const CocktailDetailPage = () => {
     return lang === 'he' ? (he || en) : (en || he)
   }
 
-  const glassTypeName = glassType
-    ? displayCocktailText(glassType.name, glassType.name_he)
-    : ''
-  const glassTypeLabel = glassType
-    ? `${glassTypeName}${glassType.capacity_ml ? ` (${glassType.capacity_ml}ml)` : ''}`
+  const displayGarnish = () => {
+    const he = (cocktail?.garnish_text_he || '').trim()
+    const en = (cocktail?.garnish_text || '').trim()
+    if (lang !== 'he') return (en || he)
+    if (he) return he
+    if (!en) return ''
+    const key = en.toLowerCase()
+    const mapped = ingredientsByNameLower?.[key]
+    const mappedHe = (mapped?.name_he || '').trim()
+    return mappedHe || en
+  }
+
+  const glassTypeName = displayCocktailText(
+    glassType?.name || cocktail?.glass_type_name,
+    glassType?.name_he || cocktail?.glass_type_name_he,
+  )
+
+  const glassTypeLabel = glassTypeName
+    ? `${glassTypeName}${glassType?.capacity_ml ? ` (${glassType.capacity_ml} ${displayUnit('ml')})` : ''}`
     : (glassTypeId ? t('cocktailDetail.glass.unknown') : '-')
 
   if (editing) {
@@ -214,8 +361,14 @@ const CocktailDetailPage = () => {
           </div>
 
           {displayCocktailText(cocktail.description, cocktail.description_he) && (
-            <div className="cocktail-description">
+            <div className="cocktail-description cocktail-description--desc">
               <p>{displayCocktailText(cocktail.description, cocktail.description_he)}</p>
+            </div>
+          )}
+
+          {displayCocktailText(cocktail.preparation_method, cocktail.preparation_method_he) && (
+            <div className="cocktail-description cocktail-description--prep">
+              <p>{displayCocktailText(cocktail.preparation_method, cocktail.preparation_method_he)}</p>
             </div>
           )}
 
@@ -235,14 +388,95 @@ const CocktailDetailPage = () => {
               )}
               <div className="meta-row">
                 <span className="meta-label">{t('cocktailDetail.meta.glass')}</span>
-                <span className="meta-value">{glassTypeLabel}</span>
+                <span className="meta-value">
+                  {glassTypeLabel}
+                  {lang === 'he' && isAdmin && glassType && (
+                    <span style={{ marginInlineStart: 10, display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+                      {metaEdit.glass ? (
+                        <>
+                          <input
+                            className="form-input"
+                            style={{ width: 220 }}
+                            value={metaDraft.glass_name_he}
+                            onChange={(e) => setMetaDraft((p) => ({ ...p, glass_name_he: e.target.value }))}
+                            placeholder={t('common.addHebrew')}
+                            disabled={metaSaving}
+                          />
+                          <button type="button" className="button-primary" onClick={saveGlassHebrew} disabled={metaSaving}>
+                            {t('common.save')}
+                          </button>
+                          <button
+                            type="button"
+                            className="button-secondary"
+                            onClick={() => {
+                              setMetaDraft((p) => ({ ...p, glass_name_he: glassType?.name_he || '' }))
+                              setMetaEdit((p) => ({ ...p, glass: false }))
+                            }}
+                            disabled={metaSaving}
+                          >
+                            {t('common.cancel')}
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          className="button-edit"
+                          onClick={() => setMetaEdit((p) => ({ ...p, glass: true }))}
+                        >
+                          {(glassType?.name_he || '').trim() ? t('common.editHebrew') : t('common.addHebrew')}
+                        </button>
+                      )}
+                    </span>
+                  )}
+                </span>
               </div>
               <div className="meta-row">
                 <span className="meta-label">{t('cocktailDetail.meta.garnish')}</span>
-                <span className="meta-value">{displayCocktailText(cocktail.garnish_text, cocktail.garnish_text_he) || '-'}</span>
+                <span className="meta-value">
+                  {displayGarnish() || '-'}
+                  {lang === 'he' && isOwner() && (
+                    <span style={{ marginInlineStart: 10, display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+                      {metaEdit.garnish ? (
+                        <>
+                          <input
+                            className="form-input"
+                            style={{ width: 260 }}
+                            value={metaDraft.garnish_text_he}
+                            onChange={(e) => setMetaDraft((p) => ({ ...p, garnish_text_he: e.target.value }))}
+                            placeholder={t('common.addHebrew')}
+                            disabled={metaSaving}
+                          />
+                          <button type="button" className="button-primary" onClick={saveGarnishHebrew} disabled={metaSaving}>
+                            {t('common.save')}
+                          </button>
+                          <button
+                            type="button"
+                            className="button-secondary"
+                            onClick={() => {
+                              setMetaDraft((p) => ({ ...p, garnish_text_he: cocktail?.garnish_text_he || '' }))
+                              setMetaEdit((p) => ({ ...p, garnish: false }))
+                            }}
+                            disabled={metaSaving}
+                          >
+                            {t('common.cancel')}
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          className="button-edit"
+                          onClick={() => setMetaEdit((p) => ({ ...p, garnish: true }))}
+                        >
+                          {(cocktail?.garnish_text_he || '').trim() ? t('common.editHebrew') : t('common.addHebrew')}
+                        </button>
+                      )}
+                    </span>
+                  )}
+                </span>
               </div>
             </div>
           </div>
+          {metaSaveError && <div className="error-message" style={{ marginTop: 10 }}>{metaSaveError}</div>}
 
           <div className="cocktail-ingredients-section detail-section">
             <div className="detail-section-header">
@@ -254,7 +488,7 @@ const CocktailDetailPage = () => {
                   <li key={`${ri.ingredient_id}-${i}`} className="ingredient-item-detailed">
                     <span className="ingredient-name">{displayCocktailText(ri.ingredient_name, ri.ingredient_name_he) || t('cocktailDetail.unknown')}</span>
                     <span className="ingredient-brand">{displayCocktailText(ri.bottle_name, ri.bottle_name_he) || '-'}</span>
-                    <span className="ingredient-amount">{ri.quantity} {ri.unit}</span>
+                    <span className="ingredient-amount">{ri.quantity} {displayUnit(ri.unit)}</span>
                   </li>
                 ))}
               </ul>
@@ -263,42 +497,44 @@ const CocktailDetailPage = () => {
             )}
           </div>
 
-          <div className="cocktail-ingredients-section detail-section">
-            <div className="detail-section-header">
-              <h2>{t('cocktailDetail.sections.cost')}</h2>
-              {costData && !costLoading && !costError && (
-                <div className="cost-pill">
-                  {t('cocktailDetail.cost.total')}: {formatMoney(
-                    costData.total_cocktail_cost,
-                    costData?.lines?.find((l) => l?.currency)?.currency || 'ILS'
+          {isAdmin && (
+            <div className="cocktail-ingredients-section detail-section">
+              <div className="detail-section-header">
+                <h2>{t('cocktailDetail.sections.cost')}</h2>
+                {costData && !costLoading && !costError && (
+                  <div className="cost-pill">
+                    {t('cocktailDetail.cost.total')}: {formatMoney(
+                      costData.total_cocktail_cost,
+                      costData?.lines?.find((l) => l?.currency)?.currency || 'ILS'
+                    )}
+                  </div>
+                )}
+              </div>
+              {costLoading ? (
+                <p>{t('cocktailDetail.cost.loading')}</p>
+              ) : costError ? (
+                <p className="error-message">{costError}</p>
+              ) : costData ? (
+                <>
+                  {(costData.lines && costData.lines.length > 0) ? (
+                    <ul className="ingredients-list-detailed">
+                      {costData.lines.map((line, i) => (
+                        <li key={`${line.ingredient_name}-${i}`} className="ingredient-item-detailed">
+                          <span className="ingredient-name">{displayCocktailText(line.ingredient_name, line.ingredient_name_he) || t('cocktailDetail.unknown')}</span>
+                          <span className="ingredient-brand">{displayCocktailText(line.bottle_name, line.bottle_name_he) || '-'}</span>
+                          <span className="ingredient-amount">{formatMoney(line.ingredient_cost, line.currency || 'ILS')}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>{t('cocktailDetail.cost.noneLines')}</p>
                   )}
-                </div>
+                </>
+              ) : (
+                <p>{t('cocktailDetail.cost.notAvailable')}</p>
               )}
             </div>
-            {costLoading ? (
-              <p>{t('cocktailDetail.cost.loading')}</p>
-            ) : costError ? (
-              <p className="error-message">{costError}</p>
-            ) : costData ? (
-              <>
-                {(costData.lines && costData.lines.length > 0) ? (
-                  <ul className="ingredients-list-detailed">
-                    {costData.lines.map((line, i) => (
-                      <li key={`${line.ingredient_name}-${i}`} className="ingredient-item-detailed">
-                        <span className="ingredient-name">{line.ingredient_name || t('cocktailDetail.unknown')}</span>
-                        <span className="ingredient-brand">{line.bottle_name || '-'}</span>
-                        <span className="ingredient-amount">{formatMoney(line.ingredient_cost, line.currency || 'ILS')}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>{t('cocktailDetail.cost.noneLines')}</p>
-                )}
-              </>
-            ) : (
-              <p>{t('cocktailDetail.cost.notAvailable')}</p>
-            )}
-          </div>
+          )}
         </div>
       </div>
 

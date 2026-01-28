@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import ConfirmDialog from '../components/common/ConfirmDialog'
+
+const INGREDIENT_GROUP_ORDER = ['Spirit', 'Liqueur', 'Juice', 'Syrup', 'Sparkling', 'Garnish']
 
 function IngredientsPage() {
   const { isAdmin, isAuthenticated } = useAuth()
@@ -296,12 +298,11 @@ function IngredientsPage() {
     }
   }
 
-  const GROUP_ORDER = ['Spirit', 'Liqueur', 'Juice', 'Syrup', 'Garnish']
-  const groupedSections = (() => {
+  const groupedSections = useMemo(() => {
     const idByName = taxonomy.subcategoryIdByNameLower || {}
     const items = Array.isArray(filteredIngredients) ? filteredIngredients : []
     const sections = []
-    for (const name of GROUP_ORDER) {
+    for (const name of INGREDIENT_GROUP_ORDER) {
       const id = idByName[name.toLowerCase()]
       const list = id ? items.filter((i) => i.subcategory_id === id) : []
       sections.push({ key: name.toLowerCase(), title: t(`inventory.groups.${name}`), items: list })
@@ -309,8 +310,10 @@ function IngredientsPage() {
     const knownIds = new Set(Object.values(idByName))
     const uncategorized = items.filter((i) => !i.subcategory_id || !knownIds.has(i.subcategory_id))
     sections.push({ key: 'uncategorized', title: t('ingredients.uncategorized'), items: uncategorized })
-    return sections
-  })()
+
+    // Hide empty categories (only show headers that have items).
+    return sections.filter((s) => (s.items || []).length > 0)
+  }, [filteredIngredients, taxonomy.subcategoryIdByNameLower, t])
 
   const loadBrands = async (ingredientId) => {
     try {
@@ -327,7 +330,7 @@ function IngredientsPage() {
         brand_name: b.name,
         brand_name_he: b.name_he,
         bottle_size_ml: b.volume_ml,
-        bottle_price: b.current_price?.price ?? '',
+        bottle_price: isAdmin ? (b.current_price?.price ?? '') : '',
       }))
       setBrandsByIngredientId((prev) => ({
         ...prev,
@@ -600,12 +603,9 @@ function IngredientsPage() {
               groupedSections.map((section) => (
                 <div key={section.key} style={{ marginTop: section.key === 'spirit' ? 0 : 18 }}>
                   <h3 style={{ margin: '0 0 10px 0' }}>{section.title}</h3>
-                  {(section.items || []).length === 0 ? (
-                    <div className="empty-state">{t('ingredients.emptyGroup')}</div>
-                  ) : (
-                    <ul>
-                      {section.items.map((ing) => (
-                        <li key={ing.id} className="ingredient-item">
+                  <ul>
+                    {section.items.map((ing) => (
+                      <li key={ing.id} className="ingredient-item">
                   <div className="ingredient-item-content">
                     <strong>{displayName(ing)}</strong>
                     <div className="ingredient-actions">
@@ -728,7 +728,7 @@ function IngredientsPage() {
                                       <div className="brand-display">
                                         <strong>{lang === 'he' ? ((b.brand_name_he || '').trim() || (b.brand_name || '').trim()) : ((b.brand_name || '').trim() || (b.brand_name_he || '').trim())}</strong>
                                         <span>{b.bottle_size_ml} ml</span>
-                                        <span>{b.bottle_price}</span>
+                                        {isAdmin && <span>{b.bottle_price}</span>}
                                       </div>
                                       {isAdmin && (
                                         <div className="brand-actions">
@@ -797,8 +797,7 @@ function IngredientsPage() {
                   )}
                 </li>
                       ))}
-                    </ul>
-                  )}
+                  </ul>
                 </div>
               ))
             )}

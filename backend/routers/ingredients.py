@@ -80,6 +80,32 @@ async def create_ingredient(ingredient: IngredientCreate, user: User = Depends(c
     )
     existing_ingredient = result.scalar_one_or_none()
     if existing_ingredient:
+        # If the ingredient already exists, allow "enriching" it with missing normalized fields
+        # (especially Hebrew translations) instead of silently dropping the provided data.
+        changed = False
+        if (ingredient.name_he or "").strip() and not (getattr(existing_ingredient, "name_he", None) or "").strip():
+            existing_ingredient.name_he = ingredient.name_he
+            changed = True
+        # Only fill other optional fields if they're currently unset.
+        if getattr(ingredient, "brand_id", None) and getattr(existing_ingredient, "brand_id", None) is None:
+            existing_ingredient.brand_id = ingredient.brand_id
+            changed = True
+        if getattr(ingredient, "kind_id", None) and getattr(existing_ingredient, "kind_id", None) is None:
+            existing_ingredient.kind_id = ingredient.kind_id
+            changed = True
+        if getattr(ingredient, "subcategory_id", None) and getattr(existing_ingredient, "subcategory_id", None) is None:
+            existing_ingredient.subcategory_id = ingredient.subcategory_id
+            changed = True
+        if getattr(ingredient, "abv_percent", None) is not None and getattr(existing_ingredient, "abv_percent", None) is None:
+            existing_ingredient.abv_percent = ingredient.abv_percent
+            changed = True
+        if getattr(ingredient, "notes", None) and getattr(existing_ingredient, "notes", None) is None:
+            existing_ingredient.notes = ingredient.notes
+            changed = True
+
+        if changed:
+            await db.commit()
+            await db.refresh(existing_ingredient)
         return existing_ingredient.to_schema
 
     # Create new ingredient (preserve original casing)
@@ -150,7 +176,11 @@ async def get_ingredient_used_by(ingredient_id: UUID, db: AsyncSession = Depends
 
 
 @router.get("/{ingredient_id}/bottles", response_model=List[Dict])
-async def list_bottles_for_ingredient(ingredient_id: UUID, db: AsyncSession = Depends(get_async_session)):
+async def list_bottles_for_ingredient(
+    ingredient_id: UUID,
+    user: User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_async_session),
+):
     """List bottles (SKUs) for an ingredient, with current price if present."""
     ing_result = await db.execute(select(IngredientModel).where(IngredientModel.id == ingredient_id))
     ingredient = ing_result.scalar_one_or_none()
@@ -173,8 +203,7 @@ async def list_bottles_for_ingredient(ingredient_id: UUID, db: AsyncSession = De
             .limit(1)
         )
         p = price_result.scalar_one_or_none()
-        out.append(
-            {
+        row_out = {
                 "id": b.id,
                 "ingredient_id": b.ingredient_id,
                 "name": b.name,
@@ -199,7 +228,11 @@ async def list_bottles_for_ingredient(ingredient_id: UUID, db: AsyncSession = De
                     else None
                 ),
             }
-        )
+
+        if not user.is_superuser:
+            row_out["current_price"] = None
+
+        out.append(row_out)
     return out
 
 

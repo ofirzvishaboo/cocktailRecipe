@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 function IngredientInputs({
   ingredients,
+  lang,
   onIngredientChange,
   onAddIngredient,
   onRemoveIngredient,
@@ -16,9 +17,9 @@ function IngredientInputs({
   brandOptionsByIndex = [],
   bottlePlaceholder,
   brandDisabledByIndex = [],
+  showPrices = true,
 }) {
-  const { t, i18n } = useTranslation()
-  const lang = (i18n.language || 'en').split('-')[0]
+  const { t } = useTranslation()
   const ingredientNameRefs = useRef([])
   const prevLengthRef = useRef(ingredients.length)
   const isAddingRef = useRef(false)
@@ -48,8 +49,12 @@ function IngredientInputs({
           <input
             type="text"
             placeholder={resolvedNamePlaceholder}
-            value={ingredient.name}
-            onChange={(e) => onIngredientChange(index, 'name', e.target.value)}
+            value={
+              lang === 'he'
+                ? (ingredient?.name_he ?? '')
+                : (ingredient?.name ?? '')
+            }
+            onChange={(e) => onIngredientChange(index, lang === 'he' ? 'name_he' : 'name', e.target.value)}
             list={nameSuggestions.length ? 'ingredient-suggestions' : undefined}
             ref={(el) => {
               ingredientNameRefs.current[index] = el
@@ -82,7 +87,7 @@ function IngredientInputs({
                 <option key={b.id} value={b.id}>
                   {(lang === 'he' ? ((b?.name_he || '').trim() || (b?.name || '').trim()) : ((b?.name || '').trim() || (b?.name_he || '').trim()))}
                   {' '}
-                  ({b.volume_ml}ml / {b.current_price?.price ?? '-' } {b.current_price?.currency ?? ''})
+                  ({b.volume_ml}ml{showPrices ? ` / ${b.current_price?.price ?? '-'} ${b.current_price?.currency ?? ''}` : ''})
                 </option>
               ))}
             </select>

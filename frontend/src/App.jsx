@@ -12,6 +12,7 @@ import CreateCocktailPage from './pages/CreateCocktailPage'
 import IngredientsPage from './pages/IngredientsPage'
 import CocktailScaler from './pages/cocktailScaler'
 import InventoryPage from './pages/InventoryPage'
+import ProtectedRoute from './components/layout/ProtectedRoute'
 
 function App() {
   const { isAuthenticated } = useAuth()
@@ -61,7 +62,14 @@ function App() {
           <Route path="/cocktails/:id" element={<CocktailDetailPage />} />
           <Route path="/create-cocktail" element={<CreateCocktailPage />} />
           <Route path="/ingredients" element={<IngredientsPage />} />
-          <Route path="/inventory" element={<InventoryPage />} />
+          <Route
+            path="/inventory"
+            element={(
+              <ProtectedRoute>
+                <InventoryPage />
+              </ProtectedRoute>
+            )}
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

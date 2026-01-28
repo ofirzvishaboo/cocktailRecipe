@@ -32,6 +32,7 @@ from schemas.inventory import (
     InventoryItemCreate,
     InventoryItemUpdate,
     InventoryMovementCreate,
+    InventoryTransferCreate,
 )
 
 router = APIRouter()
@@ -166,6 +167,7 @@ async def list_inventory_items(
     brand_id: Optional[UUID] = None,
     location: Optional[str] = None,
     q: Optional[str] = None,
+    user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_async_session),
 ):
     """
@@ -284,8 +286,7 @@ async def list_inventory_items(
         elif it.item_type == "GLASS":
             kind_name_out = "Glass"
 
-        out.append(
-            {
+        row_out = {
                 "id": it.id,
                 "item_type": it.item_type,
                 "bottle_id": it.bottle_id,
@@ -320,7 +321,13 @@ async def list_inventory_items(
                 "reorder_level": float(it.reorder_level) if it.reorder_level is not None else None,
                 "stock": stock_by_item.get(it.id) if location else None,
             }
-        )
+
+        if not user.is_superuser:
+            row_out["price_minor"] = None
+            row_out["currency"] = None
+            row_out["price"] = None
+
+        out.append(row_out)
     return out
 
 
@@ -439,6 +446,7 @@ async def get_stock(
     location: str = Query(..., pattern="^(BAR|WAREHOUSE)$"),
     item_type: Optional[str] = None,
     include_inactive: bool = False,
+    user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_async_session),
 ):
     BottleIngredient = aliased(IngredientModel)
@@ -492,8 +500,7 @@ async def get_stock(
             subcategory_id = garnish_subcategory_id
             subcategory_name = garnish_subcategory_name
 
-        out.append(
-            {
+        row_out = {
                 "location": location,
                 "inventory_item_id": it.id,
                 "item_type": it.item_type,
@@ -520,7 +527,13 @@ async def get_stock(
                     else (bottle_prices.get(it.bottle_id, {}).get("price") if it.item_type == "BOTTLE" else None)
                 ),
             }
-        )
+
+        if not user.is_superuser:
+            row_out["price_minor"] = None
+            row_out["currency"] = None
+            row_out["price"] = None
+
+        out.append(row_out)
     return out
 
 
@@ -528,11 +541,47 @@ async def get_stock(
 async def get_stock_all(
     item_type: Optional[str] = None,
     include_inactive: bool = False,
+    user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_async_session),
 ):
-    bar = await get_stock(location="BAR", item_type=item_type, include_inactive=include_inactive, db=db)
-    wh = await get_stock(location="WAREHOUSE", item_type=item_type, include_inactive=include_inactive, db=db)
+    bar = await get_stock(location="BAR", item_type=item_type, include_inactive=include_inactive, user=user, db=db)
+    wh = await get_stock(location="WAREHOUSE", item_type=item_type, include_inactive=include_inactive, user=user, db=db)
     return {"BAR": bar, "WAREHOUSE": wh}
+
+
+@router.get("/stock/item/{item_id}", response_model=Dict)
+async def get_stock_for_item(
+    item_id: UUID,
+    db: AsyncSession = Depends(get_async_session),
+):
+    """
+    Return stock for a single inventory item in both locations.
+    """
+    res = await db.execute(select(InventoryItemModel).where(InventoryItemModel.id == item_id))
+    it = res.scalar_one_or_none()
+    if not it:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+
+    sres = await db.execute(
+        select(InventoryStockModel).where(InventoryStockModel.inventory_item_id == item_id)
+    )
+    by_loc: dict[str, InventoryStockModel] = {s.location: s for s in sres.scalars().all()}
+
+    def _loc_out(loc: str) -> dict:
+        s = by_loc.get(loc)
+        return {
+            "quantity": float(s.quantity) if s and s.quantity is not None else 0.0,
+            "reserved_quantity": float(s.reserved_quantity) if s and s.reserved_quantity is not None else 0.0,
+        }
+
+    return {
+        "inventory_item_id": it.id,
+        "name": it.name,
+        "unit": it.unit,
+        "item_type": it.item_type,
+        "BAR": _loc_out("BAR"),
+        "WAREHOUSE": _loc_out("WAREHOUSE"),
+    }
 
 
 @router.post("/movements", response_model=Dict, status_code=status.HTTP_201_CREATED)
@@ -545,6 +594,17 @@ async def create_movement(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
 
     delta = _as_decimal(payload.change)
+    reason_upper = (payload.reason or "").strip().upper()
+    if reason_upper in {"USAGE", "WASTE"} and delta > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{reason_upper} movements must have a negative change",
+        )
+    if reason_upper == "TRANSFER":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Use /inventory/transfers for transfers between locations",
+        )
     movement_id = uuid.uuid4()
     stock_insert_id = uuid.uuid4()
 
@@ -625,6 +685,95 @@ async def create_movement(
         print("[inventory] create_movement failed:", repr(e))
         print(traceback.format_exc())
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to create movement: {e}")
+
+
+@router.post("/transfers", response_model=Dict, status_code=status.HTTP_201_CREATED)
+async def create_transfer(
+    payload: InventoryTransferCreate,
+    user: User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_async_session),
+):
+    """
+    Transfer stock between BAR and WAREHOUSE.
+
+    - Creates two movement rows (negative in from_location, positive in to_location).
+    - Requires the inventory item to already exist in the source location and have enough available quantity.
+    """
+    if not user.is_superuser:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
+
+    qty = _as_decimal(payload.quantity)
+    if qty <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="quantity must be > 0")
+
+    try:
+        # Ensure item exists
+        res = await db.execute(select(InventoryItemModel).where(InventoryItemModel.id == payload.inventory_item_id))
+        it = res.scalar_one_or_none()
+        if not it:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Inventory item not found")
+
+        # Validate source stock exists and has enough available
+        sres = await db.execute(
+            select(InventoryStockModel).where(
+                InventoryStockModel.location == payload.from_location,
+                InventoryStockModel.inventory_item_id == payload.inventory_item_id,
+            )
+        )
+        stock = sres.scalar_one_or_none()
+        if not stock:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Item not found in {payload.from_location} stock",
+            )
+
+        available = (stock.quantity or Decimal("0")) - (stock.reserved_quantity or Decimal("0"))
+        if available < qty:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Not enough quantity in {payload.from_location}. Available={float(available)} requested={float(qty)}",
+            )
+
+        reason = payload.reason or "TRANSFER"
+
+        out_from = await _upsert_stock_and_add_movement(
+            db=db,
+            user=user,
+            location=payload.from_location,
+            inventory_item_id=payload.inventory_item_id,
+            delta=-qty,
+            reason=reason,
+            source_type=payload.source_type or "transfer",
+            source_id=payload.source_id,
+        )
+        out_to = await _upsert_stock_and_add_movement(
+            db=db,
+            user=user,
+            location=payload.to_location,
+            inventory_item_id=payload.inventory_item_id,
+            delta=qty,
+            reason=reason,
+            source_type=payload.source_type or "transfer",
+            source_id=payload.source_id,
+        )
+
+        await db.commit()
+        return {
+            "from": out_from,
+            "to": out_to,
+            "inventory_item_id": payload.inventory_item_id,
+            "from_location": payload.from_location,
+            "to_location": payload.to_location,
+            "quantity": float(qty),
+            "reason": reason,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        print("[inventory] create_transfer failed:", repr(e))
+        print(traceback.format_exc())
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to create transfer: {e}")
 
 
 @router.post("/cocktails/{cocktail_id}/consume-batch", response_model=Dict, status_code=status.HTTP_201_CREATED)
@@ -834,8 +983,12 @@ async def list_movements(
     from_date: Optional[date] = None,
     to_date: Optional[date] = None,
     limit: int = Query(200, ge=1, le=1000),
+    user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_async_session),
 ):
+    if not user.is_superuser:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
+
     BottleIngredient = aliased(IngredientModel)
     GarnishIngredient = aliased(IngredientModel)
     BottleSubcategory = aliased(SubcategoryModel)

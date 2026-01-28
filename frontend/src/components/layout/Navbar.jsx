@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -7,15 +7,37 @@ const Navbar = () => {
   const { isAuthenticated, user, logout } = useAuth()
   const location = useLocation()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false)
+  const langMenuRef = useRef(null)
   const { t, i18n } = useTranslation()
 
   useEffect(() => {
     setIsMenuOpen(false)
+    setIsLangMenuOpen(false)
   }, [location.pathname])
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev)
   const handleNavClick = () => setIsMenuOpen(false)
   const currentLang = (i18n.language || 'en').split('-')[0]
+  const displayName = (() => {
+    const first = (user?.first_name || '').trim()
+    return first || user?.email || ''
+  })()
+
+  useEffect(() => {
+    if (!isLangMenuOpen) return
+    const onDown = (e) => {
+      const el = langMenuRef.current
+      if (!el) return
+      if (e.target instanceof Node && !el.contains(e.target)) setIsLangMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('touchstart', onDown, { passive: true })
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('touchstart', onDown)
+    }
+  }, [isLangMenuOpen])
 
   return (
     <nav className="navbar">
@@ -59,35 +81,58 @@ const Navbar = () => {
             >
               {t('nav.scaler')}
             </Link>
-            <Link
-              to="/inventory"
-              className={`nav-link ${location.pathname === '/inventory' ? 'active' : ''}`}
-              onClick={handleNavClick}
-            >
-              {t('nav.inventory')}
-            </Link>
+            {isAuthenticated && (
+              <Link
+                to="/inventory"
+                className={`nav-link ${location.pathname === '/inventory' ? 'active' : ''}`}
+                onClick={handleNavClick}
+              >
+                {t('nav.inventory')}
+              </Link>
+            )}
           </div>
 
           <div className="navbar-auth">
-            <div className="lang-toggle" role="group" aria-label={t('nav.language')}>
+            <div className="lang-toggle lang-toggle--dropdown" ref={langMenuRef}>
               <button
                 type="button"
-                className={`lang-btn ${currentLang === 'en' ? 'active' : ''}`}
-                onClick={() => i18n.changeLanguage('en')}
+                className="lang-btn lang-btn--trigger"
+                aria-haspopup="menu"
+                aria-expanded={isLangMenuOpen}
+                onClick={() => setIsLangMenuOpen((p) => !p)}
               >
-                EN
+                {currentLang === 'he' ? 'עברית' : 'EN'}
               </button>
-              <button
-                type="button"
-                className={`lang-btn ${currentLang === 'he' ? 'active' : ''}`}
-                onClick={() => i18n.changeLanguage('he')}
-              >
-                עברית
-              </button>
+              {isLangMenuOpen && (
+                <div className="lang-menu" role="menu" aria-label={t('nav.language')}>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={`lang-menu-item ${currentLang === 'en' ? 'active' : ''}`}
+                    onClick={() => {
+                      i18n.changeLanguage('en')
+                      setIsLangMenuOpen(false)
+                    }}
+                  >
+                    EN
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={`lang-menu-item ${currentLang === 'he' ? 'active' : ''}`}
+                    onClick={() => {
+                      i18n.changeLanguage('he')
+                      setIsLangMenuOpen(false)
+                    }}
+                  >
+                    עברית
+                  </button>
+                </div>
+              )}
             </div>
             {isAuthenticated && user ? (
               <>
-                <span className="navbar-user">{t('nav.welcome', { email: user.email })}</span>
+                <span className="navbar-user">{t('nav.welcome', { name: displayName })}</span>
                 <button
                   onClick={() => {
                     handleNavClick()

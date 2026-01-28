@@ -5,6 +5,8 @@ import { useAuth } from '../../contexts/AuthContext'
 import '../../styles/auth.css'
 
 const SignupPage = () => {
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -32,7 +34,7 @@ const SignupPage = () => {
 
     setLoading(true)
 
-    const result = await signup(email, password)
+    const result = await signup(email, password, firstName, lastName)
 
     if (result.success) {
       navigate('/')
@@ -48,6 +50,30 @@ const SignupPage = () => {
       <div className="auth-card">
         <h2>{t('auth.signup.title')}</h2>
         <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="firstName">{t('auth.signup.firstName')}</label>
+            <input
+              type="text"
+              id="firstName"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+              placeholder={t('auth.signup.firstNamePlaceholder')}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="lastName">{t('auth.signup.lastName')}</label>
+            <input
+              type="text"
+              id="lastName"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              placeholder={t('auth.signup.lastNamePlaceholder')}
+            />
+          </div>
+
           <div className="form-group">
             <label htmlFor="email">{t('auth.signup.email')}</label>
             <input

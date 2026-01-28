@@ -67,11 +67,13 @@ const AuthProvider = ({ children }) => {
     }
   }
 
-  const signup = async (email, password) => {
+  const signup = async (email, password, firstName, lastName) => {
     try {
       await api.post('/auth/register', {
         email,
         password,
+        first_name: (firstName || '').trim() || undefined,
+        last_name: (lastName || '').trim() || undefined,
       })
       // After successful signup, automatically log in
       const loginResult = await login(email, password)

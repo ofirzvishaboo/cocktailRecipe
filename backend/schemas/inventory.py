@@ -106,6 +106,41 @@ class InventoryMovementCreate(BaseModel):
         return v or None
 
 
+class InventoryTransferCreate(BaseModel):
+    from_location: InventoryLocation
+    to_location: InventoryLocation
+    inventory_item_id: UUID
+    quantity: float
+    reason: Optional[str] = None
+    source_type: Optional[str] = None
+    source_id: Optional[int] = None
+
+    @field_validator("quantity")
+    @classmethod
+    def _qty_positive(cls, v: float) -> float:
+        try:
+            v = float(v)
+        except Exception:
+            raise ValueError("quantity must be a number")
+        if v <= 0:
+            raise ValueError("quantity must be > 0")
+        return v
+
+    @field_validator("reason", "source_type")
+    @classmethod
+    def _strip_nullable3(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
+    @model_validator(mode="after")
+    def _validate_locations(self):
+        if self.from_location == self.to_location:
+            raise ValueError("from_location and to_location must be different")
+        return self
+
+
 class ConsumeCocktailBatchRequest(BaseModel):
     liters: float
     location: InventoryLocation
