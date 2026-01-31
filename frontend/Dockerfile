@@ -6,6 +6,7 @@ ARG VITE_API_URL=/api
 ENV VITE_API_URL=${VITE_API_URL}
 
 COPY package.json package-lock.json* ./
+RUN npm install --package-lock-only
 RUN npm ci
 
 COPY . .
