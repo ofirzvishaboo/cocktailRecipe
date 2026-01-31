@@ -8,6 +8,11 @@ function computeBaseUrl() {
     const envUrl = import.meta.env.VITE_API_URL
     if (!envUrl) return fallback
 
+    // Support same-origin deployments behind a reverse proxy (e.g. /api).
+    if (typeof envUrl === 'string' && envUrl.startsWith('/')) {
+        return envUrl
+    }
+
     try {
         const host = new URL(envUrl).hostname
         // Ignore localhost-style env defaults because they break when accessed from another device

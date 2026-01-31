@@ -1,0 +1,14 @@
+{$DOMAIN} {
+  encode gzip zstd
+
+  # API under /api (strip /api prefix before proxying to FastAPI)
+  handle_path /api/* {
+    reverse_proxy api:8000
+  }
+
+  # Everything else -> frontend (nginx static)
+  handle {
+    reverse_proxy frontend:80
+  }
+}
+

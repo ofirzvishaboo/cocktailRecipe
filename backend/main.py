@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+import os
 from db.database import create_db_and_tables
 from routers.cocktails import router as cocktails_router
 from routers.ingredients import router as ingredients_router
@@ -42,6 +43,12 @@ cors_origins = [
     "http://127.0.0.1:3000",
     "http://localhost:5174",  # Alternative Vite port
 ]
+
+# Production: allow a comma-separated list of origins, e.g.
+# CORS_ORIGINS=https://your-domain.com,https://www.your-domain.com
+raw_origins = os.getenv("CORS_ORIGINS", "").strip()
+if raw_origins:
+    cors_origins.extend([o.strip() for o in raw_origins.split(",") if o.strip()])
 
 # CORS middleware must be added before routes
 # This ensures CORS headers are sent even on errors

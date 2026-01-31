@@ -40,7 +40,7 @@ A full-stack web application for cocktail recipes, ingredients, and cost managem
 
 ## 🚀 Quick Start
 
-### Using Docker Compose (Recommended)
+### Local development (Docker Compose)
 
 1. **Clone the repository**
    ```bash
@@ -50,7 +50,7 @@ A full-stack web application for cocktail recipes, ingredients, and cost managem
 
 2. **Start all services**
    ```bash
-   docker-compose up
+   docker compose -f docker-compose.dev.yml up
    ```
 
    This will start:
@@ -66,13 +66,39 @@ A full-stack web application for cocktail recipes, ingredients, and cost managem
 
 4. **Stop all services**
    ```bash
-   docker-compose down
+   docker compose -f docker-compose.dev.yml down
    ```
 
    To also remove volumes (database data):
    ```bash
-   docker-compose down -v
+   docker compose -f docker-compose.dev.yml down -v
    ```
+
+## 🌍 Production deployment (Ubuntu + Docker + HTTPS)
+
+### 1) DNS + firewall
+- Point your domain `A` record to the server public IP (and optionally `www`).
+- Open ports **80** and **443** on the server firewall/security group.
+
+### 2) Configure environment
+Copy `env.example` to `.env` on the server and set real values:
+- `DOMAIN` (your domain)
+- `POSTGRES_PASSWORD` (strong)
+- `SECRET` (strong random string)
+- `CORS_ORIGINS` (e.g. `https://your-domain.com`)
+
+### 3) Run on the server
+```bash
+docker compose up -d --build
+```
+
+### 4) Verify
+- Frontend: `https://your-domain.com`
+- API docs: `https://your-domain.com/api/docs`
+
+Notes:
+- Production compose does **not** publish Postgres/pgAdmin/API ports directly to the internet (only 80/443 via Caddy).
+- The frontend is built and served as static files (no Vite dev server).
 
 ## 🏗️ Project Structure
 

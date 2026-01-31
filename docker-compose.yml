@@ -2,16 +2,15 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: cocktaildb
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: cocktaildb
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: ${POSTGRES_DB:-cocktaildb}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,80 +20,58 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: cocktail-api
-    ports:
-      - "8000:8000"
+    restart: unless-stopped
     environment:
-      DATABASE_USER: user
-      DATABASE_PASSWORD: password
+      DATABASE_USER: ${POSTGRES_USER:-user}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      DATABASE_NAME: cocktaildb
-      # Auth settings (dev-friendly defaults). Change SECRET in your environment for production.
-      SECRET: ${SECRET:-dev-secret-change-me}
+      DATABASE_NAME: ${POSTGRES_DB:-cocktaildb}
+      # Auth settings (REQUIRED in production).
+      SECRET: ${SECRET}
       JWT_LIFETIME_SECONDS: ${JWT_LIFETIME_SECONDS:-604800}
       IMAGEKIT_PUBLIC_KEY: ${IMAGEKIT_PUBLIC_KEY:-}
       IMAGEKIT_PRIVATE_KEY: ${IMAGEKIT_PRIVATE_KEY:-}
       IMAGEKIT_URL_ENDPOINT: ${IMAGEKIT_URL_ENDPOINT:-}
+      # Allow the public domain(s) in production:
+      # Example: https://your-domain.com,https://www.your-domain.com
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
-      - /app/venv
-      - /app/node_modules
     command: uv run uvicorn main:app --host 0.0.0.0 --port 8000
-  # api:
-  #   image: ${DOCKERHUB_USERNAME}/cocktail-recipe-api:latest
-  #   container_name: cocktail-api
-  #   ports:
-  #     - "8000:8000"
-  #   environment:
-  #     DATABASE_USER: user
-  #     DATABASE_PASSWORD: password
-  #     DATABASE_HOST: postgres
-  #     DATABASE_PORT: 5432
-  #     DATABASE_NAME: cocktaildb
-  #     IMAGEKIT_PUBLIC_KEY: ${IMAGEKIT_PUBLIC_KEY:-}
-  #     IMAGEKIT_PRIVATE_KEY: ${IMAGEKIT_PRIVATE_KEY:-}
-  #     IMAGEKIT_URL_ENDPOINT: ${IMAGEKIT_URL_ENDPOINT:-}
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api
     container_name: cocktail-frontend
-    ports:
-      - "5173:5173"
-    environment:
-      # Let the frontend auto-detect the backend host based on window.location.hostname.
-      # This avoids breaking when accessing from another device via LAN IP.
-      VITE_API_URL: ""
+    restart: unless-stopped
     depends_on:
       - api
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: npm run dev -- --host 0.0.0.0
 
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: cocktail-pgadmin
+  caddy:
+    image: caddy:2-alpine
+    container_name: cocktail-caddy
+    restart: unless-stopped
     ports:
-      - "5050:80"
+      - "80:80"
+      - "443:443"
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
-      PGADMIN_CONFIG_SERVER_MODE: "False"
-    depends_on:
-      postgres:
-        condition: service_healthy
+      # Used by the Caddyfile: {$DOMAIN}
+      DOMAIN: ${DOMAIN}
     volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - api
 
 volumes:
   postgres_data:
-  pgadmin_data:
+  caddy_data:
+  caddy_config:
 
