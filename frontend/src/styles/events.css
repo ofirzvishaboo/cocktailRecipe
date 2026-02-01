@@ -156,3 +156,13 @@
   }
 }
 
+/* Phone: make native date picker comfortable (avoid tiny control / iOS zoom) */
+@media (max-width: 640px) {
+  .events-form .form-input[type="date"] {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+    padding: 0.7rem 0.85rem;
+  }
+}
+

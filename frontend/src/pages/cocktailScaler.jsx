@@ -94,8 +94,11 @@ export default function CocktailScaler() {
                 setLoading(true);
                 setError('');
                 const response = await api.get('/cocktail-recipes/');
-                setCocktails(response.data || []);
-                setFilteredCocktails(response.data || []);
+                const list = response.data || []
+                setCocktails(list);
+                // Initialize with auth-filtered list (guests: classic only)
+                const baseList = isAuthenticated ? list : (list || []).filter((c) => !!c?.is_base)
+                setFilteredCocktails(baseList);
             } catch (e) {
                 setError(t('scaler.errors.loadCocktailsFailed'));
                 console.error('Failed to load cocktails', e);
@@ -104,7 +107,7 @@ export default function CocktailScaler() {
             }
         };
         loadCocktails();
-    }, [t]);
+    }, [t, isAuthenticated]);
 
     useEffect(() => {
         const loadIngredientsCatalog = async () => {
@@ -383,8 +386,9 @@ export default function CocktailScaler() {
 
     // Filter cocktails based on search query
     useEffect(() => {
+        const baseList = isAuthenticated ? (cocktails || []) : (cocktails || []).filter((c) => !!c?.is_base)
         if (!searchQuery.trim()) {
-            setFilteredCocktails(cocktails);
+            setFilteredCocktails(baseList);
         } else {
             const query = searchQuery.toLowerCase().trim();
 
@@ -393,7 +397,7 @@ export default function CocktailScaler() {
                 // Split by comma and filter out empty strings
                 const ingredientQueries = query.split(',').map(q => q.trim()).filter(q => q.length > 0);
 
-                const filtered = cocktails.filter(cocktail => {
+                const filtered = baseList.filter(cocktail => {
                     const names = (cocktail?.recipe_ingredients || [])
                         .flatMap((ri) => getSearchableIngredientNames(ri))
                         .map((n) => n.toLowerCase())
@@ -407,7 +411,7 @@ export default function CocktailScaler() {
                 setFilteredCocktails(filtered);
             } else {
                 // Search by cocktail name OR single ingredient
-                const filtered = cocktails.filter(cocktail => {
+                const filtered = baseList.filter(cocktail => {
                     // Check if name matches
                     const nameMatch = getSearchableCocktailNames(cocktail).some((n) => n.toLowerCase().includes(query));
 
@@ -421,7 +425,22 @@ export default function CocktailScaler() {
                 setFilteredCocktails(filtered);
             }
         }
-    }, [searchQuery, cocktails, getSearchableCocktailNames, getSearchableIngredientNames]);
+    }, [searchQuery, cocktails, getSearchableCocktailNames, getSearchableIngredientNames, isAuthenticated]);
+
+    // If user logs out, clear a selected Signature cocktail (guests should only work with Classic cocktails).
+    useEffect(() => {
+        if (isAuthenticated) return
+        if (!selectedCocktail) return
+        if (!selectedCocktail?.is_base) {
+            setSelectedCocktailId(null)
+            setSelectedCocktail(null)
+            setRecipeName('')
+            setOriginalIngredients([])
+            setIngredients([{ ingredient_id: '', name: '', name_he: '', amount: '', unit: 'ml', bottle_id: '' }])
+            setBrandOptionsByIndex([[]])
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isAuthenticated])
 
     const handleAddCocktail = (cocktail) => {
         setSelectedCocktailId(cocktail.id);

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../api'
 import { useAuth } from '../contexts/AuthContext'
+import '../styles/orders.css'
 
 const STATUSES = ['DRAFT', 'SENT', 'RECEIVED', 'CANCELLED']
 const ALL_KEY = '__ALL__'
@@ -210,7 +211,7 @@ export default function OrdersPage() {
       {loading && <div className="loading" style={{ marginTop: 12 }}>{t('common.loading')}</div>}
 
       {!loading && (
-        <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) 2fr', gap: 14 }}>
+        <div className="orders-layout">
           <div className="inventory-subpanel" style={{ marginTop: 0 }}>
             <div className="inventory-subpanel-title">
               {t('orders.listTitle')}
@@ -262,7 +263,7 @@ export default function OrdersPage() {
             <div className="inventory-subpanel-title">{t('orders.detailsTitle')}</div>
             {selectedSupplierKey === ALL_KEY ? (
               <div style={{ marginTop: 12 }} className="inventory-table">
-                <div className="inventory-table-header" style={{ gridTemplateColumns: '2fr 1fr 1fr' }}>
+                <div className="inventory-table-header orders-table-header-3">
                   <div>{t('orders.columns.ingredient')}</div>
                   <div className="right">{t('orders.columns.needed')}</div>
                   <div className="right">{t('orders.columns.bottles')}</div>
@@ -277,7 +278,7 @@ export default function OrdersPage() {
                   const vol = Number(it.bottle_volume_ml || 0)
                   const bottles = vol > 0 && Number(it.needed_ml || 0) > 0 ? Math.ceil(Number(it.needed_ml || 0) / vol) : null
                   return (
-                    <div key={`${it.ingredient_id}:${it.unit}`} className="inventory-table-row" style={{ gridTemplateColumns: '2fr 1fr 1fr' }}>
+                    <div key={`${it.ingredient_id}:${it.unit}`} className="inventory-table-row orders-table-row-3">
                       <div className="name">{name || it.ingredient_id}</div>
                       <div className="right">{needed}</div>
                       <div className="right">{bottles != null ? <span className="muted">{bottles}</span> : <span className="muted">-</span>}</div>
@@ -315,7 +316,7 @@ export default function OrdersPage() {
                 </div>
 
                 <div style={{ marginTop: 12 }} className="inventory-table">
-                  <div className="inventory-table-header" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
+                  <div className="inventory-table-header orders-table-header-4">
                     <div>{t('orders.columns.ingredient')}</div>
                     <div className="right">{t('orders.columns.needed')}</div>
                     <div className="right">{t('orders.columns.bottles')}</div>
@@ -329,7 +330,7 @@ export default function OrdersPage() {
                       ? `${Number(it.needed_ml).toFixed(0)} ml`
                       : `${Number(it.needed_quantity || 0).toFixed(2)} ${it.unit || ''}`
                     return (
-                      <div key={it.id} className="inventory-table-row" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
+                      <div key={it.id} className="inventory-table-row orders-table-row-4">
                         <div className="name">{name || it.ingredient_id}</div>
                         <div className="right muted">{needed}</div>
                         <div className="right">

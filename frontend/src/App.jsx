@@ -48,6 +48,12 @@ function App() {
     setVar('--inv_lbl_item', t('inventory.columns.item'))
     setVar('--inv_lbl_change', t('inventory.columns.change'))
     setVar('--inv_lbl_reason', t('inventory.columns.reason'))
+
+    // Orders mobile "card" labels (also rendered via CSS ::before)
+    setVar('--orders_lbl_ingredient', t('orders.columns.ingredient'))
+    setVar('--orders_lbl_needed', t('orders.columns.needed'))
+    setVar('--orders_lbl_bottles', t('orders.columns.bottles'))
+    setVar('--orders_lbl_actions', t('orders.columns.actions'))
   }, [i18n.language])
 
   return (

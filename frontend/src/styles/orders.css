@@ -1,0 +1,43 @@
+.orders-layout {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 2fr;
+  gap: 14px;
+}
+
+.orders-table-header-3,
+.orders-table-row-3 {
+  grid-template-columns: 2fr 1fr 1fr;
+}
+
+.orders-table-header-4,
+.orders-table-row-4 {
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+}
+
+@media (max-width: 900px) {
+  .orders-layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* Ensure we don't override inventory.css mobile column stacking */
+  .orders-table-header-3,
+  .orders-table-row-3,
+  .orders-table-header-4,
+  .orders-table-row-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Mobile "card" labels for Orders rows */
+  .orders-table-row-3 > div:nth-child(1)::before { content: var(--orders_lbl_ingredient, "Ingredient"); }
+  .orders-table-row-3 > div:nth-child(2)::before { content: var(--orders_lbl_needed, "Needed"); }
+  .orders-table-row-3 > div:nth-child(3)::before { content: var(--orders_lbl_bottles, "Bottles"); }
+
+  .orders-table-row-4 > div:nth-child(1)::before { content: var(--orders_lbl_ingredient, "Ingredient"); }
+  .orders-table-row-4 > div:nth-child(2)::before { content: var(--orders_lbl_needed, "Needed"); }
+  .orders-table-row-4 > div:nth-child(3)::before { content: var(--orders_lbl_bottles, "Bottles"); }
+  .orders-table-row-4 > div:nth-child(4)::before { content: var(--orders_lbl_actions, "Actions"); }
+}
+
