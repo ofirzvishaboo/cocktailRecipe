@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from typing import Optional
 from core.imagekit_client import upload_image_to_imagekit, upload_base64_to_imagekit
 import uuid
+import os
 
 router = APIRouter()
 
@@ -23,12 +24,15 @@ async def upload_image(
             file_data = await file.read()
             filename = file.filename or f"image_{uuid.uuid4().hex[:8]}.jpg"
 
-            # Validate file type
-            if not file.content_type or not file.content_type.startswith('image/'):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="File must be an image"
-                )
+            # Validate file type.
+            # Note: some iPhone/Safari uploads may come with empty/odd content_type.
+            content_type = (file.content_type or "").strip().lower()
+            ext = os.path.splitext(filename)[1].lower().lstrip(".")
+            allowed_exts = {"jpg", "jpeg", "png", "gif", "webp", "heic", "heif"}
+            if content_type and not content_type.startswith("image/"):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must be an image")
+            if (not content_type or content_type == "application/octet-stream") and ext and ext not in allowed_exts:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must be an image")
 
             # Validate file size (min 100 bytes, max 10MB)
             if len(file_data) < 100:
@@ -36,10 +40,10 @@ async def upload_image(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Image file appears to be corrupted or too small"
                 )
-            if len(file_data) > 10 * 1024 * 1024:
+            if len(file_data) > 25 * 1024 * 1024:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Image size must be less than 10MB"
+                    detail="Image size must be less than 25MB"
                 )
 
             # Log file size for debugging

@@ -200,8 +200,13 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
     const handleImageChange = async (e) => {
         const file = e.target.files[0]
         if (file) {
-            // Validate file type
-            if (!file.type.startsWith('image/')) {
+            // Validate file type (iOS Safari sometimes provides an empty file.type)
+            const fileType = String(file.type || '')
+            const fileName = String(file.name || '')
+            const ext = (fileName.split('.').pop() || '').toLowerCase()
+            const looksLikeImageByExt = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'].includes(ext)
+            const looksLikeImage = fileType.startsWith('image/') || looksLikeImageByExt
+            if (!looksLikeImage) {
                 alert(t('cocktailForm.alerts.imageNotFile'))
                 return
             }
@@ -230,11 +235,8 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 const formData = new FormData()
                 formData.append('file', file)
 
-                const response = await api.post('/images/upload', formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
-                })
+                // IMPORTANT: do not set Content-Type manually; the browser must add the boundary.
+                const response = await api.post('/images/upload', formData)
 
                 console.log('ImageKit upload response:', response.data)
 
@@ -250,7 +252,8 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 }
             } catch (error) {
                 console.error('Failed to upload image:', error)
-                alert(t('cocktailForm.alerts.imageUploadFailed'))
+                const detail = error?.response?.data?.detail
+                alert(detail ? String(detail) : t('cocktailForm.alerts.imageUploadFailed'))
                 // Reset image selection
                 setForm(prev => ({
                     ...prev,
