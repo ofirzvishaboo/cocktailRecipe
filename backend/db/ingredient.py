@@ -1,8 +1,17 @@
 import uuid
-from sqlalchemy import Column, ForeignKey, Numeric, String, Text
+from sqlalchemy import Column, ForeignKey, Numeric, String, Text, Table
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import inspect
 from sqlalchemy.orm import relationship
 from .database import Base
+
+
+ingredient_suppliers = Table(
+    "ingredient_suppliers",
+    Base.metadata,
+    Column("ingredient_id", UUID(as_uuid=True), ForeignKey("ingredients.id", ondelete="CASCADE"), primary_key=True),
+    Column("supplier_id", UUID(as_uuid=True), ForeignKey("suppliers.id", ondelete="CASCADE"), primary_key=True),
+)
 
 
 class Ingredient(Base):
@@ -20,6 +29,8 @@ class Ingredient(Base):
     abv_percent = Column(Numeric(5, 2), nullable=True)
     notes = Column(Text, nullable=True)
 
+    default_supplier_id = Column(UUID(as_uuid=True), ForeignKey("suppliers.id", ondelete="SET NULL"), nullable=True, index=True)
+
     brand = relationship("Brand", back_populates="ingredients")
     kind = relationship("Kind", back_populates="ingredients")
     subcategory = relationship("Subcategory", back_populates="ingredients")
@@ -30,10 +41,18 @@ class Ingredient(Base):
         cascade="all, delete-orphan",
     )
 
+    suppliers = relationship("Supplier", secondary="ingredient_suppliers", back_populates="ingredients")
+    default_supplier = relationship("Supplier", foreign_keys=[default_supplier_id])
+
     # Property to convert model to schema dictionary
     @property
     def to_schema(self):
         """Convert Ingredient model to schema dictionary format"""
+        state = inspect(self)
+        supplier_ids = None
+        # Avoid async lazy-loading in to_schema (can cause MissingGreenlet).
+        if "suppliers" not in getattr(state, "unloaded", set()):
+            supplier_ids = [s.id for s in (self.suppliers or [])]
         return {
             "id": self.id,
             "name": self.name,
@@ -43,5 +62,7 @@ class Ingredient(Base):
             "subcategory_id": self.subcategory_id,
             "abv_percent": float(self.abv_percent) if self.abv_percent is not None else None,
             "notes": self.notes,
+            "supplier_ids": supplier_ids,
+            "default_supplier_id": self.default_supplier_id,
         }
 

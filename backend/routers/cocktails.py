@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 from schemas.cocktails import (
     CocktailRecipe,
     CocktailRecipeCreate,
     CocktailRecipeUpdate,
     CocktailCostResponse,
+    EventEstimateRequest,
+    EventEstimateResponse,
 )
 from db.database import (
     get_async_session,
@@ -21,6 +23,7 @@ from uuid import UUID
 from core.auth import current_active_user
 from db.users import User
 from datetime import date
+import math
 
 router = APIRouter()
 
@@ -540,4 +543,198 @@ async def get_cocktail_cost(
         "total_cocktail_cost": total_cocktail_cost,
         "scaled_total_cost": scaled_total_cost,
         "scale_factor": float(scale_factor or 0),
+    }
+
+
+@router.post("/event-estimate", response_model=EventEstimateResponse)
+async def event_estimate(
+    payload: EventEstimateRequest,
+    user: User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_async_session),
+):
+    """
+    Estimate ingredients + bottles needed for an event.
+
+    - Admin-only.
+    - Input: 4 cocktail names + people count.
+    - Assumption: servings_per_person (default 3) split equally across the 4 cocktail slots.
+    - Includes all ingredients (juice + garnish included).
+    """
+    if not user.is_superuser:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
+
+    names_in = [(n or "").strip() for n in payload.cocktail_names]
+    names_lower = [n.lower() for n in names_in if n]
+    unique_lower = sorted(set(names_lower))
+
+    stmt = (
+        select(CocktailRecipeModel)
+        .options(
+            selectinload(CocktailRecipeModel.recipe_ingredients).selectinload(RecipeIngredientModel.ingredient).selectinload(IngredientModel.subcategory),
+            selectinload(CocktailRecipeModel.recipe_ingredients).selectinload(RecipeIngredientModel.bottle),
+        )
+        .where(
+            or_(
+                func.lower(CocktailRecipeModel.name).in_(unique_lower),
+                func.lower(CocktailRecipeModel.name_he).in_(unique_lower),
+            )
+        )
+    )
+    res = await db.execute(stmt)
+    found = res.scalars().all() or []
+
+    by_lower: dict[str, CocktailRecipeModel] = {}
+    for c in found:
+        en = (getattr(c, "name", "") or "").strip().lower()
+        he = (getattr(c, "name_he", "") or "").strip().lower()
+        if en:
+            by_lower.setdefault(en, c)
+        if he:
+            by_lower.setdefault(he, c)
+
+    missing: List[str] = []
+    selected: List[CocktailRecipeModel] = []
+    for raw in names_in:
+        key = (raw or "").strip().lower()
+        c = by_lower.get(key)
+        if not c:
+            missing.append(raw)
+            continue
+        selected.append(c)
+
+    total_servings = float(payload.people) * float(payload.servings_per_person)
+    servings_per_cocktail = total_servings / float(len(payload.cocktail_names) or 1)
+
+    # Preload default-cost bottles for ingredients that don't have a bottle set on the recipe ingredient.
+    ingredient_ids: set[UUID] = set()
+    for c in selected:
+        for ri in (getattr(c, "recipe_ingredients", None) or []):
+            if getattr(ri, "ingredient_id", None):
+                ingredient_ids.add(ri.ingredient_id)
+
+    default_bottles_by_ingredient: dict[UUID, BottleModel] = {}
+    if ingredient_ids:
+        bres = await db.execute(
+            select(BottleModel)
+            .where(BottleModel.ingredient_id.in_(list(ingredient_ids)))
+            .where(BottleModel.is_default_cost == True)  # noqa: E712
+        )
+        for b in bres.scalars().all():
+            default_bottles_by_ingredient.setdefault(b.ingredient_id, b)
+
+    # Aggregation:
+    # - ml_agg: per ingredient_id -> total_ml and chosen bottle
+    # - qty_agg: per (ingredient_id, unit) -> total_quantity
+    ml_agg: dict[UUID, dict] = {}
+    qty_agg: dict[tuple[UUID, str], dict] = {}
+
+    def _ensure_ml_bucket(ingredient_id: UUID, ingredient_obj: Optional[IngredientModel]) -> dict:
+        if ingredient_id not in ml_agg:
+            ml_agg[ingredient_id] = {
+                "ingredient": ingredient_obj,
+                "total_ml": 0.0,
+                "bottle": None,
+            }
+        else:
+            if ml_agg[ingredient_id].get("ingredient") is None and ingredient_obj is not None:
+                ml_agg[ingredient_id]["ingredient"] = ingredient_obj
+        return ml_agg[ingredient_id]
+
+    def _ensure_qty_bucket(ingredient_id: UUID, unit: str, ingredient_obj: Optional[IngredientModel]) -> dict:
+        key = (ingredient_id, unit)
+        if key not in qty_agg:
+            qty_agg[key] = {
+                "ingredient": ingredient_obj,
+                "unit": unit,
+                "total_quantity": 0.0,
+            }
+        else:
+            if qty_agg[key].get("ingredient") is None and ingredient_obj is not None:
+                qty_agg[key]["ingredient"] = ingredient_obj
+        return qty_agg[key]
+
+    for c in selected:
+        for ri in (getattr(c, "recipe_ingredients", None) or []):
+            ingredient = getattr(ri, "ingredient", None)
+            ingredient_id = getattr(ri, "ingredient_id", None)
+            if not ingredient_id:
+                continue
+
+            qty = float(getattr(ri, "quantity", 0) or 0)
+            unit = (getattr(ri, "unit", "") or "").strip().lower()
+            scaled_qty = qty * servings_per_cocktail
+
+            scaled_ml = _unit_to_ml(scaled_qty, unit)
+            if scaled_ml is not None:
+                bucket = _ensure_ml_bucket(ingredient_id, ingredient)
+                bucket["total_ml"] += float(scaled_ml)
+
+                # Pick bottle for recommendation math
+                bottle = getattr(ri, "bottle", None)
+                if bottle is None:
+                    bottle = default_bottles_by_ingredient.get(ingredient_id)
+                if bucket.get("bottle") is None and bottle is not None and getattr(bottle, "volume_ml", None):
+                    bucket["bottle"] = bottle
+            else:
+                qb = _ensure_qty_bucket(ingredient_id, unit or "", ingredient)
+                qb["total_quantity"] += float(scaled_qty)
+
+    out_lines: List[dict] = []
+
+    # ml-convertible lines with bottle recommendations
+    for ingredient_id, b in ml_agg.items():
+        ing = b.get("ingredient")
+        total_ml_val = float(b.get("total_ml") or 0.0)
+        bottle = b.get("bottle")
+
+        bottle_volume = int(getattr(bottle, "volume_ml", 0) or 0) if bottle is not None else 0
+        bottles_needed = None
+        leftover_ml = None
+        if bottle_volume and total_ml_val > 0:
+            bottles_needed = int(math.ceil(total_ml_val / float(bottle_volume)))
+            leftover_ml = float(bottles_needed * bottle_volume) - total_ml_val
+
+        out_lines.append(
+            {
+                "ingredient_id": ingredient_id,
+                "ingredient_name": (getattr(ing, "name", None) or "Unknown"),
+                "ingredient_name_he": getattr(ing, "name_he", None) if ing is not None else None,
+                "total_ml": total_ml_val,
+                "bottle_id": getattr(bottle, "id", None) if bottle is not None else None,
+                "bottle_name": getattr(bottle, "name", None) if bottle is not None else None,
+                "bottle_name_he": getattr(bottle, "name_he", None) if bottle is not None else None,
+                "bottle_volume_ml": getattr(bottle, "volume_ml", None) if bottle is not None else None,
+                "bottles_needed": bottles_needed,
+                "leftover_ml": leftover_ml,
+            }
+        )
+
+    # non-ml lines (grouped per ingredient + unit)
+    for (_ingredient_id, unit), b in qty_agg.items():
+        ing = b.get("ingredient")
+        out_lines.append(
+            {
+                "ingredient_id": _ingredient_id,
+                "ingredient_name": (getattr(ing, "name", None) or "Unknown"),
+                "ingredient_name_he": getattr(ing, "name_he", None) if ing is not None else None,
+                "total_quantity": float(b.get("total_quantity") or 0.0),
+                "unit": unit,
+            }
+        )
+
+    # Sort for stable output
+    def _sort_key(x: dict) -> tuple:
+        name = (x.get("ingredient_name") or "").lower()
+        unit = (x.get("unit") or "")
+        return (name, unit)
+
+    out_lines.sort(key=_sort_key)
+
+    return {
+        "people": int(payload.people),
+        "servings_per_person": float(payload.servings_per_person),
+        "total_servings": float(total_servings),
+        "servings_per_cocktail": float(servings_per_cocktail),
+        "missing_cocktails": missing,
+        "ingredients": out_lines,
     }

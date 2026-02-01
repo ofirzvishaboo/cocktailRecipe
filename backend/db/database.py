@@ -39,6 +39,9 @@ from . import (
     bottle,
     bottle_price,
     recipe_ingredient,
+    supplier,
+    event,
+    order,
     inventory,
 )
 
@@ -54,6 +57,9 @@ from .importer import Importer
 from .bottle import Bottle
 from .bottle_price import BottlePrice
 from .recipe_ingredient import RecipeIngredient
+from .supplier import Supplier
+from .event import Event, EventMenuItem
+from .order import Order, OrderItem
 
 from .inventory.item import InventoryItem
 from .inventory.stock import InventoryStock
@@ -74,7 +80,13 @@ async def create_db_and_tables():
         add_normalized_columns_if_missing,
         drop_legacy_tables_if_exist,
         recreate_inventory_v3_tables,
+        make_inventory_quantities_integer,
+        add_inventory_movement_event_tracking_if_missing,
         ensure_ingredient_taxonomy,
+        add_suppliers_if_missing,
+        add_events_if_missing,
+        add_orders_if_missing,
+        add_order_event_scope_columns_if_missing,
     )
     await add_missing_user_columns(engine)
     await add_user_id_column_if_missing(engine)
@@ -82,7 +94,13 @@ async def create_db_and_tables():
     await add_normalized_columns_if_missing(engine)
     await drop_legacy_tables_if_exist(engine)
     await recreate_inventory_v3_tables(engine)
+    await make_inventory_quantities_integer(engine)
+    await add_inventory_movement_event_tracking_if_missing(engine)
     await ensure_ingredient_taxonomy(engine)
+    await add_suppliers_if_missing(engine)
+    await add_events_if_missing(engine)
+    await add_orders_if_missing(engine)
+    await add_order_event_scope_columns_if_missing(engine)
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:

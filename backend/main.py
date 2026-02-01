@@ -13,6 +13,9 @@ from routers.glass_types import router as glass_types_router
 from routers.inventory import router as inventory_router
 from routers.kinds import router as kinds_router
 from routers.subcategories import router as subcategories_router
+from routers.suppliers import router as suppliers_router
+from routers.events import router as events_router
+from routers.orders import router as orders_router
 from core.auth import fastapi_users, auth_backend
 from contextlib import asynccontextmanager
 from schemas.users import UserRead, UserCreate, UserUpdate
@@ -84,6 +87,9 @@ app.include_router(glass_types_router, prefix="/glass-types", tags=["glass-types
 app.include_router(inventory_router, prefix="/inventory", tags=["inventory"])
 app.include_router(kinds_router, prefix="/kinds", tags=["kinds"])
 app.include_router(subcategories_router, prefix="/subcategories", tags=["subcategories"])
+app.include_router(suppliers_router, prefix="/suppliers", tags=["suppliers"])
+app.include_router(events_router, prefix="/events", tags=["events"])
+app.include_router(orders_router, prefix="/orders", tags=["orders"])
 
 
 # Global exception handler to ensure CORS headers are sent even on errors

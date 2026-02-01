@@ -6,6 +6,9 @@
     "saving": "Saving...",
     "save": "Save",
     "edit": "Edit",
+    "delete": "Delete",
+    "clear": "Clear",
+    "refresh": "Refresh",
     "search": "Search",
     "from": "From",
     "to": "To",
@@ -31,12 +34,124 @@
     "ingredients": "Ingredients",
     "scaler": "Cocktail Scaler",
     "inventory": "Inventory",
+    "orders": "Orders",
+    "events": "Events",
     "welcome": "Welcome, {{name}}",
     "logout": "Logout",
     "login": "Login",
     "signup": "Sign Up",
     "language": "Language",
     "toggleMenu": "Toggle navigation menu"
+  },
+  "events": {
+    "title": "Events",
+    "subtitle": "Create and manage events (admin only).",
+    "listTitle": "Upcoming events",
+    "detailsTitle": "Event info",
+    "ordersTitle": "Orders for this event",
+    "noOrdersForEvent": "No orders found for this event. Generate weekly orders first.",
+    "openOrdersToGenerate": "Open Orders",
+    "menuTitle": "Menu (4 cocktails)",
+    "unnamed": "Unnamed event",
+    "empty": "No events",
+    "backToList": "← Back to events",
+    "confirmDelete": "Delete this event?",
+    "meta": "{{date}} • {{people}} people",
+    "consumeHelp": "Consume/unconsume affects inventory stock (uses the event's generated orders).",
+    "status": {
+      "consumed": "Consumed",
+      "notConsumed": "Not consumed"
+    },
+    "fields": {
+      "name": "Name",
+      "date": "Date",
+      "people": "People",
+      "servingsPerPerson": "Servings / person",
+      "cocktails": "Cocktails",
+      "cocktailN": "Cocktail {{n}}",
+      "notes": "Notes"
+    },
+    "placeholders": {
+      "name": "e.g. Private party",
+      "notes": "Optional notes…",
+      "selectCocktail": "Select cocktail…"
+    },
+    "actions": {
+      "create": "Create event",
+      "new": "New event",
+      "view": "View",
+      "openInventory": "Inventory"
+    },
+    "createTitle": "Add event",
+    "editTitle": "Edit event",
+    "errors": {
+      "loadFailed": "Failed to load events.",
+      "createFailed": "Failed to create event.",
+      "updateFailed": "Failed to update event.",
+      "deleteFailed": "Failed to delete event.",
+      "exactlyFourCocktails": "Please select exactly 4 cocktails.",
+      "notFound": "Event not found."
+    }
+  },
+  "orders": {
+    "title": "Orders",
+    "listTitle": "Upcoming orders",
+    "detailsTitle": "Order details",
+    "all": "All",
+    "allSuppliers": "All suppliers",
+    "eventsTitle": "Events",
+    "emptyEvents": "No events",
+    "selectEventHelp": "Select an event to view orders.",
+    "selectSupplierHelp": "Select a supplier to view details.",
+    "event": {
+      "title": "Event",
+      "unnamed": "Unnamed event"
+    },
+    "order": "Order",
+    "empty": "No orders",
+    "selectHelp": "Select an order to view details.",
+    "supplier": {
+      "unknown": "Unknown supplier"
+    },
+    "filters": {
+      "view": "View",
+      "status": "Status"
+    },
+    "view": {
+      "WEEKLY": "Weekly summary",
+      "EVENT": "By event"
+    },
+    "columns": {
+      "ingredient": "Ingredient",
+      "needed": "Needed",
+      "requested": "Requested",
+      "usedFromStock": "Used from stock",
+      "shortfall": "Shortfall",
+      "bottles": "Bottles",
+      "actions": "Actions"
+    },
+    "actions": {
+      "generateWeekly": "Generate weekly orders",
+      "generateWeeklyByEvent": "Generate weekly (by event)",
+      "generating": "Generating...",
+      "editLine": "Edit"
+    },
+    "prompts": {
+      "overrideNeededMl": "Override needed ml (number):"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "SENT": "Sent",
+      "RECEIVED": "Received",
+      "CANCELLED": "Cancelled"
+    },
+    "errors": {
+      "notAllowed": "Not allowed",
+      "loadFailed": "Failed to load orders",
+      "loadEventsFailed": "Failed to load events",
+      "generateFailed": "Failed to generate weekly orders",
+      "updateFailed": "Failed to update order"
+    }
   },
   "cocktails": {
     "editTitle": "Edit Cocktail",
@@ -223,7 +338,9 @@
     "filters": {
       "location": "Location",
       "type": "Type",
-      "subcategory": "Subcategory"
+      "subcategory": "Subcategory",
+      "show": "Filters",
+      "hide": "Hide filters"
     },
     "searchItemsPlaceholder": "Search items...",
     "locations": {
@@ -277,6 +394,16 @@
     "movement": {
       "selectLocationHelp": "Select BAR or WAREHOUSE to add a movement.",
       "currentStock": "Current stock",
+      "event": "Event",
+      "selectEvent": "Select event…",
+      "unnamedEvent": "Unnamed event",
+      "consumeEvent": "Consume event from stock",
+      "consumingEvent": "Consuming…",
+      "unconsumeEvent": "Unconsume event",
+      "unconsumingEvent": "Unconsuming…",
+      "consumed": "Consumed",
+      "consumeFrom": "Consume from",
+      "applyToLocation": "Apply to location",
       "item": "Item",
       "selectItem": "Select item…",
       "changePlaceholder": "+/-",
@@ -295,6 +422,8 @@
       "loadStockFailed": "Failed to load stock",
       "loadItemsFailed": "Failed to load items",
       "loadMovementsFailed": "Failed to load movements",
+      "loadEventsFailed": "Failed to load events",
+      "consumeEventFailed": "Failed to consume event from stock",
       "updateItemFailed": "Failed to update item"
     },
     "reorder": {

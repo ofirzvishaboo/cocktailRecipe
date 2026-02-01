@@ -84,9 +84,6 @@ async def add_missing_user_columns(engine: AsyncEngine):
                 role_info = constraint_result.fetchone()
 
                 if role_info and role_info[0] == 'NO':
-                    # If it's NOT NULL and has no default, we need to either:
-                    # 1. Set a default value for existing rows and add a default
-                    # 2. Make it nullable
                     # Let's make it nullable since it's not part of the User model
                     await conn.execute(
                         text("""
@@ -100,6 +97,68 @@ async def add_missing_user_columns(engine: AsyncEngine):
             except Exception as e:
                 print(f"Warning: Could not modify 'role' column: {e}")
 
+
+async def add_suppliers_if_missing(engine: AsyncEngine):
+    """Create suppliers + ingredient_suppliers + ingredient.default_supplier_id if missing."""
+    async with engine.begin() as conn:
+        # suppliers table
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS suppliers (
+                    id UUID PRIMARY KEY,
+                    name TEXT NOT NULL UNIQUE,
+                    contact TEXT NULL,
+                    notes TEXT NULL
+                )
+                """
+            )
+        )
+
+        # join table
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS ingredient_suppliers (
+                    ingredient_id UUID NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
+                    supplier_id UUID NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+                    PRIMARY KEY (ingredient_id, supplier_id)
+                )
+                """
+            )
+        )
+
+        # ingredients.default_supplier_id column
+        result = await conn.execute(
+            text(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'ingredients'
+                AND column_name = 'default_supplier_id'
+                """
+            )
+        )
+        if result.scalar() is None:
+            await conn.execute(
+                text(
+                    """
+                    ALTER TABLE ingredients
+                    ADD COLUMN default_supplier_id UUID NULL
+                    """
+                )
+            )
+            await conn.execute(
+                text(
+                    """
+                    ALTER TABLE ingredients
+                    ADD CONSTRAINT fk_ingredients_default_supplier
+                    FOREIGN KEY (default_supplier_id)
+                    REFERENCES suppliers(id)
+                    ON DELETE SET NULL
+                    """
+                )
+            )
 
 async def add_user_id_column_if_missing(engine: AsyncEngine):
     """Add user_id column to cocktail_recipes table if it doesn't exist"""
@@ -444,8 +503,8 @@ async def recreate_inventory_v3_tables(engine: AsyncEngine):
                     id UUID PRIMARY KEY,
                     location TEXT NOT NULL,
                     inventory_item_id UUID NOT NULL,
-                    quantity NUMERIC NOT NULL DEFAULT 0,
-                    reserved_quantity NUMERIC NOT NULL DEFAULT 0,
+                    quantity INTEGER NOT NULL DEFAULT 0,
+                    reserved_quantity INTEGER NOT NULL DEFAULT 0,
                     CONSTRAINT ck_inventory_stock_location
                         CHECK (location IN ('BAR','WAREHOUSE')),
                     CONSTRAINT fk_inventory_stock_inventory_item_id
@@ -465,10 +524,14 @@ async def recreate_inventory_v3_tables(engine: AsyncEngine):
                     id UUID PRIMARY KEY,
                     location TEXT NOT NULL,
                     inventory_item_id UUID NOT NULL,
-                    change NUMERIC NOT NULL,
+                    change INTEGER NOT NULL,
                     reason TEXT NULL,
                     source_type TEXT NULL,
                     source_id BIGINT NULL,
+                    source_event_id UUID NULL,
+                    is_reversal BOOLEAN NOT NULL DEFAULT FALSE,
+                    is_reversed BOOLEAN NOT NULL DEFAULT FALSE,
+                    reversal_of_id UUID NULL,
                     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                     created_by_user_id UUID NULL,
                     CONSTRAINT ck_inventory_movements_location
@@ -484,6 +547,91 @@ async def recreate_inventory_v3_tables(engine: AsyncEngine):
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_inventory_movements_item_id ON inventory_movements(inventory_item_id)"))
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_inventory_movements_created_at ON inventory_movements(created_at)"))
 
+
+async def make_inventory_quantities_integer(engine: AsyncEngine):
+    """Convert inventory quantities/movements to INTEGER (truncate toward 0)."""
+    async with engine.begin() as conn:
+        # inventory_stock
+        await conn.execute(
+            text(
+                """
+                ALTER TABLE inventory_stock
+                ALTER COLUMN quantity TYPE INTEGER
+                USING CAST(quantity AS INTEGER)
+                """
+            )
+        )
+        await conn.execute(
+            text(
+                """
+                ALTER TABLE inventory_stock
+                ALTER COLUMN reserved_quantity TYPE INTEGER
+                USING CAST(reserved_quantity AS INTEGER)
+                """
+            )
+        )
+        await conn.execute(text("ALTER TABLE inventory_stock ALTER COLUMN quantity SET DEFAULT 0"))
+        await conn.execute(text("ALTER TABLE inventory_stock ALTER COLUMN reserved_quantity SET DEFAULT 0"))
+
+        # inventory_movements
+        await conn.execute(
+            text(
+                """
+                ALTER TABLE inventory_movements
+                ALTER COLUMN change TYPE INTEGER
+                USING CAST(change AS INTEGER)
+                """
+            )
+        )
+
+
+async def add_inventory_movement_event_tracking_if_missing(engine: AsyncEngine):
+    """Add event-consumption tracking columns to inventory_movements (idempotent)."""
+    async with engine.begin() as conn:
+        res = await conn.execute(
+            text(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'inventory_movements'
+                """
+            )
+        )
+        cols = {r[0] for r in res.fetchall()}
+
+        if "source_event_id" not in cols:
+            await conn.execute(text("ALTER TABLE inventory_movements ADD COLUMN source_event_id UUID NULL"))
+            await conn.execute(
+                text("CREATE INDEX IF NOT EXISTS ix_inventory_movements_source_event_id ON inventory_movements(source_event_id)")
+            )
+
+        if "is_reversal" not in cols:
+            await conn.execute(text("ALTER TABLE inventory_movements ADD COLUMN is_reversal BOOLEAN NOT NULL DEFAULT FALSE"))
+
+        if "is_reversed" not in cols:
+            await conn.execute(text("ALTER TABLE inventory_movements ADD COLUMN is_reversed BOOLEAN NOT NULL DEFAULT FALSE"))
+
+        if "reversal_of_id" not in cols:
+            await conn.execute(text("ALTER TABLE inventory_movements ADD COLUMN reversal_of_id UUID NULL"))
+            await conn.execute(
+                text(
+                    """
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1
+                            FROM information_schema.table_constraints
+                            WHERE table_name = 'inventory_movements'
+                            AND constraint_name = 'fk_inventory_movements_reversal_of_id'
+                        ) THEN
+                            ALTER TABLE inventory_movements
+                            ADD CONSTRAINT fk_inventory_movements_reversal_of_id
+                            FOREIGN KEY (reversal_of_id) REFERENCES inventory_movements(id) ON DELETE SET NULL;
+                        END IF;
+                    END $$;
+                    """
+                )
+            )
 
 async def ensure_ingredient_taxonomy(engine: AsyncEngine):
     """
@@ -525,6 +673,129 @@ async def ensure_ingredient_taxonomy(engine: AsyncEngine):
                 {"id": str(uuid.uuid4()), "kind_id": kind_id, "name": name},
             )
 
+
+async def add_events_if_missing(engine: AsyncEngine):
+    """Create events + event_menu_items tables if missing."""
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS events (
+                    id UUID PRIMARY KEY,
+                    name TEXT NULL,
+                    notes TEXT NULL,
+                    event_date DATE NOT NULL,
+                    people INTEGER NOT NULL,
+                    servings_per_person NUMERIC(6,2) NOT NULL DEFAULT 3.0,
+                    created_by_user_id UUID NULL
+                )
+                """
+            )
+        )
+        # FK to users is optional (avoid failing if users differs)
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_events_event_date ON events(event_date)"))
+
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS event_menu_items (
+                    id UUID PRIMARY KEY,
+                    event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+                    cocktail_recipe_id UUID NOT NULL REFERENCES cocktail_recipes(id) ON DELETE CASCADE
+                )
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_event_menu_items_event_id ON event_menu_items(event_id)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_event_menu_items_cocktail_recipe_id ON event_menu_items(cocktail_recipe_id)"))
+
+
+async def add_orders_if_missing(engine: AsyncEngine):
+    """Create orders + order_items tables if missing."""
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS orders (
+                    id UUID PRIMARY KEY,
+                    scope TEXT NOT NULL DEFAULT 'WEEKLY',
+                    event_id UUID NULL REFERENCES events(id) ON DELETE SET NULL,
+                    supplier_id UUID NULL REFERENCES suppliers(id) ON DELETE SET NULL,
+                    status TEXT NOT NULL DEFAULT 'DRAFT',
+                    period_start DATE NOT NULL,
+                    period_end DATE NOT NULL,
+                    created_by_user_id UUID NULL,
+                    notes TEXT NULL
+                )
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_orders_supplier_id ON orders(supplier_id)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_orders_status ON orders(status)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_orders_period_start ON orders(period_start)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_orders_period_end ON orders(period_end)"))
+        # NOTE: indexes for newer columns (scope/event_id) are created in add_order_event_scope_columns_if_missing
+        # so startup doesn't fail on older DBs where the columns don't exist yet.
+
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS order_items (
+                    id UUID PRIMARY KEY,
+                    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+                    ingredient_id UUID NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
+                    requested_ml NUMERIC NULL,
+                    requested_quantity NUMERIC NULL,
+                    requested_unit TEXT NULL,
+                    used_from_stock_ml NUMERIC NULL,
+                    used_from_stock_quantity NUMERIC NULL,
+                    needed_ml NUMERIC NULL,
+                    needed_quantity NUMERIC NULL,
+                    unit TEXT NULL,
+                    bottle_id UUID NULL REFERENCES bottles(id) ON DELETE SET NULL,
+                    bottle_volume_ml INTEGER NULL,
+                    recommended_bottles INTEGER NULL,
+                    leftover_ml NUMERIC NULL
+                )
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_order_items_order_id ON order_items(order_id)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_order_items_ingredient_id ON order_items(ingredient_id)"))
+
+
+async def add_order_event_scope_columns_if_missing(engine: AsyncEngine):
+    """Backfill/ALTER columns for orders/order_items on existing DBs."""
+    async with engine.begin() as conn:
+        # orders
+        await conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS scope TEXT NOT NULL DEFAULT 'WEEKLY'"))
+        await conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS event_id UUID NULL"))
+        await conn.execute(
+            text(
+                """
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.table_constraints
+                        WHERE constraint_name = 'fk_orders_event_id'
+                    ) THEN
+                        ALTER TABLE orders
+                        ADD CONSTRAINT fk_orders_event_id
+                        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE SET NULL;
+                    END IF;
+                END$$;
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_orders_scope ON orders(scope)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_orders_event_id ON orders(event_id)"))
+
+        # order_items
+        await conn.execute(text("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS requested_ml NUMERIC NULL"))
+        await conn.execute(text("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS requested_quantity NUMERIC NULL"))
+        await conn.execute(text("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS requested_unit TEXT NULL"))
+        await conn.execute(text("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS used_from_stock_ml NUMERIC NULL"))
+        await conn.execute(text("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS used_from_stock_quantity NUMERIC NULL"))
 
 async def add_normalized_schema_tables_if_missing(engine: AsyncEngine):
     """Create new normalized tables if they don't exist (create_all handles most, but keep for safety)."""

@@ -18,6 +18,7 @@ from db.database import (
     CocktailRecipe as CocktailRecipeModel,
     RecipeIngredient as RecipeIngredientModel,
     Brand as BrandModel,
+    Supplier as SupplierModel,
 )
 from typing import List, Dict
 from uuid import UUID
@@ -117,8 +118,16 @@ async def create_ingredient(ingredient: IngredientCreate, user: User = Depends(c
         subcategory_id=ingredient.subcategory_id,
         abv_percent=ingredient.abv_percent,
         notes=ingredient.notes,
+        default_supplier_id=getattr(ingredient, "default_supplier_id", None),
     )
     db.add(ingredient_model)
+    await db.flush()
+
+    supplier_ids = getattr(ingredient, "supplier_ids", None) or []
+    if supplier_ids:
+        sup_res = await db.execute(select(SupplierModel).where(SupplierModel.id.in_(supplier_ids)))
+        ingredient_model.suppliers = sup_res.scalars().all()
+
     await db.commit()
     await db.refresh(ingredient_model)
     return ingredient_model.to_schema
@@ -155,6 +164,15 @@ async def update_ingredient(ingredient_id: UUID, ingredient: IngredientUpdate, u
         ingredient_model.abv_percent = ingredient.abv_percent
     if "notes" in fields:
         ingredient_model.notes = ingredient.notes
+    if "default_supplier_id" in fields:
+        ingredient_model.default_supplier_id = ingredient.default_supplier_id
+    if "supplier_ids" in fields:
+        supplier_ids = ingredient.supplier_ids or []
+        if supplier_ids:
+            sup_res = await db.execute(select(SupplierModel).where(SupplierModel.id.in_(supplier_ids)))
+            ingredient_model.suppliers = sup_res.scalars().all()
+        else:
+            ingredient_model.suppliers = []
     await db.commit()
     await db.refresh(ingredient_model)
     return ingredient_model.to_schema

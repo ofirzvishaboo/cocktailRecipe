@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
 
 const Navbar = () => {
-  const { isAuthenticated, user, logout } = useAuth()
+  const { isAuthenticated, isAdmin, user, logout } = useAuth()
   const location = useLocation()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false)
@@ -88,6 +88,24 @@ const Navbar = () => {
                 onClick={handleNavClick}
               >
                 {t('nav.inventory')}
+              </Link>
+            )}
+            {isAuthenticated && isAdmin && (
+              <Link
+                to="/orders"
+                className={`nav-link ${location.pathname === '/orders' ? 'active' : ''}`}
+                onClick={handleNavClick}
+              >
+                {t('nav.orders')}
+              </Link>
+            )}
+            {isAuthenticated && isAdmin && (
+              <Link
+                to="/events"
+                className={`nav-link ${location.pathname.startsWith('/events') ? 'active' : ''}`}
+                onClick={handleNavClick}
+              >
+                {t('nav.events')}
               </Link>
             )}
           </div>

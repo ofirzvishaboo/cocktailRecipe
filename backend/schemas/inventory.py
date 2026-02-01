@@ -6,6 +6,7 @@ from pydantic import BaseModel, field_validator, model_validator
 
 
 InventoryLocation = Literal["BAR", "WAREHOUSE"]
+InventoryLocationAny = Literal["ALL", "BAR", "WAREHOUSE"]
 InventoryItemType = Literal["BOTTLE", "GARNISH", "GLASS"]
 
 
@@ -92,7 +93,7 @@ class InventoryItemUpdate(BaseModel):
 class InventoryMovementCreate(BaseModel):
     location: InventoryLocation
     inventory_item_id: UUID
-    change: float
+    change: int
     reason: Optional[str] = None
     source_type: Optional[str] = None
     source_id: Optional[int] = None
@@ -110,18 +111,18 @@ class InventoryTransferCreate(BaseModel):
     from_location: InventoryLocation
     to_location: InventoryLocation
     inventory_item_id: UUID
-    quantity: float
+    quantity: int
     reason: Optional[str] = None
     source_type: Optional[str] = None
     source_id: Optional[int] = None
 
     @field_validator("quantity")
     @classmethod
-    def _qty_positive(cls, v: float) -> float:
+    def _qty_positive(cls, v: int) -> int:
         try:
-            v = float(v)
+            v = int(v)
         except Exception:
-            raise ValueError("quantity must be a number")
+            raise ValueError("quantity must be an integer")
         if v <= 0:
             raise ValueError("quantity must be > 0")
         return v
@@ -170,6 +171,36 @@ class ConsumeCocktailBatchRequest(BaseModel):
         return v or None
 
 
+class ConsumeEventRequest(BaseModel):
+    event_id: UUID
+    location: InventoryLocationAny
+    reason: Optional[str] = None
+    source_type: Optional[str] = None
+    source_id: Optional[int] = None
+
+    @field_validator("reason", "source_type")
+    @classmethod
+    def _strip_nullable_event(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
+
+class UnconsumeEventRequest(BaseModel):
+    event_id: UUID
+    location: InventoryLocationAny = "ALL"
+    reason: Optional[str] = None
+
+    @field_validator("reason")
+    @classmethod
+    def _strip_nullable_unconsume(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
+
 class InventoryItemOut(BaseModel):
     id: UUID
     item_type: InventoryItemType
@@ -192,18 +223,22 @@ class InventoryStockOut(BaseModel):
     id: UUID
     location: InventoryLocation
     inventory_item_id: UUID
-    quantity: float
-    reserved_quantity: float
+    quantity: int
+    reserved_quantity: int
 
 
 class InventoryMovementOut(BaseModel):
     id: UUID
     location: InventoryLocation
     inventory_item_id: UUID
-    change: float
+    change: int
     reason: Optional[str] = None
     source_type: Optional[str] = None
     source_id: Optional[int] = None
+    source_event_id: Optional[UUID] = None
+    is_reversal: Optional[bool] = None
+    is_reversed: Optional[bool] = None
+    reversal_of_id: Optional[UUID] = None
     created_at: datetime
     created_by_user_id: Optional[UUID] = None
 

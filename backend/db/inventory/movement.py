@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import BigInteger, Column, ForeignKey, Numeric, Text, DateTime
+from sqlalchemy import BigInteger, Boolean, Column, ForeignKey, Integer, Text, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -21,10 +21,14 @@ class InventoryMovement(Base):
         index=True,
     )
 
-    change = Column(Numeric, nullable=False)
+    change = Column(Integer, nullable=False)
     reason = Column(Text, nullable=True)
     source_type = Column(Text, nullable=True)
     source_id = Column(BigInteger, nullable=True)
+    source_event_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    is_reversal = Column(Boolean, nullable=False, default=False)
+    is_reversed = Column(Boolean, nullable=False, default=False)
+    reversal_of_id = Column(UUID(as_uuid=True), ForeignKey("inventory_movements.id", ondelete="SET NULL"), nullable=True)
 
     created_at = Column(DateTime, nullable=False, server_default=func.now(), index=True)
     created_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)

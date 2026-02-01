@@ -10,15 +10,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-cocktaildb}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   api:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ofirzvishaboo/cocktail-recipe-api:latest
     container_name: cocktail-api
     restart: unless-stopped
     environment:
@@ -42,11 +40,7 @@ services:
     command: uv run uvicorn main:app --host 0.0.0.0 --port 8000
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: /api
+    image: ofirzvishaboo/cocktail-recipe-frontend:latest
     container_name: cocktail-frontend
     restart: unless-stopped
     depends_on:

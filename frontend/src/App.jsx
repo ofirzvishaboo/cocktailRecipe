@@ -12,6 +12,10 @@ import CreateCocktailPage from './pages/CreateCocktailPage'
 import IngredientsPage from './pages/IngredientsPage'
 import CocktailScaler from './pages/cocktailScaler'
 import InventoryPage from './pages/InventoryPage'
+import OrdersPage from './pages/OrdersPage'
+import EventsPage from './pages/EventsPage'
+import EventDetailPage from './pages/EventDetailPage'
+import EventFormPage from './pages/EventFormPage'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 
 function App() {
@@ -67,6 +71,46 @@ function App() {
             element={(
               <ProtectedRoute>
                 <InventoryPage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/orders"
+            element={(
+              <ProtectedRoute requireAdmin>
+                <OrdersPage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/events"
+            element={(
+              <ProtectedRoute requireAdmin>
+                <EventsPage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/events/new"
+            element={(
+              <ProtectedRoute requireAdmin>
+                <EventFormPage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/events/:id"
+            element={(
+              <ProtectedRoute requireAdmin>
+                <EventDetailPage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/events/:id/edit"
+            element={(
+              <ProtectedRoute requireAdmin>
+                <EventFormPage />
               </ProtectedRoute>
             )}
           />

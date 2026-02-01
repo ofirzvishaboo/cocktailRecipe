@@ -32,9 +32,11 @@ export default function InventoryPage() {
   const showPrices = !!isAdmin
   const showMovements = !!isAdmin
   const MIN_VISIBLE_STOCK_QTY = 1 // show only items with quantity > 1
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const [location, setLocation] = useState('ALL')
   const [tab, setTab] = useState('Stock')
+  const [movementLocation, setMovementLocation] = useState('WAREHOUSE')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -51,6 +53,11 @@ export default function InventoryPage() {
   const [movementFromDate, setMovementFromDate] = useState('')
   const [movementToDate, setMovementToDate] = useState('')
   const [movementItemSearch, setMovementItemSearch] = useState('')
+  const [movementEvents, setMovementEvents] = useState([])
+  const [movementEventId, setMovementEventId] = useState('')
+  const [consumingEvent, setConsumingEvent] = useState(false)
+  const [unconsumingEvent, setUnconsumingEvent] = useState(false)
+  const [eventConsumed, setEventConsumed] = useState(false)
 
   const [editingItemId, setEditingItemId] = useState(null)
   const [editForm, setEditForm] = useState({
@@ -286,6 +293,22 @@ export default function InventoryPage() {
     }
   }
 
+  const loadMovementEvents = async () => {
+    if (!showMovements) {
+      setMovementEvents([])
+      return
+    }
+    try {
+      const res = await api.get('/events')
+      setMovementEvents(Array.isArray(res.data) ? res.data : [])
+    } catch (e) {
+      console.error('Failed to load movement events', e)
+      // Don't block the page if events fail; show error toast/message
+      setError(t('inventory.errors.loadEventsFailed'))
+      setMovementEvents([])
+    }
+  }
+
   useEffect(() => {
     // Keep the item list warm for dropdowns, regardless of tab.
     loadItems()
@@ -298,6 +321,7 @@ export default function InventoryPage() {
     if (tab === 'Movements') {
       if (showMovements) loadMovements()
       else setTab('Stock')
+      if (showMovements) loadMovementEvents()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, location, itemType, subcategoryFilter, movementFromDate, movementToDate, showMovements])
@@ -351,7 +375,8 @@ export default function InventoryPage() {
   const createMovement = async (e) => {
     e.preventDefault()
     if (!movementForm.inventory_item_id) return
-    let delta = Number(movementForm.change)
+    const effectiveLocation = location === 'ALL' ? movementLocation : location
+    let delta = Math.trunc(Number(movementForm.change))
     if (Number.isNaN(delta) || delta === 0) return
 
     try {
@@ -362,11 +387,8 @@ export default function InventoryPage() {
         delta = -Math.abs(delta)
       }
       if (reason === 'TRANSFER') {
-        if (location === 'ALL') {
-          throw new Error('Select BAR or WAREHOUSE to transfer')
-        }
-        const from_location = location
-        const to_location = location === 'BAR' ? 'WAREHOUSE' : 'BAR'
+        const from_location = effectiveLocation
+        const to_location = effectiveLocation === 'BAR' ? 'WAREHOUSE' : 'BAR'
         const qty = Math.abs(delta)
         if (!qty) return
         await api.post('/inventory/transfers', {
@@ -378,7 +400,7 @@ export default function InventoryPage() {
         })
       } else {
         await api.post('/inventory/movements', {
-          location,
+          location: effectiveLocation,
           inventory_item_id: movementForm.inventory_item_id,
           change: delta,
           reason: reason,
@@ -404,6 +426,69 @@ export default function InventoryPage() {
     }
   }
 
+  const consumeEvent = async () => {
+    if (!movementEventId) return
+    if (eventConsumed) return
+    try {
+      setConsumingEvent(true)
+      setError('')
+      await api.post('/inventory/consume-event', {
+        event_id: movementEventId,
+        location,
+      })
+      await loadStock()
+      await loadMovements()
+      setEventConsumed(true)
+    } catch (e) {
+      console.error('Failed to consume event', e)
+      const detail = e?.response?.data?.detail || e?.message
+      setError(detail ? String(detail) : t('inventory.errors.consumeEventFailed'))
+    } finally {
+      setConsumingEvent(false)
+    }
+  }
+
+  const unconsumeEvent = async () => {
+    if (!movementEventId) return
+    try {
+      setUnconsumingEvent(true)
+      setError('')
+      await api.post('/inventory/unconsume-event', {
+        event_id: movementEventId,
+        location: 'ALL',
+      })
+      await loadStock()
+      await loadMovements()
+      setEventConsumed(false)
+    } catch (e) {
+      console.error('Failed to unconsume event', e)
+      const detail = e?.response?.data?.detail || e?.message
+      setError(detail ? String(detail) : t('inventory.errors.consumeEventFailed'))
+    } finally {
+      setUnconsumingEvent(false)
+    }
+  }
+
+  // Load consumption status so we can require "unconsume" before re-consuming.
+  useEffect(() => {
+    const id = movementEventId
+    if (!id) {
+      setEventConsumed(false)
+      return
+    }
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await api.get(`/inventory/events/${id}/consumption`)
+        if (!cancelled) setEventConsumed(!!res?.data?.is_consumed)
+      } catch {
+        if (!cancelled) setEventConsumed(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [movementEventId])
+
   useEffect(() => {
     const id = movementForm.inventory_item_id
     if (!id) {
@@ -421,98 +506,15 @@ export default function InventoryPage() {
     load()
   }, [movementForm.inventory_item_id])
 
+  // When a specific location is selected, keep the movement location in sync.
+  useEffect(() => {
+    if (location !== 'ALL') setMovementLocation(location)
+  }, [location])
+
   return (
     <div className="card">
       <div className="inventory-header">
-        <div className="inventory-controls">
-          <div className="inventory-control">
-            <label className="inventory-label" htmlFor="inv-location">{t('inventory.filters.location')}</label>
-            <Select
-              id="inv-location"
-              value={location}
-              onChange={(v) => setLocation(v)}
-              ariaLabel={t('inventory.filters.location')}
-              options={LOCATIONS.map((l) => ({ value: l, label: t(`inventory.locations.${l}`) }))}
-            />
-          </div>
-
-          <div className="inventory-control">
-            <label className="inventory-label" htmlFor="inv-type">{t('inventory.filters.type')}</label>
-            <Select
-              id="inv-type"
-              value={itemType}
-              onChange={(v) => setItemType(v)}
-              ariaLabel={t('inventory.filters.type')}
-              placeholder={t('inventory.itemTypes.all')}
-              options={[
-                { value: 'BOTTLE', label: t('inventory.itemTypes.BOTTLE') },
-                { value: 'GARNISH', label: t('inventory.itemTypes.GARNISH') },
-                { value: 'GLASS', label: t('inventory.itemTypes.GLASS') },
-              ]}
-            />
-          </div>
-
-          <div className="inventory-control">
-            <label className="inventory-label" htmlFor="inv-subcategory">{t('inventory.filters.subcategory')}</label>
-            <Select
-              id="inv-subcategory"
-              value={subcategoryFilter}
-              onChange={(v) => setSubcategoryFilter(v)}
-              ariaLabel={t('inventory.filters.subcategory')}
-              placeholder={t('inventory.itemTypes.all')}
-              options={SUBCATEGORY_FILTER_ORDER.map((g) => ({ value: g, label: t(`inventory.groups.${g}`) }))}
-            />
-          </div>
-
-          {(tab === 'Movements') && (
-            <>
-              <div className="inventory-control">
-                <label className="inventory-label">{t('common.from')}</label>
-                <input
-                  className="form-input"
-                  type="date"
-                  value={movementFromDate}
-                  onChange={(e) => setMovementFromDate(e.target.value)}
-                />
-              </div>
-              <div className="inventory-control">
-                <label className="inventory-label">{t('common.to')}</label>
-                <input
-                  className="form-input"
-                  type="date"
-                  value={movementToDate}
-                  onChange={(e) => setMovementToDate(e.target.value)}
-                />
-              </div>
-            </>
-          )}
-
-          {(tab === 'Items') && (
-            <div className="inventory-control inventory-control-wide">
-              <InventorySearchInput
-                id="inv-items-search"
-                label={t('common.search')}
-                value={q}
-                onValueChange={(v) => setQ(v)}
-                placeholder={t('inventory.searchItemsPlaceholder')}
-              />
-            </div>
-          )}
-
-          {(tab === 'Stock') && (
-            <div className="inventory-control inventory-control-wide">
-              <InventorySearchInput
-                id="inv-stock-search"
-                label={t('common.search')}
-                value={stockSearch}
-                onValueChange={(v) => setStockSearch(v)}
-                placeholder={t('inventory.searchItemsPlaceholder')}
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="inventory-tabs">
+        <div className="inventory-header-top">
           {visibleTabs.map((tabKey) => (
             <button
               key={tabKey}
@@ -523,7 +525,104 @@ export default function InventoryPage() {
               {tabKey === 'Stock' ? t('inventory.tabs.stock') : tabKey === 'Items' ? t('inventory.tabs.items') : t('inventory.tabs.movements')}
             </button>
           ))}
+          <button
+            type="button"
+            className={`inventory-tab ${filtersOpen ? 'active' : ''}`}
+            onClick={() => setFiltersOpen((p) => !p)}
+          >
+            {filtersOpen ? t('inventory.filters.hide') : t('inventory.filters.show')}
+          </button>
         </div>
+
+        {filtersOpen && (
+          <div className="inventory-controls">
+            <div className="inventory-control">
+              <label className="inventory-label" htmlFor="inv-location">{t('inventory.filters.location')}</label>
+              <Select
+                id="inv-location"
+                value={location}
+                onChange={(v) => setLocation(v)}
+                ariaLabel={t('inventory.filters.location')}
+                options={LOCATIONS.map((l) => ({ value: l, label: t(`inventory.locations.${l}`) }))}
+              />
+            </div>
+
+            <div className="inventory-control">
+              <label className="inventory-label" htmlFor="inv-type">{t('inventory.filters.type')}</label>
+              <Select
+                id="inv-type"
+                value={itemType}
+                onChange={(v) => setItemType(v)}
+                ariaLabel={t('inventory.filters.type')}
+                placeholder={t('inventory.itemTypes.all')}
+                options={[
+                  { value: 'BOTTLE', label: t('inventory.itemTypes.BOTTLE') },
+                  { value: 'GARNISH', label: t('inventory.itemTypes.GARNISH') },
+                  { value: 'GLASS', label: t('inventory.itemTypes.GLASS') },
+                ]}
+              />
+            </div>
+
+            <div className="inventory-control">
+              <label className="inventory-label" htmlFor="inv-subcategory">{t('inventory.filters.subcategory')}</label>
+              <Select
+                id="inv-subcategory"
+                value={subcategoryFilter}
+                onChange={(v) => setSubcategoryFilter(v)}
+                ariaLabel={t('inventory.filters.subcategory')}
+                placeholder={t('inventory.itemTypes.all')}
+                options={SUBCATEGORY_FILTER_ORDER.map((g) => ({ value: g, label: t(`inventory.groups.${g}`) }))}
+              />
+            </div>
+
+            {(tab === 'Movements') && (
+              <>
+                <div className="inventory-control">
+                  <label className="inventory-label">{t('common.from')}</label>
+                  <input
+                    className="form-input"
+                    type="date"
+                    value={movementFromDate}
+                    onChange={(e) => setMovementFromDate(e.target.value)}
+                  />
+                </div>
+                <div className="inventory-control">
+                  <label className="inventory-label">{t('common.to')}</label>
+                  <input
+                    className="form-input"
+                    type="date"
+                    value={movementToDate}
+                    onChange={(e) => setMovementToDate(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+
+            {(tab === 'Items') && (
+              <div className="inventory-control inventory-control-wide">
+                <InventorySearchInput
+                  id="inv-items-search"
+                  label={t('common.search')}
+                  value={q}
+                  onValueChange={(v) => setQ(v)}
+                  placeholder={t('inventory.searchItemsPlaceholder')}
+                />
+              </div>
+            )}
+
+            {(tab === 'Stock') && (
+              <div className="inventory-control inventory-control-wide">
+                <InventorySearchInput
+                  id="inv-stock-search"
+                  label={t('common.search')}
+                  value={stockSearch}
+                  onValueChange={(v) => setStockSearch(v)}
+                  placeholder={t('inventory.searchItemsPlaceholder')}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -792,21 +891,74 @@ export default function InventoryPage() {
       {!loading && tab === 'Movements' && showMovements && (
         <div className="inventory-section">
           {isAdmin && (
-            <form className="inventory-movement-form" onSubmit={createMovement}>
-              <div className="inventory-movement-row">
-                {location === 'ALL' && (
-                  <div className="empty-state" style={{ gridColumn: '1 / -1', padding: '1rem' }}>
-                    {t('inventory.movement.selectLocationHelp')}
+            <>
+              <div className="inventory-movement-event-panel">
+                <div className="inventory-control">
+                  <label className="inventory-label">{t('inventory.movement.event')}</label>
+                  <Select
+                    id="inv-movement-event"
+                    value={movementEventId}
+                    onChange={(v) => setMovementEventId(v)}
+                    ariaLabel={t('inventory.movement.event')}
+                    placeholder={t('inventory.movement.selectEvent')}
+                    disabled={consumingEvent}
+                    options={(movementEvents || []).map((ev) => ({
+                      value: ev.id,
+                      label: `${ev.name || t('inventory.movement.unnamedEvent')} (${ev.event_date})`,
+                    }))}
+                  />
+                </div>
+                <div className="inventory-control">
+                  <label className="inventory-label">{t('inventory.movement.consumeFrom')}</label>
+                  <div className="muted" style={{ padding: '0.6rem 0.75rem' }}>
+                    {location === 'ALL' ? t('inventory.locations.ALL') : t(`inventory.locations.${location}`)}
                   </div>
-                )}
-                <div className="inventory-control inventory-control-wide inventory-control-stack">
+                </div>
+                <div className="inventory-control">
+                  <label className="inventory-label">&nbsp;</label>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="button-edit"
+                      disabled={!movementEventId || !eventConsumed || consumingEvent || unconsumingEvent}
+                      onClick={unconsumeEvent}
+                    >
+                      {unconsumingEvent ? t('inventory.movement.unconsumingEvent') : t('inventory.movement.unconsumeEvent')}
+                    </button>
+                    <button
+                      type="button"
+                      className="button-primary"
+                      disabled={consumingEvent || unconsumingEvent || !movementEventId || eventConsumed}
+                      onClick={consumeEvent}
+                    >
+                      {eventConsumed ? t('inventory.movement.consumed') : (consumingEvent ? t('inventory.movement.consumingEvent') : t('inventory.movement.consumeEvent'))}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <form className="inventory-movement-form" onSubmit={createMovement}>
+                <div className="inventory-movement-row">
+                  {location === 'ALL' && (
+                    <div className="inventory-control">
+                      <label className="inventory-label">{t('inventory.movement.applyToLocation')}</label>
+                      <Select
+                        id="inv-movement-location"
+                        value={movementLocation}
+                        onChange={(v) => setMovementLocation(v)}
+                        ariaLabel={t('inventory.movement.applyToLocation')}
+                        options={['BAR', 'WAREHOUSE'].map((l) => ({ value: l, label: t(`inventory.locations.${l}`) }))}
+                      />
+                    </div>
+                  )}
+
+                  <div className="inventory-control inventory-control-wide inventory-control-stack">
                   <InventorySearchInput
                     id="inv-movement-item"
                     label={t('inventory.movement.item')}
                     value={movementItemSearch}
                     onValueChange={(v) => setMovementItemSearch(v)}
                     placeholder={t('common.search')}
-                    disabled={location === 'ALL'}
                     options={movementItemOptions}
                     onSelectValue={(id) => setMovementForm((p) => ({ ...p, inventory_item_id: id || '' }))}
                     className=""
@@ -837,7 +989,6 @@ export default function InventoryPage() {
                     placeholder={t('inventory.movement.changePlaceholder')}
                     value={movementForm.change}
                     onChange={(e) => setMovementForm((p) => ({ ...p, change: e.target.value }))}
-                    disabled={location === 'ALL'}
                   />
                 </div>
 
@@ -848,7 +999,6 @@ export default function InventoryPage() {
                     value={movementForm.reason}
                     onChange={(v) => setMovementForm((p) => ({ ...p, reason: v }))}
                     ariaLabel={t('inventory.movement.reason')}
-                    disabled={location === 'ALL'}
                     options={[
                       { value: 'PURCHASE', label: t('inventory.movementReasons.PURCHASE') },
                       { value: 'USAGE', label: t('inventory.movementReasons.USAGE') },
@@ -862,12 +1012,13 @@ export default function InventoryPage() {
                 <button
                   type="submit"
                   className="button-primary"
-                  disabled={location === 'ALL' || movementForm.submitting || !movementForm.inventory_item_id}
+                  disabled={movementForm.submitting || !movementForm.inventory_item_id}
                 >
                   {t('inventory.actions.addMovement')}
                 </button>
               </div>
             </form>
+            </>
           )}
 
           <div className="inventory-table">

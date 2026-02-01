@@ -15,6 +15,8 @@ class IngredientRead(BaseModel):
     subcategory_id: Optional[UUID] = None
     abv_percent: Optional[float] = None
     notes: Optional[str] = None
+    supplier_ids: Optional[List[UUID]] = None
+    default_supplier_id: Optional[UUID] = None
 
 class IngredientCreate(BaseModel):
     name: str
@@ -24,6 +26,8 @@ class IngredientCreate(BaseModel):
     subcategory_id: Optional[UUID] = None
     abv_percent: Optional[float] = None
     notes: Optional[str] = None
+    supplier_ids: Optional[List[UUID]] = None
+    default_supplier_id: Optional[UUID] = None
 
 class IngredientUpdate(BaseModel):
     name: Optional[str] = None
@@ -33,6 +37,8 @@ class IngredientUpdate(BaseModel):
     subcategory_id: Optional[UUID] = None
     abv_percent: Optional[float] = None
     notes: Optional[str] = None
+    supplier_ids: Optional[List[UUID]] = None
+    default_supplier_id: Optional[UUID] = None
 
 class IngredientDelete(BaseModel):
     name: str

@@ -18,6 +18,9 @@ from db.database import (
     Bottle as BottleModel,
     BottlePrice as BottlePriceModel,
     CocktailRecipe as CocktailRecipeModel,
+    Event as EventModel,
+    Order as OrderModel,
+    OrderItem as OrderItemModel,
     Ingredient as IngredientModel,
     Kind as KindModel,
     RecipeIngredient as RecipeIngredientModel,
@@ -29,6 +32,8 @@ from db.inventory.movement import InventoryMovement as InventoryMovementModel
 from db.users import User
 from schemas.inventory import (
     ConsumeCocktailBatchRequest,
+    ConsumeEventRequest,
+    UnconsumeEventRequest,
     InventoryItemCreate,
     InventoryItemUpdate,
     InventoryMovementCreate,
@@ -38,9 +43,11 @@ from schemas.inventory import (
 router = APIRouter()
 
 
-def _as_decimal(x: float) -> Decimal:
-    # Avoid float noise in NUMERIC; still not perfect but good enough for v3.
-    return Decimal(str(float(x)))
+def _as_int(x) -> int:
+    try:
+        return int(x)
+    except Exception:
+        return 0
 
 
 def _to_ml(quantity: Decimal, unit: str) -> Optional[Decimal]:
@@ -53,16 +60,48 @@ def _to_ml(quantity: Decimal, unit: str) -> Optional[Decimal]:
     return None
 
 
+def _trunc_int(x: Decimal) -> int:
+    # Truncate toward 0 (matches user's "round down" choice for fractional bottles).
+    return int(x)
+
+
+def _default_event_consumed_reason(ev: EventModel) -> str:
+    # Include id to make the reason uniquely traceable (helps future unconsume).
+    name = (getattr(ev, "name", None) or "").strip()
+    if name:
+        return f"Event consumed: {name} ({ev.id})"
+    return f"Event consumed: {ev.id}"
+
+
+def _default_event_unconsumed_reason(ev: EventModel) -> str:
+    name = (getattr(ev, "name", None) or "").strip()
+    if name:
+        return f"Event unconsumed: {name} ({ev.id})"
+    return f"Event unconsumed: {ev.id}"
+
+
+def _legacy_event_reason_candidates(ev: EventModel) -> List[str]:
+    """Legacy reasons from before we included event_id in the reason."""
+    name = (getattr(ev, "name", None) or "").strip()
+    out = [f"Event consumed: {ev.id}"]
+    if name:
+        out.insert(0, f"Event consumed: {name}")
+    return out
+
+
 async def _upsert_stock_and_add_movement(
     *,
     db: AsyncSession,
     user: User,
     location: str,
     inventory_item_id: UUID,
-    delta: Decimal,
+    delta: int,
     reason: Optional[str],
     source_type: Optional[str],
     source_id: Optional[int],
+    source_event_id: Optional[UUID] = None,
+    is_reversal: bool = False,
+    reversal_of_id: Optional[UUID] = None,
 ) -> dict:
     movement_id = uuid.uuid4()
     stock_insert_id = uuid.uuid4()
@@ -76,6 +115,9 @@ async def _upsert_stock_and_add_movement(
             reason=reason,
             source_type=source_type,
             source_id=source_id,
+            source_event_id=source_event_id,
+            is_reversal=is_reversal,
+            reversal_of_id=reversal_of_id,
             created_by_user_id=user.id,
         )
     )
@@ -88,7 +130,7 @@ async def _upsert_stock_and_add_movement(
             location=location,
             inventory_item_id=inventory_item_id,
             quantity=delta,
-            reserved_quantity=Decimal("0"),
+            reserved_quantity=0,
         )
         .on_conflict_do_update(
             constraint="ux_inventory_stock_location_item",
@@ -108,17 +150,20 @@ async def _upsert_stock_and_add_movement(
             "id": movement_id,
             "location": location,
             "inventory_item_id": inventory_item_id,
-            "change": float(delta),
+            "change": int(delta),
             "reason": reason,
             "source_type": source_type,
             "source_id": source_id,
+            "source_event_id": source_event_id,
+            "is_reversal": bool(is_reversal),
+            "reversal_of_id": reversal_of_id,
             "created_by_user_id": user.id,
         },
         "stock": {
             "location": location,
             "inventory_item_id": inventory_item_id,
-            "quantity": float(upserted.quantity) if upserted else 0.0,
-            "reserved_quantity": float(upserted.reserved_quantity) if upserted else 0.0,
+            "quantity": int(upserted.quantity) if upserted else 0,
+            "reserved_quantity": int(upserted.reserved_quantity) if upserted else 0,
         },
     }
 
@@ -593,7 +638,7 @@ async def create_movement(
     if not user.is_superuser:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
 
-    delta = _as_decimal(payload.change)
+    delta = int(payload.change)
     reason_upper = (payload.reason or "").strip().upper()
     if reason_upper in {"USAGE", "WASTE"} and delta > 0:
         raise HTTPException(
@@ -640,7 +685,7 @@ async def create_movement(
                 location=payload.location,
                 inventory_item_id=payload.inventory_item_id,
                 quantity=delta,
-                reserved_quantity=Decimal("0"),
+                reserved_quantity=0,
             )
             # Deterministic conflict target
             .on_conflict_do_update(
@@ -664,7 +709,7 @@ async def create_movement(
                 "id": movement_id,
                 "location": payload.location,
                 "inventory_item_id": payload.inventory_item_id,
-                "change": float(delta),
+                "change": int(delta),
                 "reason": payload.reason,
                 "source_type": payload.source_type,
                 "source_id": payload.source_id,
@@ -673,8 +718,8 @@ async def create_movement(
             "stock": {
                 "location": payload.location,
                 "inventory_item_id": payload.inventory_item_id,
-                "quantity": float(upserted.quantity) if upserted else 0.0,
-                "reserved_quantity": float(upserted.reserved_quantity) if upserted else 0.0,
+                "quantity": int(upserted.quantity) if upserted else 0,
+                "reserved_quantity": int(upserted.reserved_quantity) if upserted else 0,
             },
         }
     except HTTPException:
@@ -702,7 +747,7 @@ async def create_transfer(
     if not user.is_superuser:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
 
-    qty = _as_decimal(payload.quantity)
+    qty = int(payload.quantity)
     if qty <= 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="quantity must be > 0")
 
@@ -727,11 +772,11 @@ async def create_transfer(
                 detail=f"Item not found in {payload.from_location} stock",
             )
 
-        available = (stock.quantity or Decimal("0")) - (stock.reserved_quantity or Decimal("0"))
+        available = int(stock.quantity or 0) - int(stock.reserved_quantity or 0)
         if available < qty:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Not enough quantity in {payload.from_location}. Available={float(available)} requested={float(qty)}",
+                detail=f"Not enough quantity in {payload.from_location}. Available={int(available)} requested={int(qty)}",
             )
 
         reason = payload.reason or "TRANSFER"
@@ -741,7 +786,7 @@ async def create_transfer(
             user=user,
             location=payload.from_location,
             inventory_item_id=payload.inventory_item_id,
-            delta=-qty,
+            delta=-int(qty),
             reason=reason,
             source_type=payload.source_type or "transfer",
             source_id=payload.source_id,
@@ -751,7 +796,7 @@ async def create_transfer(
             user=user,
             location=payload.to_location,
             inventory_item_id=payload.inventory_item_id,
-            delta=qty,
+            delta=int(qty),
             reason=reason,
             source_type=payload.source_type or "transfer",
             source_id=payload.source_id,
@@ -828,7 +873,7 @@ async def consume_cocktail_batch(
                 detail="Cannot compute batch scaling: recipe has no ml/oz volume ingredients",
             )
 
-        target_ml = _as_decimal(payload.liters * 1000.0)
+        target_ml = Decimal(str(float(payload.liters) * 1000.0))
         scale_factor = (target_ml / total_ml) if total_ml else Decimal("0")
         servings_estimate = scale_factor  # assumes recipe is one serving/base build
 
@@ -878,9 +923,9 @@ async def consume_cocktail_batch(
 
                 ml = _to_ml(q, unit)
                 if ml is not None:
-                    delta = -(ml * scale_factor)
+                    delta = -_trunc_int(ml * scale_factor)
                 else:
-                    delta = -(q * servings_estimate)
+                    delta = -_trunc_int(q * servings_estimate)
 
                 movements_out.append(
                     await _upsert_stock_and_add_movement(
@@ -888,7 +933,7 @@ async def consume_cocktail_batch(
                         user=user,
                         location=payload.location,
                         inventory_item_id=inv_item.id,
-                        delta=delta,
+                        delta=int(delta),
                         reason=payload.reason or f"Cocktail batch consumed: {cocktail.name}",
                         source_type=payload.source_type or "cocktail_batch",
                         source_id=payload.source_id,
@@ -936,7 +981,7 @@ async def consume_cocktail_batch(
                 )
 
             bottles_used = (ml_used / Decimal(str(bottle.volume_ml)))
-            delta = -bottles_used
+            delta = -_trunc_int(bottles_used)
 
             movements_out.append(
                 await _upsert_stock_and_add_movement(
@@ -944,7 +989,7 @@ async def consume_cocktail_batch(
                     user=user,
                     location=payload.location,
                     inventory_item_id=inv_item.id,
-                    delta=delta,
+                    delta=int(delta),
                     reason=payload.reason or f"Cocktail batch consumed: {cocktail.name}",
                     source_type=payload.source_type or "cocktail_batch",
                     source_id=payload.source_id,
@@ -973,6 +1018,396 @@ async def consume_cocktail_batch(
             detail=f"Failed to consume cocktail batch: {e}",
         )
 
+
+@router.post("/consume-event", response_model=Dict, status_code=status.HTTP_201_CREATED)
+async def consume_event_from_stock(
+    payload: ConsumeEventRequest,
+    user: User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_async_session),
+):
+    """
+    Reduce inventory according to a stored Event's EVENT-scope orders (requested amounts).
+
+    For bottle-backed items, ml requested is converted to fractional bottles using Bottle.volume_ml.
+    For garnish items, requested quantity is deducted as-is (or requested_ml if present).
+    """
+    if not user.is_superuser:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
+
+    try:
+        # Prevent double-consume. Must unconsume first.
+        existing_consume = await db.execute(
+            select(func.count())
+            .select_from(InventoryMovementModel)
+            .where(InventoryMovementModel.source_event_id == payload.event_id)
+            .where(InventoryMovementModel.source_type == "event_consume")
+            .where(InventoryMovementModel.is_reversed == False)  # noqa: E712
+        )
+        if int(existing_consume.scalar_one() or 0) > 0:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Event already consumed. Unconsume it before consuming again.",
+            )
+
+        ev_res = await db.execute(select(EventModel).where(EventModel.id == payload.event_id))
+        ev = ev_res.scalar_one_or_none()
+        if not ev:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+
+        # Legacy double-consume check (older rows had no source_event_id; they only had source_type='event' and reason text).
+        legacy_count_res = await db.execute(
+            select(func.count())
+            .select_from(InventoryMovementModel)
+            .where(InventoryMovementModel.source_event_id.is_(None))
+            .where((InventoryMovementModel.source_type.is_(None)) | (InventoryMovementModel.source_type == "event"))
+            .where(InventoryMovementModel.is_reversed == False)  # noqa: E712
+            .where(InventoryMovementModel.is_reversal == False)  # noqa: E712
+            .where(InventoryMovementModel.change < 0)
+            .where(InventoryMovementModel.reason.in_(_legacy_event_reason_candidates(ev)))
+        )
+        if int(legacy_count_res.scalar_one() or 0) > 0:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Event already consumed. Unconsume it before consuming again.",
+            )
+
+        orders_res = await db.execute(
+            select(OrderModel)
+            .options(
+                selectinload(OrderModel.items).selectinload(OrderItemModel.bottle),
+                selectinload(OrderModel.items).selectinload(OrderItemModel.ingredient),
+            )
+            .where(OrderModel.scope == "EVENT")
+            .where(OrderModel.event_id == payload.event_id)
+        )
+        orders = orders_res.scalars().all() or []
+        if not orders:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="No EVENT orders found for this event. Generate orders first.",
+            )
+
+        # Aggregate deltas per inventory_item_id to avoid multiple movements per item
+        deltas_by_item: dict[UUID, int] = {}
+        reason = payload.reason or _default_event_consumed_reason(ev)
+
+        inv_bottle_cache: dict[UUID, Optional[InventoryItemModel]] = {}
+        inv_garnish_cache: dict[UUID, Optional[InventoryItemModel]] = {}
+
+        for o in orders:
+            for it in (o.items or []):
+                requested_ml = getattr(it, "requested_ml", None)
+                requested_qty = getattr(it, "requested_quantity", None)
+                requested_unit = (getattr(it, "requested_unit", None) or "").strip().lower()
+                # Backward compatible: older rows may only have needed_*
+                if requested_ml is None and requested_qty is None:
+                    requested_ml = getattr(it, "needed_ml", None)
+                    requested_qty = getattr(it, "needed_quantity", None)
+                    if not requested_unit:
+                        requested_unit = (getattr(it, "unit", None) or "").strip().lower()
+
+                if requested_ml is None and requested_qty is None:
+                    continue
+
+                delta: Optional[int] = None
+                inv_item: Optional[InventoryItemModel] = None
+
+                if getattr(it, "bottle_id", None):
+                    bottle = getattr(it, "bottle", None)
+                    if bottle is None:
+                        bottle = (await db.execute(select(BottleModel).where(BottleModel.id == it.bottle_id))).scalar_one_or_none()
+                    if bottle is None or not getattr(bottle, "volume_ml", None):
+                        raise HTTPException(
+                            status_code=status.HTTP_409_CONFLICT,
+                            detail=f"Bottle missing or missing volume_ml for bottle_id={it.bottle_id}",
+                        )
+
+                    if it.bottle_id not in inv_bottle_cache:
+                        inv_res = await db.execute(
+                            select(InventoryItemModel).where(
+                                InventoryItemModel.item_type == "BOTTLE",
+                                InventoryItemModel.bottle_id == it.bottle_id,
+                            )
+                        )
+                        inv_bottle_cache[it.bottle_id] = inv_res.scalar_one_or_none()
+                    inv_item = inv_bottle_cache.get(it.bottle_id)
+                    if not inv_item:
+                        raise HTTPException(
+                            status_code=status.HTTP_409_CONFLICT,
+                            detail=f"No inventory BOTTLE item found for bottle_id={it.bottle_id}",
+                        )
+
+                    if requested_ml is None:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bottle-backed line missing requested_ml")
+
+                    bottles_used = (Decimal(str(float(requested_ml))) / Decimal(str(int(bottle.volume_ml))))
+                    delta = -int(bottles_used)
+                else:
+                    ing_id = getattr(it, "ingredient_id", None)
+                    if not ing_id:
+                        continue
+                    if ing_id not in inv_garnish_cache:
+                        inv_res = await db.execute(
+                            select(InventoryItemModel).where(
+                                InventoryItemModel.item_type == "GARNISH",
+                                InventoryItemModel.ingredient_id == ing_id,
+                            )
+                        )
+                        inv_garnish_cache[ing_id] = inv_res.scalar_one_or_none()
+                    inv_item = inv_garnish_cache.get(ing_id)
+                    if not inv_item:
+                        raise HTTPException(
+                            status_code=status.HTTP_409_CONFLICT,
+                            detail=f"No inventory GARNISH item found for ingredient_id={ing_id}",
+                        )
+
+                    if requested_ml is not None:
+                        delta = -int(float(requested_ml))
+                    else:
+                        delta = -int(float(requested_qty))
+
+                if inv_item is None or delta is None:
+                    continue
+                deltas_by_item[inv_item.id] = int(deltas_by_item.get(inv_item.id, 0)) + int(delta)
+
+        # If location=ALL, split deductions across locations (WAREHOUSE then BAR).
+        movements_out: List[dict] = []
+        loc = (payload.location or "").upper()
+
+        if loc == "ALL":
+            item_ids = [iid for iid, d in deltas_by_item.items() if int(d) != 0]
+            if item_ids:
+                sres = await db.execute(
+                    select(InventoryStockModel).where(InventoryStockModel.inventory_item_id.in_(item_ids))
+                )
+                stocks = sres.scalars().all() or []
+            else:
+                stocks = []
+
+            stock_map: dict[tuple[UUID, str], InventoryStockModel] = {(s.inventory_item_id, s.location): s for s in stocks}
+
+            for inventory_item_id, delta in deltas_by_item.items():
+                delta = int(delta)
+                if delta == 0:
+                    continue
+                if delta > 0:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="consume-event only supports negative deltas")
+
+                need = -delta
+                wh = stock_map.get((inventory_item_id, "WAREHOUSE"))
+                bar = stock_map.get((inventory_item_id, "BAR"))
+                wh_avail = int((wh.quantity if wh else 0) or 0) - int((wh.reserved_quantity if wh else 0) or 0)
+                bar_avail = int((bar.quantity if bar else 0) or 0) - int((bar.reserved_quantity if bar else 0) or 0)
+                total_avail = wh_avail + bar_avail
+                if total_avail < need:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=f"Not enough total stock for item={inventory_item_id}. Available={total_avail} requested={need}",
+                    )
+
+                take_wh = min(wh_avail, need)
+                remaining = need - take_wh
+                take_bar = min(bar_avail, remaining)
+
+                if take_wh:
+                    movements_out.append(
+                        await _upsert_stock_and_add_movement(
+                            db=db,
+                            user=user,
+                            location="WAREHOUSE",
+                            inventory_item_id=inventory_item_id,
+                            delta=-int(take_wh),
+                            reason=reason,
+                            source_type="event_consume",
+                            source_id=payload.source_id,
+                            source_event_id=payload.event_id,
+                        )
+                    )
+                if take_bar:
+                    movements_out.append(
+                        await _upsert_stock_and_add_movement(
+                            db=db,
+                            user=user,
+                            location="BAR",
+                            inventory_item_id=inventory_item_id,
+                            delta=-int(take_bar),
+                            reason=reason,
+                            source_type="event_consume",
+                            source_id=payload.source_id,
+                            source_event_id=payload.event_id,
+                        )
+                    )
+        else:
+            for inventory_item_id, delta in deltas_by_item.items():
+                if int(delta) == 0:
+                    continue
+                movements_out.append(
+                    await _upsert_stock_and_add_movement(
+                        db=db,
+                        user=user,
+                        location=payload.location,
+                        inventory_item_id=inventory_item_id,
+                        delta=int(delta),
+                        reason=reason,
+                        source_type="event_consume",
+                        source_id=payload.source_id,
+                        source_event_id=payload.event_id,
+                    )
+                )
+
+        await db.commit()
+        return {
+            "event_id": payload.event_id,
+            "event_name": getattr(ev, "name", None),
+            "location": payload.location,
+            "movements_count": len(movements_out),
+            "movements": movements_out,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        print("[inventory] consume_event_from_stock failed:", repr(e))
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to consume event from stock: {e}",
+        )
+
+
+@router.post("/unconsume-event", response_model=Dict, status_code=status.HTTP_201_CREATED)
+async def unconsume_event_from_stock(
+    payload: UnconsumeEventRequest,
+    user: User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_async_session),
+):
+    """Reverse a previous consume-event operation by creating opposite movements."""
+    if not user.is_superuser:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
+
+    try:
+        ev_res = await db.execute(select(EventModel).where(EventModel.id == payload.event_id))
+        ev = ev_res.scalar_one_or_none()
+        if not ev:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+
+        loc = (payload.location or "ALL").upper()
+        q = (
+            select(InventoryMovementModel)
+            .where(InventoryMovementModel.source_event_id == payload.event_id)
+            .where(InventoryMovementModel.source_type == "event_consume")
+            .where(InventoryMovementModel.is_reversed == False)  # noqa: E712
+        )
+        if loc in ("BAR", "WAREHOUSE"):
+            q = q.where(InventoryMovementModel.location == loc)
+        res = await db.execute(q)
+        to_reverse = res.scalars().all() or []
+        # Back-compat: older consume rows were created with source_type='event' and reason "Event consumed: <name>".
+        if not to_reverse:
+            legacy_q = (
+                select(InventoryMovementModel)
+                .where(InventoryMovementModel.source_event_id.is_(None))
+                .where((InventoryMovementModel.source_type.is_(None)) | (InventoryMovementModel.source_type == "event"))
+                .where(InventoryMovementModel.is_reversed == False)  # noqa: E712
+                .where(InventoryMovementModel.is_reversal == False)  # noqa: E712
+                .where(InventoryMovementModel.change < 0)
+                .where(InventoryMovementModel.reason.in_(_legacy_event_reason_candidates(ev)))
+            )
+            if loc in ("BAR", "WAREHOUSE"):
+                legacy_q = legacy_q.where(InventoryMovementModel.location == loc)
+            legacy_res = await db.execute(legacy_q)
+            to_reverse = legacy_res.scalars().all() or []
+
+            # If still nothing, we truly have nothing to unconsume.
+            if not to_reverse:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Nothing to unconsume for this event.")
+
+        reason = payload.reason or _default_event_unconsumed_reason(ev)
+        movements_out: List[dict] = []
+
+        for mv in to_reverse:
+            # Normalize legacy rows so future status checks can find them.
+            if getattr(mv, "source_event_id", None) is None:
+                mv.source_event_id = payload.event_id
+            if (getattr(mv, "source_type", None) or "").strip().lower() in ("", "event"):
+                mv.source_type = "event_consume"
+
+            # Mark original as reversed and create a reversal movement.
+            mv.is_reversed = True
+            movements_out.append(
+                await _upsert_stock_and_add_movement(
+                    db=db,
+                    user=user,
+                    location=str(mv.location),
+                    inventory_item_id=mv.inventory_item_id,
+                    delta=-int(mv.change),
+                    reason=reason,
+                    source_type="event_unconsume",
+                    source_id=None,
+                    source_event_id=payload.event_id,
+                    is_reversal=True,
+                    reversal_of_id=mv.id,
+                )
+            )
+
+        await db.commit()
+        return {
+            "event_id": payload.event_id,
+            "event_name": getattr(ev, "name", None),
+            "location": payload.location,
+            "movements_count": len(movements_out),
+            "movements": movements_out,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        print("[inventory] unconsume_event_from_stock failed:", repr(e))
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to unconsume event from stock: {e}",
+        )
+
+
+@router.get("/events/{event_id}/consumption", response_model=Dict)
+async def event_consumption_status(
+    event_id: UUID,
+    user: User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_async_session),
+):
+    """Return whether an event is currently consumed (i.e. has non-reversed event_consume movements)."""
+    if not user.is_superuser:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
+    res = await db.execute(
+        select(func.count())
+        .select_from(InventoryMovementModel)
+        .where(InventoryMovementModel.source_event_id == event_id)
+        .where(InventoryMovementModel.source_type == "event_consume")
+        .where(InventoryMovementModel.is_reversed == False)  # noqa: E712
+    )
+    tagged = int(res.scalar_one() or 0) > 0
+    if tagged:
+        return {"event_id": event_id, "is_consumed": True}
+
+    # Back-compat: legacy "event" movements with reason text.
+    ev_res = await db.execute(select(EventModel).where(EventModel.id == event_id))
+    ev = ev_res.scalar_one_or_none()
+    if not ev:
+        return {"event_id": event_id, "is_consumed": False}
+
+    legacy_res = await db.execute(
+        select(func.count())
+        .select_from(InventoryMovementModel)
+        .where(InventoryMovementModel.source_event_id.is_(None))
+        .where((InventoryMovementModel.source_type.is_(None)) | (InventoryMovementModel.source_type == "event"))
+        .where(InventoryMovementModel.is_reversed == False)  # noqa: E712
+        .where(InventoryMovementModel.is_reversal == False)  # noqa: E712
+        .where(InventoryMovementModel.change < 0)
+        .where(InventoryMovementModel.reason.in_(_legacy_event_reason_candidates(ev)))
+    )
+    return {"event_id": event_id, "is_consumed": int(legacy_res.scalar_one() or 0) > 0}
 
 @router.get("/movements", response_model=List[Dict])
 async def list_movements(

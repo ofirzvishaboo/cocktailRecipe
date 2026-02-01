@@ -1,9 +1,24 @@
-{$DOMAIN} {
+{$DOMAIN:ofirzvishaboo.com}, www.{$DOMAIN:ofirzvishaboo.com} {
   encode gzip zstd
 
   # API under /api (strip /api prefix before proxying to FastAPI)
   handle_path /api/* {
-    reverse_proxy api:8000
+    reverse_proxy api:8000 {
+      # FastAPI will sometimes redirect "/path" -> "/path/" (307).
+      # Without this, the browser follows the redirect outside "/api" and hits the frontend.
+      # Caddy uses RE2 regex (no lookaheads), so we do a safe 2-step rewrite:
+      # 1) Prefix any absolute-path Location with /api/
+      # 2) If it was already prefixed, collapse /api/api/ back to /api/
+      #
+      # Note: FastAPI may also emit an absolute URL Location like:
+      #   http://www.example.com/path/
+      # We rewrite those too, and force https.
+      header_down Location ^/(.*)$ /api/$1
+      header_down Location ^/api/api/(.*)$ /api/$1
+      header_down Location ^http://([^/]+)/(.*)$ https://$1/api/$2
+      header_down Location ^https://([^/]+)/(.*)$ https://$1/api/$2
+      header_down Location ^https://([^/]+)/api/api/(.*)$ https://$1/api/$2
+    }
   }
 
   # Everything else -> frontend (nginx static)

@@ -6,6 +6,9 @@
     "saving": "שומר...",
     "save": "שמור",
     "edit": "ערוך",
+    "delete": "מחק",
+    "clear": "נקה",
+    "refresh": "רענן",
     "search": "חיפוש",
     "from": "מ־",
     "to": "עד",
@@ -31,12 +34,124 @@
     "ingredients": "מרכיבים",
     "scaler": "מחשבון באצ׳",
     "inventory": "מלאי",
+    "orders": "הזמנות",
+    "events": "אירועים",
     "welcome": "ברוך הבא, {{name}}",
     "logout": "התנתק",
     "login": "התחברות",
     "signup": "הרשמה",
     "language": "שפה",
     "toggleMenu": "פתח/סגור תפריט"
+  },
+  "events": {
+    "title": "אירועים",
+    "subtitle": "יצירה וניהול אירועים (אדמין בלבד).",
+    "listTitle": "אירועים קרובים",
+    "detailsTitle": "פרטי אירוע",
+    "ordersTitle": "הזמנות לאירוע הזה",
+    "noOrdersForEvent": "אין הזמנות לאירוע הזה. קודם צור סיכום שבועי.",
+    "openOrdersToGenerate": "פתח הזמנות",
+    "menuTitle": "תפריט (4 קוקטיילים)",
+    "unnamed": "אירוע ללא שם",
+    "empty": "אין אירועים",
+    "backToList": "← חזרה לאירועים",
+    "confirmDelete": "למחוק את האירוע?",
+    "meta": "{{date}} • {{people}} אנשים",
+    "consumeHelp": "צריכה/ביטול צריכה משפיעים על המלאי (לפי ההזמנות שנוצרו לאירוע).",
+    "status": {
+      "consumed": "נצרך",
+      "notConsumed": "לא נצרך"
+    },
+    "fields": {
+      "name": "שם",
+      "date": "תאריך",
+      "people": "כמות אנשים",
+      "servingsPerPerson": "מנות לאדם",
+      "cocktails": "קוקטיילים",
+      "cocktailN": "קוקטייל {{n}}",
+      "notes": "הערות"
+    },
+    "placeholders": {
+      "name": "למשל: אירוע פרטי",
+      "notes": "הערות (אופציונלי)…",
+      "selectCocktail": "בחר קוקטייל…"
+    },
+    "actions": {
+      "create": "צור אירוע",
+      "new": "אירוע חדש",
+      "view": "צפה",
+      "openInventory": "מלאי"
+    },
+    "createTitle": "הוספת אירוע",
+    "editTitle": "עריכת אירוע",
+    "errors": {
+      "loadFailed": "טעינת האירועים נכשלה.",
+      "createFailed": "יצירת האירוע נכשלה.",
+      "updateFailed": "עדכון האירוע נכשל.",
+      "deleteFailed": "מחיקת האירוע נכשלה.",
+      "exactlyFourCocktails": "בחר בדיוק 4 קוקטיילים.",
+      "notFound": "אירוע לא נמצא."
+    }
+  },
+  "orders": {
+    "title": "הזמנות",
+    "listTitle": "הזמנות קרובות",
+    "detailsTitle": "פרטי הזמנה",
+    "all": "הכל",
+    "allSuppliers": "כל הספקים",
+    "eventsTitle": "אירועים",
+    "emptyEvents": "אין אירועים",
+    "selectEventHelp": "בחר אירוע כדי לראות הזמנות.",
+    "selectSupplierHelp": "בחר ספק כדי לראות פרטים.",
+    "event": {
+      "title": "אירוע",
+      "unnamed": "אירוע ללא שם"
+    },
+    "order": "הזמנה",
+    "empty": "אין הזמנות",
+    "selectHelp": "בחר הזמנה כדי לראות פרטים.",
+    "supplier": {
+      "unknown": "ספק לא ידוע"
+    },
+    "filters": {
+      "view": "תצוגה",
+      "status": "סטטוס"
+    },
+    "view": {
+      "WEEKLY": "סיכום שבועי",
+      "EVENT": "לפי אירוע"
+    },
+    "columns": {
+      "ingredient": "מרכיב",
+      "needed": "נדרש",
+      "requested": "נדרש לאירוע",
+      "usedFromStock": "נלקח מהמלאי",
+      "shortfall": "חוסר",
+      "bottles": "בקבוקים",
+      "actions": "פעולות"
+    },
+    "actions": {
+      "generateWeekly": "צור הזמנות שבועיות",
+      "generateWeeklyByEvent": "צור הזמנות שבועיות (לפי אירוע)",
+      "generating": "יוצר...",
+      "editLine": "ערוך"
+    },
+    "prompts": {
+      "overrideNeededMl": "עדכון מ״ל נדרש (מספר):"
+    },
+    "status": {
+      "DRAFT": "טיוטה",
+      "SENT": "נשלח",
+      "RECEIVED": "התקבל",
+      "CANCELLED": "בוטל"
+    },
+    "errors": {
+      "notAllowed": "אין הרשאה",
+      "loadFailed": "טעינת ההזמנות נכשלה",
+      "loadEventsFailed": "טעינת האירועים נכשלה",
+      "generateFailed": "יצירת הזמנות שבועיות נכשלה",
+      "updateFailed": "עדכון ההזמנה נכשל"
+    }
   },
   "cocktails": {
     "editTitle": "עריכת קוקטייל",
@@ -223,7 +338,9 @@
     "filters": {
       "location": "מיקום",
       "type": "סוג",
-      "subcategory": "תת־קטגוריה"
+      "subcategory": "תת־קטגוריה",
+      "show": "מסננים",
+      "hide": "הסתר מסננים"
     },
     "searchItemsPlaceholder": "חפש פריטים...",
     "locations": {
@@ -277,6 +394,16 @@
     "movement": {
       "selectLocationHelp": "בחר בר או מחסן כדי להוסיף תנועה.",
       "currentStock": "מלאי נוכחי",
+      "event": "אירוע",
+      "selectEvent": "בחר אירוע…",
+      "unnamedEvent": "אירוע ללא שם",
+      "consumeEvent": "צריכת אירוע מהמלאי",
+      "consumingEvent": "צורך…",
+      "unconsumeEvent": "ביטול צריכת אירוע",
+      "unconsumingEvent": "מבטל צריכה…",
+      "consumed": "נצרך",
+      "consumeFrom": "צריכה מתוך",
+      "applyToLocation": "החלה על מיקום",
       "item": "פריט",
       "selectItem": "בחר פריט…",
       "changePlaceholder": "+/-",
@@ -295,6 +422,8 @@
       "loadStockFailed": "טעינת המלאי נכשלה",
       "loadItemsFailed": "טעינת הפריטים נכשלה",
       "loadMovementsFailed": "טעינת התנועות נכשלה",
+      "loadEventsFailed": "טעינת האירועים נכשלה",
+      "consumeEventFailed": "צריכת האירוע מהמלאי נכשלה",
       "updateItemFailed": "עדכון הפריט נכשל"
     },
     "reorder": {

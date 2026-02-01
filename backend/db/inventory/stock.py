@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, ForeignKey, Numeric, Text
+from sqlalchemy import Column, ForeignKey, Integer, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -20,8 +20,8 @@ class InventoryStock(Base):
         index=True,
     )
 
-    quantity = Column(Numeric, nullable=False, default=0)
-    reserved_quantity = Column(Numeric, nullable=False, default=0)
+    quantity = Column(Integer, nullable=False, default=0)
+    reserved_quantity = Column(Integer, nullable=False, default=0)
 
     inventory_item = relationship("InventoryItem", back_populates="stocks")
 
