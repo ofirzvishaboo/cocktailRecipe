@@ -471,11 +471,24 @@ html[dir="rtl"] .navbar-user {
 
 .cocktail-card-actions {
   display: flex;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.6rem;
   padding: 0.75rem 1rem 1rem 1rem;
   border-top: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.7);
+  justify-content: flex-start;
+}
+
+.cocktail-card-actions .ingredient-chips {
+  justify-content: flex-start;
+  margin-top: 0;
+}
+
+.cocktail-card-action-buttons {
+  display: flex;
+  gap: 0.5rem;
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .cocktail-image {

@@ -395,6 +395,11 @@ const CocktailsPage = () => {
                                     </div>
                                     <div className="cocktail-card-body">
                                       <div className="cocktail-card-title">{displayCocktailName(c)}</div>
+                                    </div>
+                                  </Link>
+
+                                  {(chips.shown.length > 0 || (isAuthenticated && isOwner(c))) && (
+                                    <div className="cocktail-card-actions">
                                       {(chips.shown.length > 0) && (
                                         <div className="ingredient-chips">
                                           {chips.shown.map((name) => (
@@ -407,24 +412,23 @@ const CocktailsPage = () => {
                                           )}
                                         </div>
                                       )}
-                                    </div>
-                                  </Link>
-
-                                  {isAuthenticated && isOwner(c) && (
-                                    <div className="cocktail-card-actions">
-                                      <button
-                                        onClick={() => editCocktail(c)}
-                                        className="button-edit"
-                                        disabled={!c.id}
-                                      >
-                                        {t('cocktails.actions.edit')}
-                                      </button>
-                                      <button
-                                        onClick={() => requestRemoveCocktail(c.id)}
-                                        className="button-remove"
-                                      >
-                                        {t('cocktails.actions.remove')}
-                                      </button>
+                                      {isAuthenticated && isOwner(c) && (
+                                        <div className="cocktail-card-action-buttons">
+                                          <button
+                                            onClick={() => editCocktail(c)}
+                                            className="button-edit"
+                                            disabled={!c.id}
+                                          >
+                                            {t('cocktails.actions.edit')}
+                                          </button>
+                                          <button
+                                            onClick={() => requestRemoveCocktail(c.id)}
+                                            className="button-remove"
+                                          >
+                                            {t('cocktails.actions.remove')}
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -468,6 +472,11 @@ const CocktailsPage = () => {
                                     </div>
                                     <div className="cocktail-card-body">
                                       <div className="cocktail-card-title">{displayCocktailName(c)}</div>
+                                    </div>
+                                  </Link>
+
+                                  {(chips.shown.length > 0 || (isAuthenticated && isOwner(c))) && (
+                                    <div className="cocktail-card-actions">
                                       {(chips.shown.length > 0) && (
                                         <div className="ingredient-chips">
                                           {chips.shown.map((name) => (
@@ -480,24 +489,23 @@ const CocktailsPage = () => {
                                           )}
                                         </div>
                                       )}
-                                    </div>
-                                  </Link>
-
-                                  {isAuthenticated && isOwner(c) && (
-                                    <div className="cocktail-card-actions">
-                                      <button
-                                        onClick={() => editCocktail(c)}
-                                        className="button-edit"
-                                        disabled={!c.id}
-                                      >
-                                        {t('cocktails.actions.edit')}
-                                      </button>
-                                      <button
-                                        onClick={() => requestRemoveCocktail(c.id)}
-                                        className="button-remove"
-                                      >
-                                        {t('cocktails.actions.remove')}
-                                      </button>
+                                      {isAuthenticated && isOwner(c) && (
+                                        <div className="cocktail-card-action-buttons">
+                                          <button
+                                            onClick={() => editCocktail(c)}
+                                            className="button-edit"
+                                            disabled={!c.id}
+                                          >
+                                            {t('cocktails.actions.edit')}
+                                          </button>
+                                          <button
+                                            onClick={() => requestRemoveCocktail(c.id)}
+                                            className="button-remove"
+                                          >
+                                            {t('cocktails.actions.remove')}
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>
