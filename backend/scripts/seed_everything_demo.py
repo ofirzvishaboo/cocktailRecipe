@@ -43,6 +43,7 @@ from db.database import Supplier  # noqa: E402
 from scripts.seed_inventory_v3 import seed as seed_inventory_v3  # noqa: E402
 from scripts.seed_suppliers import _pick_supplier_name_for_ingredient, SEED_SUPPLIERS  # noqa: E402
 
+from sqlalchemy.exc import DBAPIError  # noqa: E402
 
 password_helper = PasswordHelper()
 
@@ -601,7 +602,19 @@ async def seed():
         await session.commit()
 
     # Inventory items + stock rows + garnish/glass items
-    await seed_inventory_v3(with_glass=True, for_cocktails=True, from_garnish_text=True, create_missing_garnish_ingredients=True)
+    # NOTE: right after `docker compose up`, the API startup may still be running migrations/DDL.
+    # That can temporarily deadlock with the inventory seeding. Retry a few times.
+    for attempt in range(1, 6):
+        try:
+            await seed_inventory_v3(with_glass=True, for_cocktails=True, from_garnish_text=True, create_missing_garnish_ingredients=True)
+            break
+        except DBAPIError as e:
+            msg = str(getattr(e, "orig", e) or "")
+            if "deadlock detected" not in msg.lower():
+                raise
+            wait_s = min(10, 2 * attempt)
+            print(f"[seed_everything_demo] Deadlock during inventory seed; retrying in {wait_s}s (attempt {attempt}/5)")
+            await asyncio.sleep(wait_s)
     print("[seed_everything_demo] done.")
 
 
