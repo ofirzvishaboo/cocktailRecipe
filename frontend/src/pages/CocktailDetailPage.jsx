@@ -283,24 +283,28 @@ const CocktailDetailPage = () => {
   return (
     <div className="card">
       <div className="cocktail-detail-header">
-        <Link to="/" className="back-link">
-          {t('cocktailDetail.backToCocktails')}
-        </Link>
+      <div className="cocktail-title-row">
+      <Link to="/" className="back-link">
+        {t('cocktailDetail.backToCocktails')}
+      </Link>
 
-        <div className="cocktail-title-row">
-          <h1 className="cocktail-detail-title">{displayCocktailName()}</h1>
+      <h1 className="cocktail-detail-title">
+        {displayCocktailName()}
+      </h1>
 
-          {isOwner() && (
-            <div className="cocktail-actions-inline">
-              <button onClick={() => setEditing(true)} className="button-edit">
-                {t('cocktailDetail.actions.edit')}
-              </button>
-              <button onClick={() => setDeleteConfirmOpen(true)} className="button-remove">
-                {t('cocktailDetail.actions.delete')}
-              </button>
-            </div>
-          )}
+      {isOwner() ? (
+        <div className="cocktail-actions-inline">
+          <button onClick={() => setEditing(true)} className="button-edit">
+            {t('cocktailDetail.actions.edit')}
+          </button>
+          <button onClick={() => setDeleteConfirmOpen(true)} className="button-remove">
+            {t('cocktailDetail.actions.delete')}
+          </button>
         </div>
+      ) : (
+        <div /> /* keeps grid 3 columns so title stays centered */
+      )}
+    </div>
       </div>
 
       <div className="cocktail-detail-content">
