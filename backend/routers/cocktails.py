@@ -469,14 +469,9 @@ async def get_cocktail_cost(
     scaled_total_cost = 0.0
 
     as_of = date.today()
-    # Filter out juice ingredients if batch_type is 'base'
+    # NOTE: /cost should always include ALL ingredients.
+    # If the caller wants to exclude juices (e.g. when batching "base"), use /no-juice-cost.
     recipe_ingredients = cocktail.recipe_ingredients
-    if cocktail.batch_type == 'base':
-        recipe_ingredients = [
-            ri for ri in recipe_ingredients
-            if ri.ingredient and ri.ingredient.subcategory
-            and ri.ingredient.subcategory.name.lower() != 'juice'
-        ]
 
     for ri in recipe_ingredients:
         qty = float(ri.quantity or 0)

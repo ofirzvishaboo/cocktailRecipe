@@ -575,7 +575,8 @@ async def seed():
                     is_base=True,  # Classic
                     preparation_method=prep,
                     preparation_method_he=prep_he,
-                    batch_type="base",
+                    # Keep null so the Scaler UI stays on its default ("batch") unless user chooses otherwise.
+                    batch_type=None,
                 )
                 session.add(c)
                 await session.flush()
