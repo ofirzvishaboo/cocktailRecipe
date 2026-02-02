@@ -25,7 +25,7 @@
       "oz": "oz"
     },
     "currencies": {
-      "ILS": "ILS"
+      "ILS": "₪"
     }
   },
   "nav": {
@@ -196,7 +196,7 @@
   },
   "cocktailDetail": {
     "loading": "Loading cocktail...",
-    "backToCocktails": "Back to Cocktails",
+    "backToCocktails": "← Back to Cocktails",
     "editTitle": "Edit Cocktail",
     "actions": {
       "edit": "Edit",

@@ -31,7 +31,7 @@ export default function InventoryPage() {
   const lang = (i18n.language || 'en').split('-')[0]
   const showPrices = !!isAdmin
   const showMovements = !!isAdmin
-  const MIN_VISIBLE_STOCK_QTY = 1 // show only items with quantity > 1
+  const MIN_VISIBLE_STOCK_QTY = 1 // show only items with quantity >= 1
   const [filtersOpen, setFiltersOpen] = useState(false)
 
   const [location, setLocation] = useState('ALL')
@@ -143,9 +143,9 @@ export default function InventoryPage() {
       if (!r) return false
       if (location === 'ALL') {
         const total = Number(r?.quantity_bar || 0) + Number(r?.quantity_warehouse || 0)
-        return total > MIN_VISIBLE_STOCK_QTY
+        return total >= MIN_VISIBLE_STOCK_QTY
       }
-      return Number(r?.quantity || 0) > MIN_VISIBLE_STOCK_QTY
+      return Number(r?.quantity || 0) >= MIN_VISIBLE_STOCK_QTY
     }
 
     const base = (stockRows || []).filter(hasStock)

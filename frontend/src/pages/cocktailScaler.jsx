@@ -496,10 +496,17 @@ export default function CocktailScaler() {
     const totalVolume = calculateTotalVolume();
     const scalingFactor = calculateScalingFactor();
 
-    const formatMoney = (value) => {
+    const displayCurrency = (currency) => {
+        const key = (currency || '').trim().toUpperCase()
+        if (!key) return t('common.currencies.ILS', { defaultValue: '₪' })
+        return t(`common.currencies.${key}`, { defaultValue: key })
+    }
+
+    const formatMoney = (value, currency) => {
         const n = Number(value);
         if (Number.isNaN(n)) return '0.00';
-        return n.toFixed(2);
+        const c = displayCurrency(currency || 'ILS')
+        return `${n.toFixed(2)} ${c}`;
     };
 
     return (
@@ -507,58 +514,6 @@ export default function CocktailScaler() {
 
             <div className="scaler-grid">
                 <div className="scaler-left">
-            <div className="cocktail-selector-section">
-                <h3>{t('scaler.select.title')}</h3>
-                {loading && <div className="loading">{t('scaler.select.loading')}</div>}
-                {error && <div className="error-message">{error}</div>}
-                {!loading && !error && (
-                    <>
-                        <div className="search-container-selector">
-                            <input
-                                type="text"
-                                placeholder={t('cocktails.searchPlaceholder')}
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="search-input-selector"
-                            />
-                        </div>
-                    <div className="cocktails-list-selector">
-                            {filteredCocktails.length === 0 ? (
-                                <p>
-                                    {searchQuery.trim()
-                                        ? t('cocktails.empty.matching', { query: searchQuery })
-                                        : cocktails.length === 0
-                                            ? t('scaler.select.noneAvailable')
-                                            : t('cocktails.empty.noSearchMatch')}
-                                </p>
-                        ) : (
-                            <ul className="cocktail-selector-list">
-                                    {filteredCocktails.map((cocktail) => (
-                                    <li key={cocktail.id} className="cocktail-selector-item">
-                                        <div className="cocktail-selector-info">
-                                            <span className="cocktail-selector-name">{displayCocktailName(cocktail)}</span>
-                                            {getIngredientNamesForCocktail(cocktail).length > 0 && (
-                                                <span className="cocktail-selector-ingredients">
-                                                    {t('scaler.select.ingredientsCount', { count: getIngredientNamesForCocktail(cocktail).length })}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleAddCocktail(cocktail)}
-                                            className="add-cocktail-btn"
-                                        >
-                                                        {t('scaler.select.selectButton')}
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-                    </>
-                )}
-            </div>
-
             <div className="recipe-input">
                 <div className="input-group">
                     <label htmlFor="recipeName">{t('scaler.inputs.cocktailName')}</label>
@@ -654,6 +609,57 @@ export default function CocktailScaler() {
                         brandDisabledByIndex={ingredients.map(() => selectedCocktailId ? !canEditSelectedCocktail() : false)}
                         showPrices={!!isAdmin}
                 />
+            <div className="cocktail-selector-section">
+                <h3>{t('scaler.select.title')}</h3>
+                {loading && <div className="loading">{t('scaler.select.loading')}</div>}
+                {error && <div className="error-message">{error}</div>}
+                {!loading && !error && (
+                    <>
+                        <div className="search-container-selector">
+                            <input
+                                type="text"
+                                placeholder={t('cocktails.searchPlaceholder')}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="search-input-selector"
+                            />
+                        </div>
+                    <div className="cocktails-list-selector">
+                            {filteredCocktails.length === 0 ? (
+                                <p>
+                                    {searchQuery.trim()
+                                        ? t('cocktails.empty.matching', { query: searchQuery })
+                                        : cocktails.length === 0
+                                            ? t('scaler.select.noneAvailable')
+                                            : t('cocktails.empty.noSearchMatch')}
+                                </p>
+                        ) : (
+                            <ul className="cocktail-selector-list">
+                                    {filteredCocktails.map((cocktail) => (
+                                    <li key={cocktail.id} className="cocktail-selector-item">
+                                        <div className="cocktail-selector-info">
+                                            <span className="cocktail-selector-name">{displayCocktailName(cocktail)}</span>
+                                            {getIngredientNamesForCocktail(cocktail).length > 0 && (
+                                                <span className="cocktail-selector-ingredients">
+                                                    {t('scaler.select.ingredientsCount', { count: getIngredientNamesForCocktail(cocktail).length })}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleAddCocktail(cocktail)}
+                                            className="add-cocktail-btn"
+                                        >
+                                                        {t('scaler.select.selectButton')}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                    </>
+                )}
+            </div>
                 </div>
 
                 <div className="scaler-right">
@@ -730,13 +736,19 @@ export default function CocktailScaler() {
                                                 <span className="cost-ingredient">{displayIngredientName(line)}</span>
                                                 <span className="cost-brand">{line.bottle_name || '-'}</span>
                                                 <span className="cost-ml">{Math.round((Number(line.scaled_quantity) || 0) * 100) / 100} {line.unit || ''}</span>
-                                                <span className="cost-value">{formatMoney(line.ingredient_cost)}</span>
+                                                <span className="cost-value">{formatMoney(line.ingredient_cost, line.currency || 'ILS')}</span>
                                             </div>
                                         ))}
                                     </div>
 
                                     <div className="cost-summary">
-                                        <p><strong>{t('scaler.cost.scaledTotal')}:</strong> {formatMoney(costData.scaled_total_cost)}</p>
+                                        <p>
+                                            <strong>{t('scaler.cost.scaledTotal')}:</strong>{' '}
+                                            {formatMoney(
+                                                costData.scaled_total_cost,
+                                                costData?.lines?.find((l) => l?.currency)?.currency || 'ILS'
+                                            )}
+                                        </p>
                                     </div>
                                 </>
                             )}
