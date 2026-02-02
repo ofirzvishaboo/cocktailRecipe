@@ -450,14 +450,108 @@ html[dir="rtl"] .navbar-user {
   font-weight: 700;
 }
 
+/* --- Cocktail card polish (footer layout + cleaner body) --- */
+
 .cocktail-card-body {
-  padding: 0.9rem 1rem 1rem 1rem;
+  padding: 0.9rem 1rem 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-  align-items: center;
-  text-align: center;
+  align-items: stretch;
+  text-align: left;
 }
+
+.cocktail-card-title {
+  text-align: center; /* keep title centered */
+}
+
+/* Footer: chips left, buttons right */
+.cocktail-card-actions {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.ingredient-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: flex-start;
+  align-items: center;
+
+  margin: 0;      /* important: avoid weird extra spacing */
+  flex: 1;
+  min-width: 0;
+}
+
+.cocktail-card-action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Make edit/remove feel consistent and modern */
+.cocktail-card-action-buttons .button-edit,
+.cocktail-card-action-buttons .button-remove {
+  height: 34px;
+  padding: 0 0.9rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.cocktail-card-action-buttons .button-edit:hover:not(:disabled),
+.cocktail-card-action-buttons .button-remove:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* --- Mobile layout for cocktail card footer --- */
+@media (max-width: 768px) {
+  .cocktail-card-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  @media (max-width: 768px) {
+    .ingredient-chips {
+      justify-content: center;   /* center chips on mobile */
+      width: 100%;
+    }
+  }
+
+
+  .cocktail-card-action-buttons {
+    width: 100%;
+    justify-content: flex-end; /* in RTL this will visually be left, which is fine */
+    gap: 0.5rem;
+  }
+}
+
+/* Extra-small phones: make buttons easier to tap and layout cleaner */
+@media (max-width: 480px) {
+  .cocktail-card-action-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Edit | Remove */
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .cocktail-card-action-buttons .button-edit,
+  .cocktail-card-action-buttons .button-remove {
+    width: 100%;
+    height: 38px;      /* better tap target */
+    padding: 0 0.75rem;
+    border-radius: 12px;
+  }
+}
+
 
 .cocktail-card-title {
   font-size: 1.1rem;
@@ -469,27 +563,15 @@ html[dir="rtl"] .navbar-user {
   white-space: nowrap;
 }
 
-.cocktail-card-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  padding: 0.75rem 1rem 1rem 1rem;
-  border-top: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.7);
-  justify-content: flex-start;
-}
 
-.cocktail-card-actions .ingredient-chips {
-  justify-content: flex-start;
-  margin-top: 0;
-}
+
+
 
 .cocktail-card-action-buttons {
   display: flex;
-  gap: 0.5rem;
   justify-content: flex-end;
-  flex-wrap: wrap;
 }
+
 
 .cocktail-image {
   width: 80px;
@@ -547,13 +629,7 @@ html[dir="rtl"] .navbar-user {
   font-size: 0.95rem;
 }
 
-.ingredient-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
-  justify-content: center;
-}
+
 
 .ingredient-chip {
   display: inline-flex;
@@ -1276,17 +1352,9 @@ html[dir="rtl"] .navbar-user {
     text-align: center;
   }
 
-  .cocktail-title-row {
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    gap: 0.5rem;
-  }
 
-  .cocktail-actions-inline {
-    width: 100%;
-    justify-content: flex-start;
-  }
+
+
 
   .cocktail-image,
   .cocktail-image-placeholder {
@@ -1421,28 +1489,121 @@ html[dir="rtl"] .navbar-user {
   }
 }
 
+
+/* Cocktail Detail Page Styles */
 /* Cocktail Detail Page Styles */
 .cocktail-detail-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  margin-bottom: 1.25rem;
   padding-bottom: 1rem;
   border-bottom: 2px solid var(--border);
 }
 
+/* Back link alignment (LTR/RTL) */
+
+
+/* Back link alignment – correct for LTR & RTL */
 .back-link {
+  margin-inline-end: auto;   /* pushes it to the start side */
   color: var(--primary);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 1rem;
-  transition: color 0.2s;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.7);
 }
 
 .back-link:hover {
   color: var(--primary-hover);
-  text-decoration: underline;
+  background: var(--primary-soft);
+  border-color: rgba(47,127,247,0.25);
 }
+
+
+/* 3-column grid: keeps title perfectly centered even with buttons */
+.cocktail-title-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr; /* spacer | title | actions */
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.cocktail-detail-title {
+  grid-column: 2;
+  margin: 0;
+  color: var(--text);
+  font-size: 2.5rem;
+  text-align: center;
+  width: 100%;
+}
+
+.cocktail-actions-inline {
+  grid-column: 3;
+  justify-self: end;
+  display: inline-flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Mobile: stack buttons under title */
+@media (max-width: 768px) {
+  .cocktail-title-row {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 0.6rem;
+  }
+
+  .cocktail-detail-title {
+    grid-column: auto;
+    font-size: 2rem;
+  }
+
+  .cocktail-actions-inline {
+    grid-column: auto;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .cocktail-actions-inline .button-edit,
+  .cocktail-actions-inline .button-remove {
+    width: 100%;
+    height: 40px;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cocktail-actions-inline {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .cocktail-actions-inline .button-edit,
+  .cocktail-actions-inline .button-remove {
+    width: 100%;
+  }
+}
+
+/* RTL: keep action buttons on the RIGHT */
+html[dir="rtl"] .cocktail-actions-inline {
+  justify-self: start;   /* start = right in RTL */
+}
+
+html[dir="rtl"] .back-link {
+  align-self: flex-end;  /* right in RTL */
+}
+
 
 .cocktail-actions {
   display: flex;
@@ -1492,31 +1653,9 @@ html[dir="rtl"] .navbar-user {
   gap: 1.5rem;
 }
 
-.cocktail-detail-title {
-  font-size: 2.5rem;
-  margin: 0;
-  color: var(--text);
-}
 
-.cocktail-title-row {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-}
 
-.cocktail-detail-title {
-  justify-self: center;
-  text-align: center;
-}
 
-.cocktail-actions-inline {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  justify-self: end;
-}
 
 .cocktail-meta {
   display: flex;
@@ -1707,11 +1846,8 @@ html[dir="rtl"] .navbar-user {
     grid-template-columns: 1fr;
   }
 
-  .cocktail-detail-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
+
+
 
   .cocktail-detail-title {
     font-size: 2rem;

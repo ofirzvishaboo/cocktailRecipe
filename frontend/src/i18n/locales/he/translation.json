@@ -54,7 +54,7 @@
     "menuTitle": "תפריט (4 קוקטיילים)",
     "unnamed": "אירוע ללא שם",
     "empty": "אין אירועים",
-    "backToList": "חזרה לאירועים →",
+    "backToList": "⭢ חזרה לאירועים",
     "confirmDelete": "למחוק את האירוע?",
     "meta": "{{date}} • {{people}} אנשים",
     "consumeHelp": "צריכה/ביטול צריכה משפיעים על המלאי (לפי ההזמנות שנוצרו לאירוע).",
@@ -196,7 +196,7 @@
   },
   "cocktailDetail": {
     "loading": "טוען קוקטייל...",
-    "backToCocktails": "חזרה לקוקטיילים →",
+    "backToCocktails": "⭢ חזרה לקוקטיילים",
     "editTitle": "עריכת קוקטייל",
     "actions": {
       "edit": "ערוך",

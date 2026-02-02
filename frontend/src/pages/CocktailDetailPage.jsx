@@ -282,27 +282,25 @@ const CocktailDetailPage = () => {
 
   return (
     <div className="card">
-      <div className="cocktail-title-row">
-        <h1 className="cocktail-detail-title">{displayCocktailName()}</h1>
-        {isOwner() && (
-          <div className="cocktail-actions-inline">
-            <button
-              onClick={() => setEditing(true)}
-              className="button-edit"
-            >
-              {t('cocktailDetail.actions.edit')}
-            </button>
-            <button
-              onClick={() => setDeleteConfirmOpen(true)}
-              className="button-remove"
-            >
-              {t('cocktailDetail.actions.delete')}
-            </button>
-          </div>
-        )}
-      </div>
       <div className="cocktail-detail-header">
-        <Link to="/" className="back-link">{t('cocktailDetail.backToCocktails')}</Link>
+        <Link to="/" className="back-link">
+          {t('cocktailDetail.backToCocktails')}
+        </Link>
+
+        <div className="cocktail-title-row">
+          <h1 className="cocktail-detail-title">{displayCocktailName()}</h1>
+
+          {isOwner() && (
+            <div className="cocktail-actions-inline">
+              <button onClick={() => setEditing(true)} className="button-edit">
+                {t('cocktailDetail.actions.edit')}
+              </button>
+              <button onClick={() => setDeleteConfirmOpen(true)} className="button-remove">
+                {t('cocktailDetail.actions.delete')}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="cocktail-detail-content">
