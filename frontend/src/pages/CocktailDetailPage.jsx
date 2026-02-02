@@ -209,43 +209,6 @@ const CocktailDetailPage = () => {
     }
   }
 
-  const saveGarnishHebrew = async () => {
-    if (!id) return
-    if (!isOwner()) return
-    try {
-      setMetaSaving(true)
-      setMetaSaveError('')
-      const payload = buildCocktailUpdatePayload({
-        garnish_text_he: (metaDraft.garnish_text_he || '').trim() || null,
-      })
-      const res = await api.put(`/cocktail-recipes/${id}`, payload)
-      setCocktail(res.data)
-      setMetaEdit((p) => ({ ...p, garnish: false }))
-    } catch (e) {
-      console.error('Failed to save garnish Hebrew', e)
-      setMetaSaveError(t('cocktailDetail.errors.updateFailed'))
-    } finally {
-      setMetaSaving(false)
-    }
-  }
-
-  const saveGlassHebrew = async () => {
-    const glassTypeId = cocktail?.glass_type_id ? String(cocktail.glass_type_id) : ''
-    if (!glassTypeId) return
-    if (!isAdmin) return
-    try {
-      setMetaSaving(true)
-      setMetaSaveError('')
-      const res = await api.put(`/glass-types/${glassTypeId}`, { name_he: (metaDraft.glass_name_he || '').trim() || null })
-      setGlassTypesById((prev) => ({ ...prev, [glassTypeId]: res.data }))
-      setMetaEdit((p) => ({ ...p, glass: false }))
-    } catch (e) {
-      console.error('Failed to save glass type Hebrew', e)
-      setMetaSaveError(t('cocktailDetail.errors.updateFailed'))
-    } finally {
-      setMetaSaving(false)
-    }
-  }
 
   if (loading) {
     return (
@@ -374,104 +337,16 @@ const CocktailDetailPage = () => {
 
           <div className="cocktail-meta">
             <div className="meta-grid">
-              {cocktail.user && (
-                <div className="meta-row">
-                  <span className="meta-label">{t('cocktailDetail.meta.createdBy')}</span>
-                  <span className="meta-value">{cocktail.user.email}</span>
-                </div>
-              )}
-              {cocktail.created_at && (
-                <div className="meta-row">
-                  <span className="meta-label">{t('cocktailDetail.meta.created')}</span>
-                  <span className="meta-value">{new Date(cocktail.created_at).toLocaleString(lang === 'he' ? 'he-IL' : 'en-US')}</span>
-                </div>
-              )}
               <div className="meta-row">
                 <span className="meta-label">{t('cocktailDetail.meta.glass')}</span>
                 <span className="meta-value">
                   {glassTypeLabel}
-                  {lang === 'he' && isAdmin && glassType && (
-                    <span style={{ marginInlineStart: 10, display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-                      {metaEdit.glass ? (
-                        <>
-                          <input
-                            className="form-input"
-                            style={{ width: 220 }}
-                            value={metaDraft.glass_name_he}
-                            onChange={(e) => setMetaDraft((p) => ({ ...p, glass_name_he: e.target.value }))}
-                            placeholder={t('common.addHebrew')}
-                            disabled={metaSaving}
-                          />
-                          <button type="button" className="button-primary" onClick={saveGlassHebrew} disabled={metaSaving}>
-                            {t('common.save')}
-                          </button>
-                          <button
-                            type="button"
-                            className="button-secondary"
-                            onClick={() => {
-                              setMetaDraft((p) => ({ ...p, glass_name_he: glassType?.name_he || '' }))
-                              setMetaEdit((p) => ({ ...p, glass: false }))
-                            }}
-                            disabled={metaSaving}
-                          >
-                            {t('common.cancel')}
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          type="button"
-                          className="button-edit"
-                          onClick={() => setMetaEdit((p) => ({ ...p, glass: true }))}
-                        >
-                          {(glassType?.name_he || '').trim() ? t('common.editHebrew') : t('common.addHebrew')}
-                        </button>
-                      )}
-                    </span>
-                  )}
                 </span>
               </div>
               <div className="meta-row">
                 <span className="meta-label">{t('cocktailDetail.meta.garnish')}</span>
                 <span className="meta-value">
                   {displayGarnish() || '-'}
-                  {lang === 'he' && isOwner() && (
-                    <span style={{ marginInlineStart: 10, display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-                      {metaEdit.garnish ? (
-                        <>
-                          <input
-                            className="form-input"
-                            style={{ width: 260 }}
-                            value={metaDraft.garnish_text_he}
-                            onChange={(e) => setMetaDraft((p) => ({ ...p, garnish_text_he: e.target.value }))}
-                            placeholder={t('common.addHebrew')}
-                            disabled={metaSaving}
-                          />
-                          <button type="button" className="button-primary" onClick={saveGarnishHebrew} disabled={metaSaving}>
-                            {t('common.save')}
-                          </button>
-                          <button
-                            type="button"
-                            className="button-secondary"
-                            onClick={() => {
-                              setMetaDraft((p) => ({ ...p, garnish_text_he: cocktail?.garnish_text_he || '' }))
-                              setMetaEdit((p) => ({ ...p, garnish: false }))
-                            }}
-                            disabled={metaSaving}
-                          >
-                            {t('common.cancel')}
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          type="button"
-                          className="button-edit"
-                          onClick={() => setMetaEdit((p) => ({ ...p, garnish: true }))}
-                        >
-                          {(cocktail?.garnish_text_he || '').trim() ? t('common.editHebrew') : t('common.addHebrew')}
-                        </button>
-                      )}
-                    </span>
-                  )}
                 </span>
               </div>
             </div>

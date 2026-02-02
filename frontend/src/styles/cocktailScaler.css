@@ -435,7 +435,9 @@
 .cost-brand {
     color: var(--text-muted);
     min-width: 0;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
 }
 
 .cost-ml {
@@ -464,6 +466,19 @@
     */
     .cost-row {
         min-width: 0;
+    }
+}
+
+@media (max-width: 620px) {
+    .cost-row {
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) 72px 72px;
+        gap: 8px;
+        font-size: 12px;
+    }
+
+    .cost-ml,
+    .cost-value {
+        font-size: 12px;
     }
 }
 
