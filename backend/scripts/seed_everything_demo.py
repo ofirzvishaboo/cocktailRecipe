@@ -100,30 +100,49 @@ async def _ensure_admin(session) -> User:
 async def reset_demo_data(session):
     # Keep users. Wipe app data so the demo is deterministic.
     # Order matters; use CASCADE to keep it simple.
-    await session.execute(text("TRUNCATE TABLE order_items CASCADE"))
-    await session.execute(text("TRUNCATE TABLE orders CASCADE"))
-    await session.execute(text("TRUNCATE TABLE event_menu_items CASCADE"))
-    await session.execute(text("TRUNCATE TABLE events CASCADE"))
+    # Use IF EXISTS so the seed works on partial/older schemas too.
+    await session.execute(text("TRUNCATE TABLE IF EXISTS order_items CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS orders CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS event_menu_items CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS events CASCADE"))
 
-    await session.execute(text("TRUNCATE TABLE inventory_movements CASCADE"))
-    await session.execute(text("TRUNCATE TABLE inventory_stock CASCADE"))
-    await session.execute(text("TRUNCATE TABLE inventory_items CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS inventory_movements CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS inventory_stock CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS inventory_items CASCADE"))
 
-    await session.execute(text("TRUNCATE TABLE recipe_ingredients CASCADE"))
-    await session.execute(text("TRUNCATE TABLE cocktail_recipes CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS recipe_ingredients CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS cocktail_recipes CASCADE"))
 
-    await session.execute(text("TRUNCATE TABLE bottle_prices CASCADE"))
-    await session.execute(text("TRUNCATE TABLE bottles CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS bottle_prices CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS bottles CASCADE"))
 
-    await session.execute(text("TRUNCATE TABLE ingredient_suppliers CASCADE"))
-    await session.execute(text("TRUNCATE TABLE ingredients CASCADE"))
-    await session.execute(text("TRUNCATE TABLE brands CASCADE"))
-    await session.execute(text("TRUNCATE TABLE subcategories CASCADE"))
-    await session.execute(text("TRUNCATE TABLE kinds CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS ingredient_suppliers CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS ingredients CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS brands CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS subcategories CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS kinds CASCADE"))
 
-    await session.execute(text("TRUNCATE TABLE glass_types CASCADE"))
-    await session.execute(text("TRUNCATE TABLE importers CASCADE"))
-    await session.execute(text("TRUNCATE TABLE suppliers CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS glass_types CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS importers CASCADE"))
+    await session.execute(text("TRUNCATE TABLE IF EXISTS suppliers CASCADE"))
+
+
+async def ensure_hebrew_columns(session) -> None:
+    """
+    Make this seed script self-contained by adding Hebrew columns if missing.
+    This avoids needing to restart the API container to run startup migrations first.
+    """
+    await session.execute(text("ALTER TABLE brands ADD COLUMN IF NOT EXISTS name_he TEXT"))
+    await session.execute(text("ALTER TABLE glass_types ADD COLUMN IF NOT EXISTS name_he TEXT"))
+    await session.execute(text("ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS name_he TEXT"))
+    await session.execute(text("ALTER TABLE bottles ADD COLUMN IF NOT EXISTS name_he TEXT"))
+    await session.execute(text("ALTER TABLE bottles ADD COLUMN IF NOT EXISTS description_he TEXT"))
+    await session.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS name_he TEXT"))
+    await session.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS description_he TEXT"))
+    await session.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS garnish_text_he TEXT"))
+    await session.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS preparation_method_he TEXT"))
+    await session.execute(text("ALTER TABLE kinds ADD COLUMN IF NOT EXISTS name_he TEXT"))
+    await session.execute(text("ALTER TABLE subcategories ADD COLUMN IF NOT EXISTS name_he TEXT"))
 
 
 async def seed():
@@ -421,6 +440,7 @@ async def seed():
 
     async with async_session_maker() as session:
         async with session.begin():
+            await ensure_hebrew_columns(session)
             await reset_demo_data(session)
             user = await _ensure_admin(session)
 
