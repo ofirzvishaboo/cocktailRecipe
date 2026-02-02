@@ -997,6 +997,8 @@ async def add_normalized_columns_if_missing(engine: AsyncEngine):
 
         # reference tables: brands / bottles / glass_types
         await conn.execute(text("ALTER TABLE brands ADD COLUMN IF NOT EXISTS name_he TEXT"))
+        await conn.execute(text("ALTER TABLE kinds ADD COLUMN IF NOT EXISTS name_he TEXT"))
+        await conn.execute(text("ALTER TABLE subcategories ADD COLUMN IF NOT EXISTS name_he TEXT"))
         await conn.execute(text("ALTER TABLE glass_types ADD COLUMN IF NOT EXISTS name_he TEXT"))
         await conn.execute(text("ALTER TABLE bottles ADD COLUMN IF NOT EXISTS name_he TEXT"))
         await conn.execute(text("ALTER TABLE bottles ADD COLUMN IF NOT EXISTS description_he TEXT"))

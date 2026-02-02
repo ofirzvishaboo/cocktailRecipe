@@ -12,5 +12,5 @@ router = APIRouter()
 async def list_kinds(db: AsyncSession = Depends(get_async_session)):
     res = await db.execute(select(KindModel).order_by(func.lower(KindModel.name).asc()))
     kinds = res.scalars().all()
-    return [{"id": k.id, "name": k.name} for k in kinds]
+    return [{"id": k.id, "name": k.name, "name_he": getattr(k, "name_he", None)} for k in kinds]
 

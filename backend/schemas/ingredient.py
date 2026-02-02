@@ -54,12 +54,14 @@ class BrandRead(BaseModel):
 class KindRead(BaseModel):
     id: UUID
     name: str
+    name_he: Optional[str] = None
 
 
 class SubcategoryRead(BaseModel):
     id: UUID
     kind_id: UUID
     name: str
+    name_he: Optional[str] = None
 
 
 class ImporterRead(BaseModel):

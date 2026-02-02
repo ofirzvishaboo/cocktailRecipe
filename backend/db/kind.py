@@ -11,6 +11,7 @@ class Kind(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False, unique=True, index=True)
+    name_he = Column(String, nullable=True)
 
     subcategories = relationship("Subcategory", back_populates="kind", cascade="all, delete-orphan")
     ingredients = relationship("Ingredient", back_populates="kind")

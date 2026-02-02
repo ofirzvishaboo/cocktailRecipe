@@ -20,5 +20,5 @@ async def list_subcategories(
     stmt = stmt.order_by(func.lower(SubcategoryModel.name).asc())
     res = await db.execute(stmt)
     subs = res.scalars().all()
-    return [{"id": s.id, "kind_id": s.kind_id, "name": s.name} for s in subs]
+    return [{"id": s.id, "kind_id": s.kind_id, "name": s.name, "name_he": getattr(s, "name_he", None)} for s in subs]
 
