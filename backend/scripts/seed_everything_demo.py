@@ -101,21 +101,20 @@ async def reset_demo_data(session):
     # Keep users. Wipe app data so the demo is deterministic.
     # Order matters; use CASCADE to keep it simple.
     # PostgreSQL does NOT support "TRUNCATE ... IF EXISTS".
-    # Use to_regclass() + dynamic SQL to truncate only tables that exist.
+    # Also: asyncpg does not allow bind params inside DO $$ ... $$ blocks.
+    # So we do a safe 2-step approach:
+    # 1) SELECT to_regclass('public.<table>')
+    # 2) if exists, TRUNCATE TABLE "<table>" CASCADE
+    #
+    # Table names are hardcoded in this script (not user input), so this is safe.
     async def _truncate_if_exists(table_name: str) -> None:
-        await session.execute(
-            text(
-                """
-                DO $$
-                BEGIN
-                    IF to_regclass(format('%I.%I', 'public', :tname)) IS NOT NULL THEN
-                        EXECUTE format('TRUNCATE TABLE %I.%I CASCADE', 'public', :tname);
-                    END IF;
-                END $$;
-                """
-            ),
-            {"tname": table_name},
-        )
+        reg = f"public.{table_name}"
+        res = await session.execute(text("SELECT to_regclass(:reg)"), {"reg": reg})
+        exists = res.scalar_one_or_none() is not None
+        if not exists:
+            return
+        # Quote identifier to avoid issues with reserved words.
+        await session.execute(text(f'TRUNCATE TABLE "{table_name}" CASCADE'))
 
     for tname in [
         "order_items",
