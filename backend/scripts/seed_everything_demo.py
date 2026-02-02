@@ -100,31 +100,45 @@ async def _ensure_admin(session) -> User:
 async def reset_demo_data(session):
     # Keep users. Wipe app data so the demo is deterministic.
     # Order matters; use CASCADE to keep it simple.
-    # Use IF EXISTS so the seed works on partial/older schemas too.
-    await session.execute(text("TRUNCATE TABLE IF EXISTS order_items CASCADE"))
-    await session.execute(text("TRUNCATE TABLE IF EXISTS orders CASCADE"))
-    await session.execute(text("TRUNCATE TABLE IF EXISTS event_menu_items CASCADE"))
-    await session.execute(text("TRUNCATE TABLE IF EXISTS events CASCADE"))
+    # PostgreSQL does NOT support "TRUNCATE ... IF EXISTS".
+    # Use to_regclass() + dynamic SQL to truncate only tables that exist.
+    async def _truncate_if_exists(table_name: str) -> None:
+        await session.execute(
+            text(
+                """
+                DO $$
+                BEGIN
+                    IF to_regclass(format('%I.%I', 'public', :tname)) IS NOT NULL THEN
+                        EXECUTE format('TRUNCATE TABLE %I.%I CASCADE', 'public', :tname);
+                    END IF;
+                END $$;
+                """
+            ),
+            {"tname": table_name},
+        )
 
-    await session.execute(text("TRUNCATE TABLE IF EXISTS inventory_movements CASCADE"))
-    await session.execute(text("TRUNCATE TABLE IF EXISTS inventory_stock CASCADE"))
-    await session.execute(text("TRUNCATE TABLE IF EXISTS inventory_items CASCADE"))
-
-    await session.execute(text("TRUNCATE TABLE IF EXISTS recipe_ingredients CASCADE"))
-    await session.execute(text("TRUNCATE TABLE IF EXISTS cocktail_recipes CASCADE"))
-
-    await session.execute(text("TRUNCATE TABLE IF EXISTS bottle_prices CASCADE"))
-    await session.execute(text("TRUNCATE TABLE IF EXISTS bottles CASCADE"))
-
-    await session.execute(text("TRUNCATE TABLE IF EXISTS ingredient_suppliers CASCADE"))
-    await session.execute(text("TRUNCATE TABLE IF EXISTS ingredients CASCADE"))
-    await session.execute(text("TRUNCATE TABLE IF EXISTS brands CASCADE"))
-    await session.execute(text("TRUNCATE TABLE IF EXISTS subcategories CASCADE"))
-    await session.execute(text("TRUNCATE TABLE IF EXISTS kinds CASCADE"))
-
-    await session.execute(text("TRUNCATE TABLE IF EXISTS glass_types CASCADE"))
-    await session.execute(text("TRUNCATE TABLE IF EXISTS importers CASCADE"))
-    await session.execute(text("TRUNCATE TABLE IF EXISTS suppliers CASCADE"))
+    for tname in [
+        "order_items",
+        "orders",
+        "event_menu_items",
+        "events",
+        "inventory_movements",
+        "inventory_stock",
+        "inventory_items",
+        "recipe_ingredients",
+        "cocktail_recipes",
+        "bottle_prices",
+        "bottles",
+        "ingredient_suppliers",
+        "ingredients",
+        "brands",
+        "subcategories",
+        "kinds",
+        "glass_types",
+        "importers",
+        "suppliers",
+    ]:
+        await _truncate_if_exists(tname)
 
 
 async def ensure_hebrew_columns(session) -> None:
