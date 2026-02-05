@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import DatePicker, { registerLocale } from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
+import he from 'date-fns/locale/he'
 import api from '../api'
+
+registerLocale('he', he)
 import { useAuth } from '../contexts/AuthContext'
 import Select from '../components/common/Select'
 import InventorySearchInput from '../components/inventory/InventorySearchInput'
@@ -624,22 +629,36 @@ export default function InventoryPage() {
               <div className="inventory-control inventory-control-wide inventory-dates-row">
                 <div className="inventory-control">
                   <label className="inventory-label">{t('common.from')}</label>
-                  <input
-                    className="form-input"
-                    type="date"
-                    value={movementFromDate}
-                    onChange={(e) => setMovementFromDate(e.target.value)}
+                  <DatePicker
+                    id="movement-from-date"
+                    className="form-input inventory-datepicker-input"
+                    dateFormat={lang === 'he' ? 'dd/MM/yyyy' : 'MM/dd/yyyy'}
+                    locale={lang === 'he' ? 'he' : 'en'}
+                    selected={movementFromDate ? new Date(movementFromDate + 'T12:00:00') : null}
+                    onChange={(d) => setMovementFromDate(d ? d.toISOString().slice(0, 10) : '')}
+                    isClearable
+                    placeholderText={lang === 'he' ? 'dd/mm/yyyy' : 'mm/dd/yyyy'}
                   />
                 </div>
                 <div className="inventory-control">
                   <label className="inventory-label">{t('common.to')}</label>
-                  <input
-                    className="form-input"
-                    type="date"
-                    value={movementToDate}
-                    onChange={(e) => setMovementToDate(e.target.value)}
+                  <DatePicker
+                    id="movement-to-date"
+                    className="form-input inventory-datepicker-input"
+                    dateFormat={lang === 'he' ? 'dd/MM/yyyy' : 'MM/dd/yyyy'}
+                    locale={lang === 'he' ? 'he' : 'en'}
+                    selected={movementToDate ? new Date(movementToDate + 'T12:00:00') : null}
+                    onChange={(d) => setMovementToDate(d ? d.toISOString().slice(0, 10) : '')}
+                    isClearable
+                    placeholderText={lang === 'he' ? 'dd/mm/yyyy' : 'mm/dd/yyyy'}
                   />
                 </div>
+                <button type="button" className="button-primary inventory-dates-row-btn" onClick={() => { setMovementFromDate(''); setMovementToDate('') }}>
+                  {t('common.clear')}
+                </button>
+                <button type="button" className="button-primary inventory-dates-row-btn" onClick={loadMovements} disabled={loading}>
+                  {t('common.refresh')}
+                </button>
               </div>
             )}
           </div>

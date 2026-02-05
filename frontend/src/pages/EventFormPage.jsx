@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import DatePicker, { registerLocale } from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
+import he from 'date-fns/locale/he'
 import api from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import Select from '../components/common/Select'
 import '../styles/events.css'
+
+registerLocale('he', he)
 
 function toLocalDateInputValue(d = new Date()) {
   const pad = (n) => String(n).padStart(2, '0')
@@ -177,12 +182,16 @@ export default function EventFormPage() {
               />
             </div>
             <div>
-              <label className="inventory-label">{t('events.fields.date')}</label>
-              <input
-                className="form-input"
-                type="date"
-                value={form.event_date}
-                onChange={(e2) => setForm((p) => ({ ...p, event_date: e2.target.value }))}
+              <label className="inventory-label" htmlFor="event-form-date">{t('events.fields.date')}</label>
+              <DatePicker
+                id="event-form-date"
+                className="form-input events-datepicker-input"
+                dateFormat={lang === 'he' ? 'dd/MM/yyyy' : 'MM/dd/yyyy'}
+                locale={lang === 'he' ? 'he' : 'en'}
+                selected={form.event_date ? new Date(form.event_date + 'T12:00:00') : null}
+                onChange={(d) => setForm((p) => ({ ...p, event_date: d ? d.toISOString().slice(0, 10) : '' }))}
+                isClearable
+                placeholderText={lang === 'he' ? 'dd/mm/yyyy' : 'mm/dd/yyyy'}
                 required
               />
             </div>

@@ -38,9 +38,15 @@
 
 .inventory-controls {
   display: grid;
-  grid-template-columns: 1fr 1fr 2fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 0.75rem;
   align-items: end;
+}
+
+/* Equal-width selects in filter row */
+.inventory-controls .cr-select {
+  width: 100%;
+  min-width: 10;
 }
 
 .inventory-control {
@@ -55,6 +61,65 @@
 
 .inventory-control-wide {
   grid-column: span 1;
+}
+
+/* Dates row: From, To, Clear, Refresh – all in one row */
+.inventory-dates-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+/* Desktop: let the dates row span full width so date pickers are wider */
+.inventory-controls .inventory-dates-row {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+/* react-datepicker input in dates row */
+.inventory-dates-row .react-datepicker-wrapper {
+  width: 100%;
+  min-width: 0;
+}
+.inventory-dates-row .inventory-datepicker-input,
+.inventory-dates-row input[type="date"] {
+  width: 100% !important;
+  min-height: 44px;
+  padding: 0.6rem 0.85rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.inventory-dates-row .inventory-datepicker-input:focus,
+.inventory-dates-row input[type="date"]:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+.inventory-dates-row .button-edit,
+.inventory-dates-row .button-primary {
+  width: auto;
+  min-width: 0;
+  flex-shrink: 0;
+}
+/* Clear and Refresh: same size */
+.inventory-dates-row .inventory-dates-row-btn {
+  min-width: 5.5rem;
+  width: 5.5rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .inventory-dates-row .inventory-dates-row-btn {
+    min-width: 9rem;
+    width: 9rem;
+    flex-shrink: 0;
+  }
 }
 
 .inventory-label {
@@ -341,10 +406,17 @@
   .inventory-movement-row {
     grid-template-columns: 1fr;
   }
+  /* Movements: date row stacks on mobile – each date and buttons on separate rows */
   .inventory-dates-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 3fr 3fr;
     gap: 0.75rem;
+  }
+
+  .inventory-dates-row .inventory-datepicker-input,
+  .inventory-dates-row input[type="date"] {
+    min-height: 48px;
+    padding: 0.75rem 0.85rem;
+    font-size: 16px; /* prevents iOS zoom on focus */
   }
   .inventory-table-header,
   .inventory-table-row,

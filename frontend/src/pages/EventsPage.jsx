@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import DatePicker, { registerLocale } from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
+import he from 'date-fns/locale/he'
 import api from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import '../styles/events.css'
+
+registerLocale('he', he)
 
 export default function EventsPage() {
   const { isAdmin, loading: authLoading } = useAuth()
@@ -69,13 +74,11 @@ export default function EventsPage() {
   return (
     <div className="card">
       <div className="events-header">
-        <div>
+        <div className="events-header-title-row">
           <h2 style={{ margin: 0 }}>{t('events.title')}</h2>
-          <div className="muted" style={{ marginTop: 6 }}>{t('events.subtitle')}</div>
-        </div>
-        <div className="events-header-actions">
-          <Link to="/events/new" className="button-primary">
-            {t('events.actions.new')}
+          <Link to="/events/new" className="button-primary events-add-button" aria-label={t('events.actions.new')} title={t('events.actions.new')}>
+            <span className="events-add-button-text">{t('events.actions.new')}</span>
+            <span className="events-add-button-icon">+</span>
           </Link>
         </div>
       </div>
@@ -84,15 +87,33 @@ export default function EventsPage() {
 
       <div className="events-filters">
         <div className="inventory-control">
-          <label className="inventory-label">{t('common.from')}</label>
-          <input className="form-input" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+          <label className="inventory-label" htmlFor="events-from-date">{t('common.from')}</label>
+          <DatePicker
+            id="events-from-date"
+            className="form-input events-datepicker-input"
+            dateFormat={lang === 'he' ? 'dd/MM/yyyy' : 'MM/dd/yyyy'}
+            locale={lang === 'he' ? 'he' : 'en'}
+            selected={fromDate ? new Date(fromDate + 'T12:00:00') : null}
+            onChange={(d) => setFromDate(d ? d.toISOString().slice(0, 10) : '')}
+            isClearable
+            placeholderText={lang === 'he' ? 'dd/mm/yyyy' : 'mm/dd/yyyy'}
+          />
         </div>
         <div className="inventory-control">
-          <label className="inventory-label">{t('common.to')}</label>
-          <input className="form-input" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+          <label className="inventory-label" htmlFor="events-to-date">{t('common.to')}</label>
+          <DatePicker
+            id="events-to-date"
+            className="form-input events-datepicker-input"
+            dateFormat={lang === 'he' ? 'dd/MM/yyyy' : 'MM/dd/yyyy'}
+            locale={lang === 'he' ? 'he' : 'en'}
+            selected={toDate ? new Date(toDate + 'T12:00:00') : null}
+            onChange={(d) => setToDate(d ? d.toISOString().slice(0, 10) : '')}
+            isClearable
+            placeholderText={lang === 'he' ? 'dd/mm/yyyy' : 'mm/dd/yyyy'}
+          />
         </div>
         <div className="events-filters-actions">
-          <button type="button" className="button-edit" onClick={() => { setFromDate(''); setToDate('') }}>
+          <button type="button" className="button-primary" onClick={() => { setFromDate(''); setToDate('') }}>
             {t('common.clear')}
           </button>
           <button type="button" className="button-primary" onClick={loadEvents} disabled={loading}>

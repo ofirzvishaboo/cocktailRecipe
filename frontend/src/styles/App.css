@@ -1406,11 +1406,74 @@ html[dir="rtl"] .navbar-user {
   }
 
   .form-row,
-  .form-actions,
-  .cocktails-header,
-  .ingredients-header {
+  .form-actions {
     flex-direction: column;
     width: 100%;
+  }
+
+  .cocktails-header {
+    flex-direction: row;
+    width: 100%;
+    gap: 0.75rem;
+  }
+
+  .ingredients-header {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 0.75rem;
+  }
+
+  .ingredients-header-row {
+    display: flex;
+    flex-direction: row;
+    gap: 0.75rem;
+    align-items: center;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .ingredients-header .search-container,
+  .ingredients-header .search-container-full {
+    flex: 1;
+    margin-bottom: 0;
+    min-width: 0;
+  }
+
+  .ingredients-header .Select {
+    width: 100%;
+    flex-basis: 100%;
+    min-width: 100%;
+    margin-bottom: 0;
+    order: 3;
+  }
+
+  .ingredients-header-row {
+    order: 1;
+  }
+
+  .ingredients-add-button {
+    flex-shrink: 0;
+    width: auto;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ingredients-add-button-text {
+    display: none !important;
+  }
+
+  .ingredients-add-button-icon {
+    display: inline-block !important;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
   }
 
   .form-input,
@@ -1452,15 +1515,42 @@ html[dir="rtl"] .navbar-user {
   }
 
   .cocktails-header .search-container,
-  .cocktails-header .search-container-full,
-  .ingredients-header .search-container,
-  .ingredients-header .search-container-full {
-    margin-bottom: 0.75rem;
+  .cocktails-header .search-container-full {
+    flex: 1;
+    margin-bottom: 0;
   }
 
-  .cocktails-header .button-primary,
-  .ingredients-header .button-primary {
-    width: 100%;
+  .cocktails-add-button {
+    flex-shrink: 0;
+    width: auto;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cocktails-add-button-text {
+    display: none !important;
+  }
+
+  .cocktails-add-button-icon {
+    display: inline-block !important;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .ingredients-header-row .search-container,
+  .ingredients-header-row .search-container-full {
+    margin-bottom: 0 !important;
+  }
+
+  .ingredients-header .ingredients-add-button {
+    order: 2;
+    width: auto !important;
   }
 
   .cocktails-list ul ul {
@@ -2074,10 +2164,29 @@ html[dir="rtl"] .cocktail-detail-header {
   margin-bottom: 1rem;
 }
 
+/* Desktop: search row takes available space so search bar is wider */
+.ingredients-header-row {
+  flex: 1;
+  min-width: 0;
+}
+
+.ingredients-header .search-container,
+.ingredients-header .search-container-full {
+  max-width: 100%;
+}
+
 .search-container {
   flex: 1;
   max-width: 600px;
   width: 100%;
+}
+
+/* Desktop only: category dropdown not full width */
+@media (min-width: 769px) {
+  .ingredients-filters .cr-select {
+    max-width: 320px;
+    width: 100%;
+  }
 }
 
 .search-container-full {
@@ -2113,6 +2222,30 @@ html[dir="rtl"] .cocktail-detail-header {
   align-items: center;
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.cocktails-add-button {
+  position: relative;
+}
+
+.cocktails-add-button-icon {
+  display: none;
+}
+
+.cocktails-add-button-text {
+  display: inline;
+}
+
+.ingredients-add-button {
+  position: relative;
+}
+
+.ingredients-add-button-icon {
+  display: none;
+}
+
+.ingredients-add-button-text {
+  display: inline;
 }
 
 

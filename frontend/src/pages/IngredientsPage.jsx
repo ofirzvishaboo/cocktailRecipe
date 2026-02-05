@@ -617,15 +617,32 @@ const ingredientSections = useMemo(() => {
   return (
     <div className="card">
       <div className="ingredients-header">
-        <div className={`search-container ${!isAdmin ? 'search-container-full' : ''}`}>
-          <input
-            type="text"
-            placeholder={t('ingredients.searchPlaceholder')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
-          />
+        <div className="ingredients-header-row">
+          <div className={`search-container ${!isAdmin ? 'search-container-full' : ''}`}>
+            <input
+              type="text"
+              placeholder={t('ingredients.searchPlaceholder')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+          </div>
         </div>
+        {isAdmin && !editingIngredient && (
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="button-primary ingredients-add-button"
+            aria-label={showAddForm ? t('common.cancel') : t('ingredients.addIngredient')}
+            title={showAddForm ? t('common.cancel') : t('ingredients.addIngredient')}
+          >
+            <span className="ingredients-add-button-text">
+              {showAddForm ? t('common.cancel') : t('ingredients.addIngredient')}
+            </span>
+            <span className="ingredients-add-button-icon">{showAddForm ? '×' : '+'}</span>
+          </button>
+        )}
+      </div>
+      <div className="ingredients-filters">
         <Select
           name="subcategory"
           value={selectedSubcategoryId}
@@ -633,14 +650,6 @@ const ingredientSections = useMemo(() => {
           options={subcategoryOptions}
           placeholder={t('ingredients.subcategorySelect.allSubcategories')}
         />
-        {isAdmin && !editingIngredient && (
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="button-primary"
-          >
-            {showAddForm ? t('common.cancel') : t('ingredients.addIngredient')}
-          </button>
-        )}
       </div>
 
       {isAdmin && (

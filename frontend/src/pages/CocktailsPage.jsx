@@ -316,9 +316,12 @@ const CocktailsPage = () => {
             {isAuthenticated && (
               <button
                 onClick={() => navigate('/create-cocktail')}
-                className="button-primary"
+                className="button-primary cocktails-add-button"
+                aria-label={t('cocktails.createButton')}
+                title={t('cocktails.createButton')}
               >
-                {t('cocktails.createButton')}
+                <span className="cocktails-add-button-text">{t('cocktails.createButton')}</span>
+                <span className="cocktails-add-button-icon">+</span>
               </button>
             )}
           </div>
