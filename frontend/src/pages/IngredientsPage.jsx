@@ -28,6 +28,8 @@ function IngredientsPage() {
   const [pendingDeleteIngredientId, setPendingDeleteIngredientId] = useState(null)
   const [pendingDeleteUsedBy, setPendingDeleteUsedBy] = useState({ loading: false, error: '', cocktails: [] })
   const [editingIngredient, setEditingIngredient] = useState(null)
+  const [editingIngredientName, setEditingIngredientName] = useState(null)
+  const [editingNameForm, setEditingNameForm] = useState({ name: '', name_he: '' })
   const [showAddForm, setShowAddForm] = useState(false)
   const [expandedIngredientIds, setExpandedIngredientIds] = useState(() => new Set())
   const [brandsByIngredientId, setBrandsByIngredientId] = useState({})
@@ -231,6 +233,53 @@ function IngredientsPage() {
   const editIngredient = (ingredient) => {
     setEditingIngredient(ingredient)
     setForm({ name: ingredient.name, name_he: ingredient.name_he || '', subcategory_id: ingredient.subcategory_id || '', brand_name: '', bottle_size_ml: '', bottle_price: '', submitting: false })
+  }
+
+  const startEditIngredientName = (ingredient) => {
+    setEditingIngredientName(ingredient.id)
+    setEditingNameForm({ name: ingredient.name || '', name_he: ingredient.name_he || '' })
+  }
+
+  const cancelEditIngredientName = () => {
+    setEditingIngredientName(null)
+    setEditingNameForm({ name: '', name_he: '' })
+  }
+
+  const saveIngredientName = async (ingredientId) => {
+    try {
+      const nameEn = (editingNameForm.name || '').trim() || (editingNameForm.name_he || '').trim()
+      const nameHeTrimmed = (editingNameForm.name_he || '').trim()
+
+      if (!nameEn) {
+        setError('Ingredient name is required')
+        return
+      }
+
+      const payload = {
+        name: nameEn,
+      }
+
+      // Only include name_he if it has a value, otherwise send null explicitly
+      if (nameHeTrimmed) {
+        payload.name_he = nameHeTrimmed
+      } else {
+        payload.name_he = null
+      }
+
+      await api.put(`/ingredients/${ingredientId}`, payload)
+
+      const updatedIngredients = ingredients.map(ing =>
+        ing.id === ingredientId
+          ? { ...ing, name: nameEn, name_he: nameHeTrimmed || null }
+          : ing
+      )
+      setIngredients(updatedIngredients)
+      cancelEditIngredientName()
+    } catch (e) {
+      console.error('Failed to update ingredient name', e)
+      const errorMsg = e?.response?.data?.detail || e?.message || t('ingredients.errors.updateFailed')
+      setError(errorMsg)
+    }
   }
 
   const cancelEdit = () => {
@@ -708,44 +757,81 @@ const ingredientSections = useMemo(() => {
                     {section.items.map((ing) => (
                       <li key={ing.id} className="ingredient-item">
                   <div className="ingredient-item-content">
-                    <strong>{displayName(ing)}</strong>
+                    <div className="ingredient-name-section">
+                      {editingIngredientName === ing.id ? (
+                        <div className="ingredient-name-edit">
+                          <input
+                            className="form-input"
+                            type="text"
+                            value={editingNameForm.name}
+                            onChange={(e) => setEditingNameForm(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="English name"
+                          />
+                          <input
+                            className="form-input"
+                            type="text"
+                            value={editingNameForm.name_he}
+                            onChange={(e) => setEditingNameForm(prev => ({ ...prev, name_he: e.target.value }))}
+                            placeholder="Hebrew name"
+                          />
+                          <button
+                            type="button"
+                            className="button-primary"
+                            onClick={() => saveIngredientName(ing.id)}
+                          >
+                            {t('common.save')}
+                          </button>
+                          <button
+                            type="button"
+                            className="button-secondary"
+                            onClick={cancelEditIngredientName}
+                          >
+                            {t('common.cancel')}
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <strong>{displayName(ing)}</strong>
+                          {isAdmin && taxonomy.subcategories.length > 0 && (
+                            <select
+                              className="button-secondary"
+                              value={ing.subcategory_id || ''}
+                              onChange={(e) => setIngredientSubcategory(ing.id, e.target.value)}
+                            >
+                              <option value="">{t('ingredients.subcategorySelect.uncategorized')}</option>
+                              {taxonomy.subcategories.map((s) => (
+                                <option key={s.id} value={s.id}>{subcategoryLabel(s.name)}</option>
+                              ))}
+                            </select>
+                          )}
+                          {isAuthenticated && (
+                            <button
+                              onClick={() => toggleBrands(ing.id)}
+                              className="button-secondary button-brands"
+                              type="button"
+                            >
+                              {expandedIngredientIds.has(ing.id) ? t('ingredients.brands.toggleHide') : t('ingredients.brands.toggleShow')}
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                     <div className="ingredient-actions">
-                      {isAdmin && taxonomy.subcategories.length > 0 && (
-                        <select
-                          className="button-secondary"
-                          value={ing.subcategory_id || ''}
-                          onChange={(e) => setIngredientSubcategory(ing.id, e.target.value)}
-                        >
-                          <option value="">{t('ingredients.subcategorySelect.uncategorized')}</option>
-                          {taxonomy.subcategories.map((s) => (
-                            <option key={s.id} value={s.id}>{subcategoryLabel(s.name)}</option>
-                          ))}
-                        </select>
-                      )}
-                      {isAuthenticated && (
-                        <button
-                          onClick={() => toggleBrands(ing.id)}
-                          className="button-secondary button-brands"
-                          type="button"
-                        >
-                          {expandedIngredientIds.has(ing.id) ? t('ingredients.brands.toggleHide') : t('ingredients.brands.toggleShow')}
-                        </button>
-                      )}
-                    {isAdmin && (
+                      {isAdmin && (
                         <div className="ingredient-admin-actions">
-                        <button
-                          onClick={() => editIngredient(ing)}
-                          className="button-edit"
+                          <button
+                            onClick={() => startEditIngredientName(ing)}
+                            className="button-edit"
                             type="button"
-                        >
-                          {t('ingredients.actions.edit')}
-                        </button>
-                        <button
+                          >
+                            {t('ingredients.actions.edit')}
+                          </button>
+                          <button
                             onClick={() => requestRemoveIngredient(ing.id)}
-                          className="button-remove"
+                            className="button-remove"
                             type="button"
-                        >
-                          {t('ingredients.actions.remove')}
+                          >
+                            {t('ingredients.actions.remove')}
                           </button>
                         </div>
                       )}
@@ -780,10 +866,16 @@ const ingredientSections = useMemo(() => {
                                     <>
                                       <input
                                         className="form-input"
-                                        value={lang === 'he' ? (eb.brand_name_he || '') : eb.brand_name}
-                                        onChange={(e) => updateEditingBrand(b.id, lang === 'he' ? { brand_name_he: e.target.value } : { brand_name: e.target.value })}
-                                        placeholder={t('ingredients.brands.brandName')}
+                                        value={eb.brand_name || ''}
+                                        onChange={(e) => updateEditingBrand(b.id, { brand_name: e.target.value })}
+                                        placeholder="English name"
                                         list="brand-suggestions-global"
+                                      />
+                                      <input
+                                        className="form-input"
+                                        value={eb.brand_name_he || ''}
+                                        onChange={(e) => updateEditingBrand(b.id, { brand_name_he: e.target.value })}
+                                        placeholder="Hebrew name"
                                       />
                                       <input
                                         className="form-input form-input-small"
@@ -860,10 +952,16 @@ const ingredientSections = useMemo(() => {
                           <div className="brand-row">
                             <input
                               className="form-input"
-                              value={lang === 'he' ? (brandFormByIngredientId?.[ing.id]?.brand_name_he ?? '') : (brandFormByIngredientId?.[ing.id]?.brand_name ?? '')}
-                              onChange={(e) => updateBrandForm(ing.id, lang === 'he' ? { brand_name_he: e.target.value } : { brand_name: e.target.value })}
-                              placeholder={t('ingredients.brands.brandName')}
+                              value={brandFormByIngredientId?.[ing.id]?.brand_name ?? ''}
+                              onChange={(e) => updateBrandForm(ing.id, { brand_name: e.target.value })}
+                              placeholder="English name"
                               list="brand-suggestions-global"
+                            />
+                            <input
+                              className="form-input"
+                              value={brandFormByIngredientId?.[ing.id]?.brand_name_he ?? ''}
+                              onChange={(e) => updateBrandForm(ing.id, { brand_name_he: e.target.value })}
+                              placeholder="Hebrew name"
                             />
                             <input
                               className="form-input form-input-small"
@@ -892,7 +990,7 @@ const ingredientSections = useMemo(() => {
                               {t('ingredients.brands.add')}
                             </button>
                           </div>
-                      </div>
+                        </div>
                     )}
                   </div>
                   )}
