@@ -90,8 +90,9 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
         return match?.id || null
     }
 
-    const ensureIngredientId = async (rawName, submitCache) => {
+    const ensureIngredientId = async (rawName, submitCache, rawNameHe) => {
         const name = (rawName || '').trim()
+        const nameHe = (rawNameHe || '').trim()
         const key = name.toLowerCase()
         if (!name) return null
 
@@ -103,7 +104,10 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
         if (submitCache.has(key)) return submitCache.get(key)
 
         // 3) Create new ingredient
-        const res = await api.post('/ingredients/', { name })
+        const res = await api.post('/ingredients/', {
+            name,
+            name_he: nameHe || null,
+        })
         const created = res?.data
         if (!created?.id) throw new Error('Failed to create ingredient (missing id)')
 
@@ -276,22 +280,26 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
         e.preventDefault()
         const submitCache = new Map()
 
+        const pickText = (primary, fallback) => (primary || '').trim() || (fallback || '').trim()
+        const cocktailName = pickText(form.name, form.name_he)
+
         const rows = (form.ingredients || [])
             .map((ing) => ({
                 ...ing,
-                name: (lang === 'he'
-                    ? ((ing?.name_he || '').trim() || (ing?.name || '').trim())
-                    : ((ing?.name || '').trim() || (ing?.name_he || '').trim())),
+                name: pickText(ing?.name, ing?.name_he),
+                name_he: (ing?.name_he || '').trim() || null,
                 amount: ing?.amount,
             }))
             .filter((ing) => ing.name && ing.amount !== '' && !isNaN(Number(ing.amount)))
 
-        if (!form.name || rows.length === 0) return
+        if (!cocktailName || rows.length === 0) return
 
         let ingredientIdsByIndex = []
         try {
             ingredientIdsByIndex = await Promise.all(
-                rows.map(async (ing) => ing.ingredient_id || await ensureIngredientId(ing.name, submitCache))
+                rows.map(async (ing) => (
+                    ing.ingredient_id || await ensureIngredientId(ing.name, submitCache, ing.name_he)
+                ))
             )
         } catch (err) {
             console.error('Failed to create missing ingredients', err)
@@ -309,20 +317,20 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
             is_optional: false,
         }))
 
-        if (!form.name || ingredientsArray.length === 0) return
+        if (!cocktailName || ingredientsArray.length === 0) return
 
         const newCocktail = {
-            name: (form.name || '').trim() || (form.name_he || '').trim(),
+            name: cocktailName,
             name_he: (form.name_he || '').trim() || null,
-            description: (form.description || '').trim() || null,
+            description: pickText(form.description, form.description_he) || null,
             description_he: (form.description_he || '').trim() || null,
             recipe_ingredients: ingredientsArray,
             picture_url: form.imageUrl || null,
             glass_type_id: form.glass_type_id || null,
-            garnish_text: (form.garnish_text || '').trim() || null,
+            garnish_text: pickText(form.garnish_text, form.garnish_text_he) || null,
             garnish_text_he: (form.garnish_text_he || '').trim() || null,
             is_base: !!form.is_base,
-            preparation_method: (form.preparation_method || '').trim() || null,
+            preparation_method: pickText(form.preparation_method, form.preparation_method_he) || null,
             preparation_method_he: (form.preparation_method_he || '').trim() || null,
         }
 

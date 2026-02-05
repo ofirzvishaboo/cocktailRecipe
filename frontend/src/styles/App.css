@@ -480,13 +480,9 @@ html[dir="rtl"] .navbar-user {
 .ingredient-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  justify-content: flex-start;
-  align-items: center;
-
-  margin: 0;      /* important: avoid weird extra spacing */
-  flex: 1;
-  min-width: 0;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  justify-content: center;
 }
 
 .cocktail-card-action-buttons {
@@ -1495,6 +1491,7 @@ html[dir="rtl"] .navbar-user {
 .cocktail-detail-header {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 0.75rem;
 
   margin-bottom: 1.25rem;
@@ -1507,7 +1504,7 @@ html[dir="rtl"] .navbar-user {
 
 /* Back link alignment – correct for LTR & RTL */
 .back-link {
-  margin-inline-end: auto;   /* pushes it to the start side */
+  align-self: flex-start;
   color: var(--primary);
   text-decoration: none;
   font-weight: 600;
@@ -1526,82 +1523,115 @@ html[dir="rtl"] .navbar-user {
 }
 
 
-/* 3-column grid: keeps title perfectly centered even with buttons */
+/* Title row: back | title | actions */
 .cocktail-title-row {
   display: grid;
-  grid-template-columns: 1fr auto 1fr; /* spacer | title | actions */
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 0.75rem;
   width: 100%;
 }
 
-.cocktail-detail-title {
-  grid-column: 2;
-  margin: 0;
-  color: var(--text);
-  font-size: 2.5rem;
-  text-align: center;
-  width: 100%;
+/* Back link */
+.back-link {
+  justify-self: start;
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.7);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
+.back-link:hover {
+  background: var(--primary-soft);
+  color: var(--primary-hover);
+}
+
+/* Center title */
+.cocktail-detail-title {
+  margin: 0;
+  text-align: center;
+  font-size: 2.5rem;
+}
+
+/* Actions */
 .cocktail-actions-inline {
-  grid-column: 3;
   justify-self: end;
-  display: inline-flex;
+  display: flex;
   gap: 0.5rem;
-  flex-wrap: wrap;
-  align-items: center;
+}
+
+/* RTL correction */
+html[dir="rtl"] .back-link {
+  justify-self: end;
+}
+html[dir="rtl"] .cocktail-actions-inline {
+  justify-self: start;
 }
 
 /* Mobile: stack buttons under title */
 @media (max-width: 768px) {
   .cocktail-title-row {
-    grid-template-columns: 1fr;
-    justify-items: center;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
     gap: 0.6rem;
+    align-items: center;
+    justify-items: center;
   }
 
-  .cocktail-detail-title {
-    grid-column: auto;
-    font-size: 2rem;
+  .back-link {
+    justify-self: start;
+    align-self: center;
+    width: auto;
+    text-align: center;
+    grid-column: 1;
+    grid-row: 1;
   }
 
   .cocktail-actions-inline {
-    grid-column: auto;
     width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: center;
+  }
+
+  .cocktail-detail-title {
+    grid-column: 2;
+    grid-row: 1;
   }
 
   .cocktail-actions-inline .button-edit,
   .cocktail-actions-inline .button-remove {
-    width: 100%;
-    height: 40px;
-    border-radius: 12px;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .back-link-text {
+    display: none;
+  }
+
+  html[dir="rtl"] .back-link {
+    justify-self: start;
+    grid-column: 1;
   }
 }
 
 @media (max-width: 480px) {
   .cocktail-actions-inline {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-  }
-
-  .cocktail-actions-inline .button-edit,
-  .cocktail-actions-inline .button-remove {
-    width: 100%;
+    justify-content: center;
   }
 }
 
-/* RTL: keep action buttons on the RIGHT */
-html[dir="rtl"] .cocktail-actions-inline {
-  justify-self: start;   /* start = right in RTL */
-}
-
-html[dir="rtl"] .back-link {
-  align-self: flex-end;  /* right in RTL */
+html[dir="rtl"] .cocktail-detail-header {
+  align-items: flex-end;
 }
 
 
@@ -1996,69 +2026,3 @@ html[dir="rtl"] .back-link {
 }
 
 
-/* Title row: back | title | actions */
-.cocktail-title-row {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-}
-
-/* Back link */
-.back-link {
-  justify-self: start;
-  color: var(--primary);
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.95rem;
-  padding: 0.4rem 0.7rem;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,0.7);
-}
-
-.back-link:hover {
-  background: var(--primary-soft);
-  color: var(--primary-hover);
-}
-
-/* Center title */
-.cocktail-detail-title {
-  margin: 0;
-  text-align: center;
-  font-size: 2.5rem;
-}
-
-/* Actions */
-.cocktail-actions-inline {
-  justify-self: end;
-  display: flex;
-  gap: 0.5rem;
-}
-
-/* RTL correction */
-html[dir="rtl"] .back-link {
-  justify-self: end;
-}
-html[dir="rtl"] .cocktail-actions-inline {
-  justify-self: start;
-}
-
-/* Mobile: stack buttons under title */
-@media (max-width: 768px) {
-  .cocktail-title-row {
-    grid-template-columns: 1fr;
-    gap: 0.6rem;
-    justify-items: center;
-  }
-
-  .back-link {
-    justify-self: center;
-  }
-
-  .cocktail-actions-inline {
-    width: 100%;
-    justify-content: center;
-  }
-}

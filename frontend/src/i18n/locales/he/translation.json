@@ -196,7 +196,7 @@
   },
   "cocktailDetail": {
     "loading": "טוען קוקטייל...",
-    "backToCocktails": "⭢ חזרה לקוקטיילים",
+    "backToCocktails": "חזרה לקוקטיילים",
     "editTitle": "עריכת קוקטייל",
     "actions": {
       "edit": "ערוך",
@@ -449,6 +449,8 @@
       "noSearchMatch": "אין מרכיבים שמתאימים לחיפוש שלך."
     },
     "subcategorySelect": {
+      "allSubcategories": "כל הקטגוריות",
+      "subcategory": "תת־קטגוריה",
       "uncategorized": "ללא קטגוריה",
       "Spirit": "ספיריט",
       "Liqueur": "ליקר",

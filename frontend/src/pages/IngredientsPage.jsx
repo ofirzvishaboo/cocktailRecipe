@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import api from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import ConfirmDialog from '../components/common/ConfirmDialog'
-
+import Select from '../components/common/Select'
 const INGREDIENT_GROUP_ORDER = ['Spirit', 'Liqueur', 'Juice', 'Syrup', 'Sparkling', 'Garnish']
 
 function IngredientsPage() {
@@ -11,8 +11,8 @@ function IngredientsPage() {
   const { t, i18n } = useTranslation()
   const lang = (i18n.language || 'en').split('-')[0]
   const [ingredients, setIngredients] = useState([])
-  const [filteredIngredients, setFilteredIngredients] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [taxonomy, setTaxonomy] = useState({
@@ -99,7 +99,6 @@ function IngredientsPage() {
       setLoading(true)
       const res = await api.get('/ingredients/')
       setIngredients(res.data || [])
-      setFilteredIngredients(res.data || [])
       setError('')
     } catch (e) {
       setError(t('ingredients.errors.loadFailed'))
@@ -108,6 +107,8 @@ function IngredientsPage() {
       setLoading(false)
     }
   }, [t])
+
+
 
   const subcategoryLabel = (name) => {
     const raw = (name || '').trim()
@@ -124,21 +125,6 @@ function IngredientsPage() {
   useEffect(() => {
     loadIngredients()
   }, [loadIngredients])
-
-  // Filter ingredients based on search query
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredIngredients(ingredients)
-    } else {
-      const q = searchQuery.toLowerCase()
-      const filtered = ingredients.filter((ing) => {
-        const en = (ing?.name || '').toLowerCase()
-        const he = (ing?.name_he || '').toLowerCase()
-        return en.includes(q) || he.includes(q)
-      })
-      setFilteredIngredients(filtered)
-    }
-  }, [searchQuery, ingredients])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -158,18 +144,6 @@ function IngredientsPage() {
         )
         setIngredients(updatedIngredients)
         setEditingIngredient(null)
-        // Re-apply search filter
-        if (!searchQuery.trim()) {
-          setFilteredIngredients(updatedIngredients)
-        } else {
-          const q = searchQuery.toLowerCase()
-          const filtered = updatedIngredients.filter((ing) => {
-            const en = (ing?.name || '').toLowerCase()
-            const he = (ing?.name_he || '').toLowerCase()
-            return en.includes(q) || he.includes(q)
-          })
-          setFilteredIngredients(filtered)
-        }
       } else {
         // Create new ingredient
         const res = await api.post('/ingredients/', {
@@ -181,13 +155,6 @@ function IngredientsPage() {
         })
         const updatedIngredients = [...ingredients, res.data]
         setIngredients(updatedIngredients)
-        // Update filtered list if search matches
-        const q = searchQuery.toLowerCase()
-        const en = (res.data?.name || '').toLowerCase()
-        const he = (res.data?.name_he || '').toLowerCase()
-        if (!searchQuery.trim() || en.includes(q) || he.includes(q)) {
-          setFilteredIngredients(updatedIngredients)
-        }
 
         // Optional: create initial bottle + price (normalized schema)
         const bottleName = (form.brand_name || '').trim()
@@ -251,15 +218,6 @@ function IngredientsPage() {
       await api.delete(`/ingredients/${ingredientId}`)
       const updatedIngredients = ingredients.filter(ing => ing.id !== ingredientId)
       setIngredients(updatedIngredients)
-      // Re-apply search filter
-      if (!searchQuery.trim()) {
-        setFilteredIngredients(updatedIngredients)
-      } else {
-        const filtered = updatedIngredients.filter(ing =>
-          ing.name.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        setFilteredIngredients(filtered)
-      }
     } catch (e) {
       setError(t('ingredients.errors.deleteFailed'))
       console.error('Failed to delete ingredient', e)
@@ -291,29 +249,156 @@ function IngredientsPage() {
       const patch = (ing) => (ing.id === ingredientId ? { ...ing, subcategory_id } : ing)
       const updatedIngredients = ingredients.map(patch)
       setIngredients(updatedIngredients)
-      setFilteredIngredients((prev) => (Array.isArray(prev) ? prev.map(patch) : prev))
     } catch (e) {
       console.error('Failed to update ingredient subcategory', e)
       setError(t('ingredients.errors.updateGroupFailed'))
     }
   }
 
-  const groupedSections = useMemo(() => {
-    const idByName = taxonomy.subcategoryIdByNameLower || {}
-    const items = Array.isArray(filteredIngredients) ? filteredIngredients : []
-    const sections = []
-    for (const name of INGREDIENT_GROUP_ORDER) {
-      const id = idByName[name.toLowerCase()]
-      const list = id ? items.filter((i) => i.subcategory_id === id) : []
-      sections.push({ key: name.toLowerCase(), title: t(`inventory.groups.${name}`), items: list })
-    }
-    const knownIds = new Set(Object.values(idByName))
-    const uncategorized = items.filter((i) => !i.subcategory_id || !knownIds.has(i.subcategory_id))
-    sections.push({ key: 'uncategorized', title: t('ingredients.uncategorized'), items: uncategorized })
+  const filteredIngredients = useMemo(() => {
+    const query = (searchQuery || '').trim().toLowerCase()
+    if (!query) return ingredients || []
+    return (ingredients || []).filter((ing) =>
+      (ing?.name || '').toLowerCase().includes(query) ||
+      (ing?.name_he || '').toLowerCase().includes(query)
+    )
+  }, [ingredients, searchQuery])
 
-    // Hide empty categories (only show headers that have items).
-    return sections.filter((s) => (s.items || []).length > 0)
-  }, [filteredIngredients, taxonomy.subcategoryIdByNameLower, t])
+  // 1) Select options (value = UUID; plus All + Uncategorized)
+const subcategoryOptions = useMemo(() => {
+  const subs = Array.isArray(taxonomy.subcategories) ? taxonomy.subcategories : []
+
+  // Order by INGREDIENT_GROUP_ORDER first (match by name), then the rest
+  const byNameLower = new Map(subs.map((s) => [(s?.name || '').trim().toLowerCase(), s]))
+  const used = new Set()
+
+  const ordered = []
+  for (const name of INGREDIENT_GROUP_ORDER) {
+    const sc = byNameLower.get(name.toLowerCase())
+    if (sc?.id && !used.has(sc.id)) {
+      used.add(sc.id)
+      ordered.push(sc)
+    }
+  }
+
+  const rest = subs
+    .filter((s) => s?.id && !used.has(s.id))
+    .slice()
+    .sort((a, b) => {
+      const al = t(`inventory.groups.${a.name}`, { defaultValue: a.name || '' })
+      const bl = t(`inventory.groups.${b.name}`, { defaultValue: b.name || '' })
+      return String(al).localeCompare(String(bl))
+    })
+
+  const base = [...ordered, ...rest].map((sc) => ({
+    value: sc.id, // ✅ UUID
+    label: t(`inventory.groups.${sc.name}`, { defaultValue: sc.name }),
+  }))
+
+  return [
+    ...base,
+    { value: '__none__', label: t('ingredients.uncategorized') }, // Uncategorized (last)
+  ]
+}, [taxonomy.subcategories, t])
+
+// 2) Filter list by selectedSubcategoryId (UUID / '' / '__none__')
+const subcategoryFilteredIngredients = useMemo(() => {
+  const items = Array.isArray(filteredIngredients) ? filteredIngredients : []
+
+  if (!selectedSubcategoryId) return items // All
+  if (selectedSubcategoryId === '__none__') {
+    return items.filter((ing) => !ing.subcategory_id)
+  }
+  return items.filter((ing) => ing.subcategory_id === selectedSubcategoryId)
+}, [filteredIngredients, selectedSubcategoryId])
+
+// 3) Build sections using subcategory_id as the key (NO duplicates, header always matches)
+const ingredientSections = useMemo(() => {
+  const list = Array.isArray(subcategoryFilteredIngredients) ? subcategoryFilteredIngredients : []
+
+  // If user picked a specific subcategory -> show ONE section with the correct title
+  if (selectedSubcategoryId) {
+    const title =
+      selectedSubcategoryId === '__none__'
+        ? t('ingredients.uncategorized')
+        : t(
+            `inventory.groups.${taxonomy.subcategoryById?.[selectedSubcategoryId]?.name || ''}`,
+            { defaultValue: taxonomy.subcategoryById?.[selectedSubcategoryId]?.name || '' }
+          )
+
+    // Even if empty, you probably want to show the header; remove this filter if you want empty section hidden
+    return [{ key: selectedSubcategoryId, title, items: list }]
+  }
+
+  // No filter -> group into multiple sections (keys are IDs)
+  const buckets = {}
+  for (const sc of (taxonomy.subcategories || [])) {
+    if (sc?.id) buckets[sc.id] = []
+  }
+  buckets.__none__ = []
+
+  for (const ing of list) {
+    const k = ing.subcategory_id || '__none__'
+    ;(buckets[k] ?? buckets.__none__).push(ing)
+  }
+
+  // Follow the same order as the select (skip "All")
+  const valuesInOrder = subcategoryOptions.map((o) => o.value).filter((v) => v && v !== '')
+
+  const sections = valuesInOrder.map((val) => {
+    const title =
+      val === '__none__'
+        ? t('ingredients.uncategorized')
+        : t(
+            `inventory.groups.${taxonomy.subcategoryById?.[val]?.name || ''}`,
+            { defaultValue: taxonomy.subcategoryById?.[val]?.name || '' }
+          )
+    return { key: val, title, items: buckets[val] || [] }
+  })
+
+  // Hide empty categories
+  return sections.filter((s) => (s.items || []).length > 0)
+}, [subcategoryFilteredIngredients, selectedSubcategoryId, taxonomy.subcategoryById, taxonomy.subcategories, subcategoryOptions, t])
+
+
+
+  const sortedIngredients = useMemo(() => {
+    const arr = [...(subcategoryFilteredIngredients || [])]
+    arr.sort((a, b) => {
+      const ak = (a?.subcategory_name || '').toLowerCase()
+      const bk = (b?.subcategory_name || '').toLowerCase()
+      if (ak !== bk) return ak.localeCompare(bk)
+
+      const an = (a?.name || '').toLowerCase()
+      const bn = (b?.name || '').toLowerCase()
+      return an.localeCompare(bn)
+    })
+    return arr
+  }, [subcategoryFilteredIngredients])
+
+
+  const groupKeyForIngredient = (ing) => {
+    const sub = (ing?.subcategory_name || '').trim()
+    if (sub && INGREDIENT_GROUP_ORDER.includes(sub)) return sub
+    return 'Uncategorized'
+  }
+
+  const displayIngredientSubcategory = (ing) => {
+    const key = groupKeyForIngredient(ing)
+    if (key === 'Uncategorized') return t('ingredients.uncategorized')
+    return t(`inventory.groups.${key}`, { defaultValue: key })
+  }
+
+
+
+
+
+
+
+
+
+
+
 
   const loadBrands = async (ingredientId) => {
     try {
@@ -393,6 +478,12 @@ function IngredientsPage() {
         price: bottlePrice,
         currency: 'ILS',
       })
+      await api.post(`/inventory/items`, {
+        item_type: 'BOTTLE',
+        bottle_id: bottleRes.data.id,
+        name: nameEn,
+        unit: 'ml',
+      })
       updateBrandForm(ingredientId, { brand_name: '', brand_name_he: '', bottle_size_ml: '', bottle_price: '', submitting: false })
       await loadBrands(ingredientId)
       await loadBrandSuggestions()
@@ -402,6 +493,7 @@ function IngredientsPage() {
       console.error('Failed to create brand', e)
     }
   }
+
 
   const startEditBrand = (brand) => {
     setEditingBrandById((prev) => ({
@@ -485,6 +577,13 @@ function IngredientsPage() {
             className="search-input"
           />
         </div>
+        <Select
+          name="subcategory"
+          value={selectedSubcategoryId}
+          onChange={(val) => setSelectedSubcategoryId(val)}
+          options={subcategoryOptions}
+          placeholder={t('ingredients.subcategorySelect.allSubcategories')}
+        />
         {isAdmin && !editingIngredient && (
           <button
             onClick={() => setShowAddForm(!showAddForm)}
@@ -507,6 +606,8 @@ function IngredientsPage() {
                   onChange={(e) => setForm(prev => (lang === 'he' ? { ...prev, name_he: e.target.value } : { ...prev, name: e.target.value }))}
                   className="form-input"
                 />
+
+
                 {isAdmin && taxonomy.subcategories.length > 0 && (
                   <select
                     className="form-input form-input-small"
@@ -600,7 +701,7 @@ function IngredientsPage() {
                     : t('ingredients.empty.noSearchMatch')}
               </div>
             ) : (
-              groupedSections.map((section) => (
+              ingredientSections.map((section) => (
                 <div key={section.key} style={{ marginTop: section.key === 'spirit' ? 0 : 18 }}>
                   <h3 style={{ margin: '0 0 10px 0' }}>{section.title}</h3>
                   <ul>

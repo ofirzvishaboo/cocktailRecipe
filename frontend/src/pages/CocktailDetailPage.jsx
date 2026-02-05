@@ -282,30 +282,30 @@ const CocktailDetailPage = () => {
 
   return (
     <div className="card">
-      <div className="cocktail-detail-header">
       <div className="cocktail-title-row">
-      <Link to="/" className="back-link">
-        {t('cocktailDetail.backToCocktails')}
-      </Link>
-
-      <h1 className="cocktail-detail-title">
-        {displayCocktailName()}
-      </h1>
-
-      {isOwner() ? (
-        <div className="cocktail-actions-inline">
-          <button onClick={() => setEditing(true)} className="button-edit">
-            {t('cocktailDetail.actions.edit')}
-          </button>
-          <button onClick={() => setDeleteConfirmOpen(true)} className="button-remove">
-            {t('cocktailDetail.actions.delete')}
-          </button>
-        </div>
-      ) : (
-        <div /> /* keeps grid 3 columns so title stays centered */
-      )}
-    </div>
+        <Link to="/" className="back-link" aria-label={t('cocktailDetail.backToCocktails')}>
+          <span className="back-link-icon" aria-hidden="true">{lang === 'he' ? '→' : '←'}</span>
+          <span className="back-link-text">{t('cocktailDetail.backToCocktails')}</span>
+        </Link>
+        <h1 className="cocktail-detail-title">{displayCocktailName()}</h1>
+        {isOwner() && (
+          <div className="cocktail-actions-inline">
+            <button
+              onClick={() => setEditing(true)}
+              className="button-edit"
+            >
+              {t('cocktailDetail.actions.edit')}
+            </button>
+            <button
+              onClick={() => setDeleteConfirmOpen(true)}
+              className="button-remove"
+            >
+              {t('cocktailDetail.actions.delete')}
+            </button>
+          </div>
+        )}
       </div>
+      <div className="cocktail-detail-header" />
 
       <div className="cocktail-detail-content">
         <div className="cocktail-detail-image">

@@ -196,7 +196,7 @@
   },
   "cocktailDetail": {
     "loading": "Loading cocktail...",
-    "backToCocktails": "← Back to Cocktails",
+    "backToCocktails": "Back to Cocktails",
     "editTitle": "Edit Cocktail",
     "actions": {
       "edit": "Edit",
@@ -449,6 +449,7 @@
       "noSearchMatch": "No ingredients match your search."
     },
     "subcategorySelect": {
+      "allSubcategories": "All Categories",
       "uncategorized": "Uncategorized",
       "Spirit": "Spirit",
       "Liqueur": "Liqueur",
