@@ -247,10 +247,14 @@ async def list_inventory_items(
         BottleKind.name.label("bottle_kind_name"),
         BottleIngredient.subcategory_id.label("bottle_subcategory_id"),
         BottleSubcategory.name.label("bottle_subcategory_name"),
+        BottleIngredient.name.label("bottle_ingredient_name"),
+        BottleIngredient.name_he.label("bottle_ingredient_name_he"),
         GarnishIngredient.kind_id.label("garnish_kind_id"),
         GarnishKind.name.label("garnish_kind_name"),
         GarnishIngredient.subcategory_id.label("garnish_subcategory_id"),
         GarnishSubcategory.name.label("garnish_subcategory_name"),
+        GarnishIngredient.name.label("garnish_ingredient_name"),
+        GarnishIngredient.name_he.label("garnish_ingredient_name_he"),
     )
 
     if item_type:
@@ -293,10 +297,14 @@ async def list_inventory_items(
             _bottle_kind_name,
             _bottle_subcategory_id,
             _bottle_subcategory_name,
+            _bottle_ingredient_name,
+            _bottle_ingredient_name_he,
             _garnish_kind_id,
             _garnish_kind_name,
             _garnish_subcategory_id,
             _garnish_subcategory_name,
+            _garnish_ingredient_name,
+            _garnish_ingredient_name_he,
         ) in rows
         if it.item_type == "BOTTLE" and it.bottle_id is not None
     ]
@@ -309,25 +317,35 @@ async def list_inventory_items(
         bottle_kind_name,
         bottle_subcategory_id,
         bottle_subcategory_name,
+        bottle_ingredient_name,
+        bottle_ingredient_name_he,
         garnish_kind_id,
         garnish_kind_name,
         garnish_subcategory_id,
         garnish_subcategory_name,
+        garnish_ingredient_name,
+        garnish_ingredient_name_he,
     ) in rows:
         kind_id_out = None
         kind_name_out = None
         subcategory_id_out = None
         subcategory_name_out = None
+        ingredient_name_out = None
+        ingredient_name_he_out = None
         if it.item_type == "BOTTLE":
             kind_id_out = bottle_kind_id
             kind_name_out = bottle_kind_name
             subcategory_id_out = bottle_subcategory_id
             subcategory_name_out = bottle_subcategory_name
+            ingredient_name_out = bottle_ingredient_name
+            ingredient_name_he_out = bottle_ingredient_name_he
         elif it.item_type == "GARNISH":
             kind_id_out = garnish_kind_id
             kind_name_out = garnish_kind_name
             subcategory_id_out = garnish_subcategory_id
             subcategory_name_out = garnish_subcategory_name
+            ingredient_name_out = garnish_ingredient_name
+            ingredient_name_he_out = garnish_ingredient_name_he
         elif it.item_type == "GLASS":
             kind_name_out = "Glass"
 
@@ -343,6 +361,8 @@ async def list_inventory_items(
                 "kind_name": kind_name_out,
                 "subcategory_id": subcategory_id_out,
                 "subcategory_name": subcategory_name_out,
+                "ingredient_name": ingredient_name_out,
+                "ingredient_name_he": ingredient_name_he_out,
                 # Price source priority:
                 # 1) manual price on inventory_items (supports GLASS/GARNISH and optional override)
                 # 2) bottle_prices (for bottle-backed items)
@@ -521,8 +541,12 @@ async def get_stock(
     stmt = stmt.add_columns(
         BottleIngredient.subcategory_id.label("bottle_subcategory_id"),
         BottleSubcategory.name.label("bottle_subcategory_name"),
+        BottleIngredient.name.label("bottle_ingredient_name"),
+        BottleIngredient.name_he.label("bottle_ingredient_name_he"),
         GarnishIngredient.subcategory_id.label("garnish_subcategory_id"),
         GarnishSubcategory.name.label("garnish_subcategory_name"),
+        GarnishIngredient.name.label("garnish_ingredient_name"),
+        GarnishIngredient.name_he.label("garnish_ingredient_name_he"),
     )
     if item_type:
         stmt = stmt.where(InventoryItemModel.item_type == item_type)
@@ -535,15 +559,32 @@ async def get_stock(
     bottle_prices = await _load_current_bottle_prices(db, bottle_ids)
 
     out = []
-    for (it, st, bottle_subcategory_id, bottle_subcategory_name, garnish_subcategory_id, garnish_subcategory_name) in rows:
+    for (
+        it,
+        st,
+        bottle_subcategory_id,
+        bottle_subcategory_name,
+        bottle_ingredient_name,
+        bottle_ingredient_name_he,
+        garnish_subcategory_id,
+        garnish_subcategory_name,
+        garnish_ingredient_name,
+        garnish_ingredient_name_he,
+    ) in rows:
         subcategory_id = None
         subcategory_name = None
+        ingredient_name_out = None
+        ingredient_name_he_out = None
         if it.item_type == "BOTTLE":
             subcategory_id = bottle_subcategory_id
             subcategory_name = bottle_subcategory_name
+            ingredient_name_out = bottle_ingredient_name
+            ingredient_name_he_out = bottle_ingredient_name_he
         elif it.item_type == "GARNISH":
             subcategory_id = garnish_subcategory_id
             subcategory_name = garnish_subcategory_name
+            ingredient_name_out = garnish_ingredient_name
+            ingredient_name_he_out = garnish_ingredient_name_he
 
         row_out = {
                 "location": location,
@@ -556,6 +597,8 @@ async def get_stock(
                 "reserved_quantity": float(st.reserved_quantity) if st and st.reserved_quantity is not None else 0.0,
                 "subcategory_id": subcategory_id,
                 "subcategory_name": subcategory_name,
+                "ingredient_name": ingredient_name_out,
+                "ingredient_name_he": ingredient_name_he_out,
                 "price_minor": (
                     int(it.price_minor)
                     if it.price_minor is not None

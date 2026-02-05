@@ -35,6 +35,7 @@ function App() {
     }
     setVar('--inv_lbl_name', t('inventory.columns.name'))
     setVar('--inv_lbl_subcategory', t('inventory.columns.subcategory'))
+    setVar('--inv_lbl_ingredient', t('inventory.columns.ingredient'))
     setVar('--inv_lbl_qty', t('inventory.columns.qty'))
     setVar('--inv_lbl_reserved', t('inventory.columns.reserved'))
     setVar('--inv_lbl_unit', t('inventory.columns.unit'))

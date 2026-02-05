@@ -732,7 +732,7 @@ const ingredientSections = useMemo(() => {
                         </button>
                       )}
                     {isAdmin && (
-                        <>
+                        <div className="ingredient-admin-actions">
                         <button
                           onClick={() => editIngredient(ing)}
                           className="button-edit"
@@ -747,7 +747,7 @@ const ingredientSections = useMemo(() => {
                         >
                           {t('ingredients.actions.remove')}
                           </button>
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>

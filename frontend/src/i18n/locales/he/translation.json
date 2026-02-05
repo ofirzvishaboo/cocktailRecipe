@@ -340,7 +340,7 @@
       "type": "סוג",
       "subcategory": "תת־קטגוריה",
       "show": "מסננים",
-      "hide": "הסתר מסננים"
+      "hide": "הסתר"
     },
     "searchItemsPlaceholder": "חפש פריטים...",
     "locations": {
@@ -367,6 +367,7 @@
     "emptyGroup": "אין פריטים בקבוצה הזו.",
     "columns": {
       "name": "שם",
+      "ingredient": "מרכיב",
       "subcategory": "תת־קטגוריה",
       "unit": "יחידה",
       "price": "מחיר",
@@ -397,6 +398,7 @@
       "event": "אירוע",
       "selectEvent": "בחר אירוע…",
       "unnamedEvent": "אירוע ללא שם",
+      "eventConsume": "צריכת אירוע",
       "consumeEvent": "צריכת אירוע מהמלאי",
       "consumingEvent": "צורך…",
       "unconsumeEvent": "ביטול צריכת אירוע",

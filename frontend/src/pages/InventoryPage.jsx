@@ -74,15 +74,21 @@ export default function InventoryPage() {
   const [movementForm, setMovementForm] = useState({
     inventory_item_id: '',
     change: '',
-    reason: 'ADJUSTMENT',
+    reason: 'PURCHASE',
     submitting: false,
   })
   const [movementStock, setMovementStock] = useState(null)
+  const [eventConsumeExpanded, setEventConsumeExpanded] = useState(false)
 
   const filteredItems = useMemo(() => {
     const query = (q || '').trim().toLowerCase()
     if (!query) return items
-    return (items || []).filter((it) => (it?.name || '').toLowerCase().includes(query))
+    return (items || []).filter((it) => {
+      const name = (it?.name || '').toLowerCase()
+      const ingredientName = (it?.ingredient_name || '').toLowerCase()
+      const ingredientNameHe = (it?.ingredient_name_he || '').toLowerCase()
+      return name.includes(query) || ingredientName.includes(query) || ingredientNameHe.includes(query)
+    })
   }, [items, q])
 
   const sortedItems = useMemo(() => {
@@ -109,10 +115,11 @@ export default function InventoryPage() {
     return 'Uncategorized'
   }
 
-  const displaySubcategory = (row) => {
-    const key = groupKeyForRow(row)
-    // Translate known group labels; fall back to raw key for anything unexpected.
-    return t(`inventory.groups.${key}`, { defaultValue: key })
+  const displayIngredient = (row) => {
+    const en = (row?.ingredient_name || '').trim()
+    const he = (row?.ingredient_name_he || '').trim()
+    if (lang === 'he') return he || en
+    return en || he
   }
 
   const displayPrice = (row) => {
@@ -150,7 +157,12 @@ export default function InventoryPage() {
 
     const base = (stockRows || []).filter(hasStock)
     const rows = query
-      ? base.filter((r) => (r?.name || '').toLowerCase().includes(query))
+      ? base.filter((r) => {
+          const name = (r?.name || '').toLowerCase()
+          const ingredientName = (r?.ingredient_name || '').toLowerCase()
+          const ingredientNameHe = (r?.ingredient_name_he || '').toLowerCase()
+          return name.includes(query) || ingredientName.includes(query) || ingredientNameHe.includes(query)
+        })
       : base
     const sections = {}
     for (const g of GROUP_ORDER) sections[g] = []
@@ -170,7 +182,12 @@ export default function InventoryPage() {
     const query = (movementItemSearch || '').trim().toLowerCase()
     const all = (items || []).filter((it) => it?.is_active)
     const filtered = query
-      ? all.filter((it) => (it?.name || '').toLowerCase().startsWith(query))
+      ? all.filter((it) => {
+          const name = (it?.name || '').toLowerCase()
+          const ingredientName = (it?.ingredient_name || '').toLowerCase()
+          const ingredientNameHe = (it?.ingredient_name_he || '').toLowerCase()
+          return name.startsWith(query) || ingredientName.includes(query) || ingredientNameHe.includes(query)
+        })
       : all
     return filtered.map((it) => ({ value: it.id, label: `${it.name}` }))
   }, [items, movementItemSearch])
@@ -527,12 +544,40 @@ export default function InventoryPage() {
           ))}
           <button
             type="button"
-            className={`inventory-tab ${filtersOpen ? 'active' : ''}`}
+            className={`inventory-tab inventory-tab-filter ${filtersOpen ? 'active' : ''}`}
             onClick={() => setFiltersOpen((p) => !p)}
+            aria-label={filtersOpen ? t('inventory.filters.hide') : t('inventory.filters.show')}
+            title={filtersOpen ? t('inventory.filters.hide') : t('inventory.filters.show')}
           >
-            {filtersOpen ? t('inventory.filters.hide') : t('inventory.filters.show')}
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
           </button>
         </div>
+
+        {(tab === 'Items') && (
+          <div className="inventory-control inventory-control-wide" style={{ marginTop: '0.75rem' }}>
+            <InventorySearchInput
+              id="inv-items-search"
+              label={t('common.search')}
+              value={q}
+              onValueChange={(v) => setQ(v)}
+              placeholder={t('inventory.searchItemsPlaceholder')}
+            />
+          </div>
+        )}
+
+        {(tab === 'Stock') && (
+          <div className="inventory-control inventory-control-wide" style={{ marginTop: '0.75rem' }}>
+            <InventorySearchInput
+              id="inv-stock-search"
+              label={t('common.search')}
+              value={stockSearch}
+              onValueChange={(v) => setStockSearch(v)}
+              placeholder={t('inventory.searchItemsPlaceholder')}
+            />
+          </div>
+        )}
 
         {filtersOpen && (
           <div className="inventory-controls">
@@ -576,7 +621,7 @@ export default function InventoryPage() {
             </div>
 
             {(tab === 'Movements') && (
-              <>
+              <div className="inventory-control inventory-control-wide inventory-dates-row">
                 <div className="inventory-control">
                   <label className="inventory-label">{t('common.from')}</label>
                   <input
@@ -595,30 +640,6 @@ export default function InventoryPage() {
                     onChange={(e) => setMovementToDate(e.target.value)}
                   />
                 </div>
-              </>
-            )}
-
-            {(tab === 'Items') && (
-              <div className="inventory-control inventory-control-wide">
-                <InventorySearchInput
-                  id="inv-items-search"
-                  label={t('common.search')}
-                  value={q}
-                  onValueChange={(v) => setQ(v)}
-                  placeholder={t('inventory.searchItemsPlaceholder')}
-                />
-              </div>
-            )}
-
-            {(tab === 'Stock') && (
-              <div className="inventory-control inventory-control-wide">
-                <InventorySearchInput
-                  id="inv-stock-search"
-                  label={t('common.search')}
-                  value={stockSearch}
-                  onValueChange={(v) => setStockSearch(v)}
-                  placeholder={t('inventory.searchItemsPlaceholder')}
-                />
               </div>
             )}
           </div>
@@ -643,7 +664,7 @@ export default function InventoryPage() {
                     <>
                       <div className={`inventory-table-header ${showPrices ? 'inventory-table-header-stock-all' : 'inventory-table-header-stock-all-noprice'}`}>
                         <div>{t('inventory.columns.name')}</div>
-                        <div>{t('inventory.columns.subcategory')}</div>
+                        <div>{t('inventory.columns.ingredient')}</div>
                         <div className="right">{t('inventory.columns.barQty')}</div>
                         <div className="right">{t('inventory.columns.whQty')}</div>
                         <div>{t('inventory.columns.unit')}</div>
@@ -652,7 +673,7 @@ export default function InventoryPage() {
                       {(section.items || []).map((r) => (
                         <div key={r.inventory_item_id} className={`inventory-table-row ${showPrices ? 'inventory-table-row-stock-all' : 'inventory-table-row-stock-all-noprice'}`}>
                           <div className="name">{r.name}</div>
-                          <div className="muted">{displaySubcategory(r)}</div>
+                          <div className="muted">{displayIngredient(r)}</div>
                           <div className="right">{formatNumber(r.quantity_bar)}</div>
                           <div className="right">{formatNumber(r.quantity_warehouse)}</div>
                           <div className="muted">{r.unit}</div>
@@ -664,7 +685,7 @@ export default function InventoryPage() {
                     <>
                       <div className={`inventory-table-header ${showPrices ? 'inventory-table-header-stock' : 'inventory-table-header-stock-noprice'}`}>
                         <div>{t('inventory.columns.name')}</div>
-                        <div>{t('inventory.columns.subcategory')}</div>
+                        <div>{t('inventory.columns.ingredient')}</div>
                         <div className="right">{t('inventory.columns.qty')}</div>
                         <div className="right">{t('inventory.columns.reserved')}</div>
                         <div>{t('inventory.columns.unit')}</div>
@@ -673,7 +694,7 @@ export default function InventoryPage() {
                       {(section.items || []).map((r) => (
                         <div key={r.inventory_item_id} className={`inventory-table-row ${showPrices ? 'inventory-table-row-stock' : 'inventory-table-row-stock-noprice'}`}>
                           <div className="name">{r.name}</div>
-                          <div className="muted">{displaySubcategory(r)}</div>
+                          <div className="muted">{displayIngredient(r)}</div>
                           <div className="right">{formatNumber(r.quantity)}</div>
                           <div className="right">{formatNumber(r.reserved_quantity)}</div>
                           <div className="muted">{r.unit}</div>
@@ -710,7 +731,7 @@ export default function InventoryPage() {
                   >
                     <div>{t('inventory.columns.name')}</div>
                     <div>{t('inventory.columns.unit')}</div>
-                    <div>{t('inventory.columns.subcategory')}</div>
+                    <div>{t('inventory.columns.ingredient')}</div>
                     {showPrices && <div className="right">{t('inventory.columns.price')}</div>}
                     {location === 'ALL' ? (
                       <>
@@ -759,7 +780,7 @@ export default function InventoryPage() {
                             <span className="muted">{it.unit}</span>
                           )}
                         </div>
-                        <div className="muted">{displaySubcategory(it)}</div>
+                        <div className="muted">{displayIngredient(it)}</div>
                         {showPrices && (
                           <div className="right muted">
                             {isEditing ? (
@@ -892,7 +913,18 @@ export default function InventoryPage() {
         <div className="inventory-section">
           {isAdmin && (
             <>
-              <div className="inventory-movement-event-panel">
+              <div style={{ marginBottom: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="inventory-tab"
+                  onClick={() => setEventConsumeExpanded((p) => !p)}
+                  style={{ marginBottom: eventConsumeExpanded ? '0.75rem' : 0 }}
+                >
+                  {eventConsumeExpanded ? '▲' : '▼'} {t('inventory.movement.eventConsume')}
+                </button>
+              </div>
+              {eventConsumeExpanded && (
+                <div className="inventory-movement-event-panel">
                 <div className="inventory-control">
                   <label className="inventory-label">{t('inventory.movement.event')}</label>
                   <Select
@@ -936,6 +968,7 @@ export default function InventoryPage() {
                   </div>
                 </div>
               </div>
+              )}
 
               <form className="inventory-movement-form" onSubmit={createMovement}>
                 <div className="inventory-movement-row">
@@ -1032,7 +1065,7 @@ export default function InventoryPage() {
             </div>
             {(visibleMovements || []).map((m) => (
               <div key={m.id} className={`inventory-table-row ${location === 'ALL' ? 'inventory-table-row-movements-all' : 'inventory-table-row-movements'}`}>
-                <div className="muted">{m.created_at ? new Date(m.created_at).toLocaleString(lang === 'he' ? 'he-IL' : 'en-US') : ''}</div>
+                <div className="muted">{m.created_at ? new Date(m.created_at).toLocaleDateString(lang === 'he' ? 'he-IL' : 'en-US') : ''}</div>
                 {location === 'ALL' && <div className="muted">{t(`inventory.locations.${m.location}`)}</div>}
                 <div className="name">{m.item_name || m.inventory_item_id}</div>
                 <div className="muted">

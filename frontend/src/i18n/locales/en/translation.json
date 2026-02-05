@@ -340,7 +340,7 @@
       "type": "Type",
       "subcategory": "Subcategory",
       "show": "Filters",
-      "hide": "Hide filters"
+      "hide": "Hide"
     },
     "searchItemsPlaceholder": "Search items...",
     "locations": {
@@ -367,6 +367,7 @@
     "emptyGroup": "No items in this group.",
     "columns": {
       "name": "Name",
+      "ingredient": "Ingredient",
       "subcategory": "Subcategory",
       "unit": "Unit",
       "price": "Price",
@@ -397,6 +398,7 @@
       "event": "Event",
       "selectEvent": "Select event…",
       "unnamedEvent": "Unnamed event",
+      "eventConsume": "Event Consume",
       "consumeEvent": "Consume event from stock",
       "consumingEvent": "Consuming…",
       "unconsumeEvent": "Unconsume event",

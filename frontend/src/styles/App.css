@@ -1442,20 +1442,42 @@ html[dir="rtl"] .navbar-user {
 
   /* Make all ingredient action buttons match a consistent layout on mobile */
   .ingredient-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 0.5rem;
-    justify-content: stretch;
     width: 100%;
   }
 
-  .ingredient-actions button {
+  /* Category select takes full width on mobile */
+  .ingredient-actions select.button-secondary {
+    width: 100%;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.9rem;
+    border-radius: 10px;
+    min-height: 38px;
+    box-sizing: border-box;
+  }
+
+  /* Brands button takes full width */
+  .ingredient-actions .button-brands {
+    width: 100%;
+    min-height: 38px;
+    box-sizing: border-box;
+  }
+
+  /* Edit and Remove buttons container - side-by-side */
+  .ingredient-admin-actions {
+    display: flex;
+    gap: 0.5rem;
     width: 100%;
   }
 
-  /* Remove button always on its own row, full width */
-  .ingredient-actions .button-remove {
-    grid-column: 1 / -1;
+  /* Edit and Remove buttons side-by-side with equal width */
+  .ingredient-admin-actions .button-edit,
+  .ingredient-admin-actions .button-remove {
+    flex: 1;
+    min-height: 38px;
+    box-sizing: border-box;
   }
 }
 
