@@ -16,12 +16,16 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
         (initialCocktail?.recipe_ingredients || []).map(() => []) || [[]]
     )
 
+    const MENU_OPTIONS = ['classic', 'signature', 'seasonal']
     const [form, setForm] = useState({
         name: initialCocktail?.name || '',
         name_he: initialCocktail?.name_he || '',
         description: initialCocktail?.description || '',
         description_he: initialCocktail?.description_he || '',
         is_base: !!initialCocktail?.is_base,
+        menus: Array.isArray(initialCocktail?.menus) && initialCocktail.menus.length > 0
+            ? [...initialCocktail.menus]
+            : (initialCocktail?.is_base ? ['classic'] : ['signature']),
         glass_type_id: initialCocktail?.glass_type_id || '',
         garnish_text: initialCocktail?.garnish_text || '',
         garnish_text_he: initialCocktail?.garnish_text_he || '',
@@ -329,7 +333,8 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
             glass_type_id: form.glass_type_id || null,
             garnish_text: pickText(form.garnish_text, form.garnish_text_he) || null,
             garnish_text_he: (form.garnish_text_he || '').trim() || null,
-            is_base: !!form.is_base,
+            is_base: !!form.menus?.includes('classic'),
+            menus: Array.isArray(form.menus) ? form.menus : [],
             preparation_method: pickText(form.preparation_method, form.preparation_method_he) || null,
             preparation_method_he: (form.preparation_method_he || '').trim() || null,
         }
@@ -355,6 +360,7 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                     description: '',
                     description_he: '',
                     is_base: false,
+                    menus: ['signature'],
                     glass_type_id: '',
                     garnish_text: '',
                     garnish_text_he: '',
@@ -395,17 +401,24 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
             </div>
 
             <div className="form-group">
-                <label htmlFor="form-classification">{t('cocktailForm.typeLabel')}</label>
-                <Select
-                    id="form-classification"
-                    value={form.is_base ? 'CLASSIC' : 'SIGNATURE'}
-                    onChange={(v) => setForm((prev) => ({ ...prev, is_base: v === 'CLASSIC' }))}
-                    ariaLabel={t('cocktailForm.typeLabel')}
-                    options={[
-                        { value: 'SIGNATURE', label: t('cocktailForm.type.signature') },
-                        { value: 'CLASSIC', label: t('cocktailForm.type.classic') },
-                    ]}
-                />
+                <span className="form-label">{t('cocktailForm.menusLabel')}</span>
+                <div className="cocktail-form-menus" role="group" aria-label={t('cocktailForm.menusLabel')}>
+                    {MENU_OPTIONS.map((menu) => (
+                        <label key={menu} className="cocktail-form-menu-check">
+                            <input
+                                type="checkbox"
+                                checked={(form.menus || []).includes(menu)}
+                                onChange={(e) => {
+                                    const next = e.target.checked
+                                        ? [...(form.menus || []).filter((m) => m !== menu), menu]
+                                        : (form.menus || []).filter((m) => m !== menu)
+                                    setForm((prev) => ({ ...prev, menus: next, is_base: next.includes('classic') }))
+                                }}
+                            />
+                            <span>{t(`cocktailForm.type.${menu}`)}</span>
+                        </label>
+                    ))}
+                </div>
             </div>
             <div className="form-group">
                 <label htmlFor="form-description">{t('cocktailForm.descriptionLabel')}</label>

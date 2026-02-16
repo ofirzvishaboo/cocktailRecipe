@@ -94,6 +94,7 @@ def _serialize_cocktail(c: CocktailRecipeModel) -> Dict:
         "garnish_text_he": getattr(c, "garnish_text_he", None),
         "base_recipe_id": c.base_recipe_id,
         "is_base": c.is_base,
+        "menus": list(c.menus) if getattr(c, "menus", None) else (["classic"] if c.is_base else ["signature"]),
         "preparation_method": c.preparation_method,
         "preparation_method_he": getattr(c, "preparation_method_he", None),
         "batch_type": c.batch_type,
@@ -164,6 +165,7 @@ async def create_cocktail_recipe(
             glass_type_id=cocktail.glass_type_id,
             base_recipe_id=cocktail.base_recipe_id,
             is_base=bool(cocktail.is_base),
+            menus=list(cocktail.menus) if cocktail.menus else [],
             preparation_method=cocktail.preparation_method,
             preparation_method_he=cocktail.preparation_method_he,
             batch_type=cocktail.batch_type,
@@ -246,6 +248,7 @@ async def update_cocktail_recipe(
         cocktail_model.glass_type_id = cocktail.glass_type_id
         cocktail_model.base_recipe_id = cocktail.base_recipe_id
         cocktail_model.is_base = bool(cocktail.is_base)
+        cocktail_model.menus = list(cocktail.menus) if cocktail.menus else []
         cocktail_model.preparation_method = cocktail.preparation_method
         cocktail_model.preparation_method_he = cocktail.preparation_method_he
         cocktail_model.batch_type = cocktail.batch_type

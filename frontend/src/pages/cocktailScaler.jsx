@@ -96,8 +96,9 @@ export default function CocktailScaler() {
                 const response = await api.get('/cocktail-recipes/');
                 const list = response.data || []
                 setCocktails(list);
-                // Initialize with auth-filtered list (guests: classic only)
-                const baseList = isAuthenticated ? list : (list || []).filter((c) => !!c?.is_base)
+                // Guests see only cocktails in 'classic' menu (or legacy is_base)
+                const inClassic = (c) => (Array.isArray(c?.menus) && c.menus.includes('classic')) || (!c?.menus?.length && !!c?.is_base)
+                const baseList = isAuthenticated ? list : (list || []).filter(inClassic)
                 setFilteredCocktails(baseList);
             } catch (e) {
                 setError(t('scaler.errors.loadCocktailsFailed'));
@@ -386,7 +387,8 @@ export default function CocktailScaler() {
 
     // Filter cocktails based on search query
     useEffect(() => {
-        const baseList = isAuthenticated ? (cocktails || []) : (cocktails || []).filter((c) => !!c?.is_base)
+        const inClassic = (c) => (Array.isArray(c?.menus) && c.menus.includes('classic')) || (!c?.menus?.length && !!c?.is_base)
+        const baseList = isAuthenticated ? (cocktails || []) : (cocktails || []).filter(inClassic)
         if (!searchQuery.trim()) {
             setFilteredCocktails(baseList);
         } else {
@@ -431,7 +433,8 @@ export default function CocktailScaler() {
     useEffect(() => {
         if (isAuthenticated) return
         if (!selectedCocktail) return
-        if (!selectedCocktail?.is_base) {
+        const inClassic = (c) => (Array.isArray(c?.menus) && c.menus.includes('classic')) || (!c?.menus?.length && !!c?.is_base)
+        if (!inClassic(selectedCocktail)) {
             setSelectedCocktailId(null)
             setSelectedCocktail(null)
             setRecipeName('')

@@ -146,6 +146,7 @@ async def ensure_hebrew_columns(session) -> None:
     Make this seed script self-contained by adding Hebrew columns if missing.
     This avoids needing to restart the API container to run startup migrations first.
     """
+    await session.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS menus TEXT[] DEFAULT '{}'"))
     await session.execute(text("ALTER TABLE brands ADD COLUMN IF NOT EXISTS name_he TEXT"))
     await session.execute(text("ALTER TABLE glass_types ADD COLUMN IF NOT EXISTS name_he TEXT"))
     await session.execute(text("ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS name_he TEXT"))
@@ -573,7 +574,8 @@ async def seed():
                     picture_url=None,
                     garnish_text=garnish,
                     garnish_text_he=garnish_he,
-                    is_base=True,  # Classic
+                    is_base=True,
+                    menus=["classic"],
                     preparation_method=prep,
                     preparation_method_he=prep_he,
                     # Keep null so the Scaler UI stays on its default ("batch") unless user chooses otherwise.

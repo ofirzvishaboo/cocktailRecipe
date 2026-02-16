@@ -193,6 +193,7 @@ const CocktailDetailPage = () => {
       glass_type_id: cocktail?.glass_type_id || null,
       base_recipe_id: cocktail?.base_recipe_id || null,
       is_base: !!cocktail?.is_base,
+      menus: Array.isArray(cocktail?.menus) ? cocktail.menus : (cocktail?.is_base ? ['classic'] : ['signature']),
       preparation_method: (cocktail?.preparation_method || '').trim() || null,
       preparation_method_he: (cocktail?.preparation_method_he || '').trim() || null,
       batch_type: cocktail?.batch_type || null,

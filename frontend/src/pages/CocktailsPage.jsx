@@ -6,6 +6,8 @@ import api from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 
+const MENU_ORDER = ['classic', 'signature', 'seasonal'] // tab order; add more menu keys here as needed
+
 const CocktailsPage = () => {
   const { user, isAuthenticated, isAdmin } = useAuth()
   const navigate = useNavigate()
@@ -20,7 +22,7 @@ const CocktailsPage = () => {
   const [failedImages, setFailedImages] = useState(new Set())
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [pendingDeleteCocktailId, setPendingDeleteCocktailId] = useState(null)
-  const [activeTab, setActiveTab] = useState('classic') // 'classic' | 'signature'
+  const [activeTab, setActiveTab] = useState('classic')
 
   const displayCocktailName = useCallback((cocktail) => {
     if (!cocktail) return ''
@@ -246,43 +248,46 @@ const CocktailsPage = () => {
     }
   }, [searchQuery, cocktails, getIngredientNames, getSearchableCocktailNames, getSearchableIngredientNames])
 
+  const inMenu = (c, menu) => (Array.isArray(c?.menus) && c.menus.includes(menu)) || (menu === 'classic' && !c?.menus?.length && !!c?.is_base) || (menu === 'signature' && !c?.menus?.length && !c?.is_base)
+
   const viewerCocktails = useMemo(() => {
-    // Logged-out users should only see Classic cocktails.
-    return isAuthenticated ? (cocktails || []) : (cocktails || []).filter((c) => !!c?.is_base)
+    return isAuthenticated ? (cocktails || []) : (cocktails || []).filter((c) => inMenu(c, 'classic'))
   }, [cocktails, isAuthenticated])
 
   const viewerFilteredCocktails = useMemo(() => {
-    // Logged-out users should only see Classic cocktails.
-    return isAuthenticated ? (filteredCocktails || []) : (filteredCocktails || []).filter((c) => !!c?.is_base)
+    return isAuthenticated ? (filteredCocktails || []) : (filteredCocktails || []).filter((c) => inMenu(c, 'classic'))
   }, [filteredCocktails, isAuthenticated])
 
-  const classicCocktails = useMemo(() => {
-    return (viewerFilteredCocktails || []).filter((c) => !!c?.is_base)
-  }, [viewerFilteredCocktails])
-
-  const signatureCocktails = useMemo(() => {
-    if (!isAuthenticated) return []
-    return (viewerFilteredCocktails || []).filter((c) => !c?.is_base)
+  // Menus that have at least one cocktail (in current filtered list). Guests only see 'classic'.
+  const activeMenus = useMemo(() => {
+    const list = viewerFilteredCocktails || []
+    const allowed = isAuthenticated ? MENU_ORDER : ['classic']
+    const withCocktails = allowed.filter((menu) => list.some((c) => inMenu(c, menu)))
+    return MENU_ORDER.filter((m) => withCocktails.includes(m))
   }, [viewerFilteredCocktails, isAuthenticated])
 
+  const cocktailsByMenu = useMemo(() => {
+    const list = viewerFilteredCocktails || []
+    const out = {}
+    MENU_ORDER.forEach((menu) => {
+      out[menu] = list.filter((c) => inMenu(c, menu))
+    })
+    return out
+  }, [viewerFilteredCocktails])
+
+  const currentCocktails = cocktailsByMenu[activeTab] || []
+  const hasAnyCocktails = activeMenus.length > 0
   const isSearching = !!(searchQuery || '').trim()
 
   useEffect(() => {
-    // Logged-out users should never be on Signature tab.
-    if (!isAuthenticated && activeTab !== 'classic') {
-      setActiveTab('classic')
-    }
+    if (!isAuthenticated && activeTab !== 'classic') setActiveTab('classic')
   }, [activeTab, isAuthenticated])
 
   useEffect(() => {
-    // During search, keep the UI on a tab that has results when possible.
-    if (!isAuthenticated) return
-    if (!isSearching) return
-    const classicHas = classicCocktails.length > 0
-    const sigHas = signatureCocktails.length > 0
-    if (activeTab === 'classic' && !classicHas && sigHas) setActiveTab('signature')
-    if (activeTab === 'signature' && !sigHas && classicHas) setActiveTab('classic')
-  }, [activeTab, classicCocktails.length, signatureCocktails.length, isAuthenticated, isSearching])
+    if (!hasAnyCocktails) return
+    if (activeMenus.includes(activeTab)) return
+    setActiveTab(activeMenus[0])
+  }, [activeMenus, activeTab, hasAnyCocktails])
 
   // Check if the current user owns this cocktail
   const isOwner = (cocktail) => {
@@ -332,7 +337,7 @@ const CocktailsPage = () => {
             {error && <div className="error-message">{error}</div>}
             {!loading && !error && (
               <>
-                {(classicCocktails.length === 0 && signatureCocktails.length === 0) ? (
+                {!hasAnyCocktails ? (
                   <p>
                     {searchQuery.trim()
                       ? t('cocktails.empty.matching', { query: searchQuery })
@@ -342,39 +347,32 @@ const CocktailsPage = () => {
                   </p>
                 ) : (
                   <>
-                    {isAuthenticated && (
+                    {activeMenus.length > 1 && (
                       <div className="cocktails-tabs" role="tablist" aria-label={t('cocktails.tabs.label', { defaultValue: 'Cocktail sections' })}>
-                        <button
-                          type="button"
-                          role="tab"
-                          aria-selected={activeTab === 'classic'}
-                          className={`cocktails-tab ${activeTab === 'classic' ? 'active' : ''}`}
-                          onClick={() => setActiveTab('classic')}
-                        >
-                          {t('cocktails.sections.classic')}
-                        </button>
-                        <button
-                          type="button"
-                          role="tab"
-                          aria-selected={activeTab === 'signature'}
-                          className={`cocktails-tab ${activeTab === 'signature' ? 'active' : ''}`}
-                          onClick={() => setActiveTab('signature')}
-                        >
-                          {t('cocktails.sections.signature')}
-                        </button>
+                        {activeMenus.map((menu) => (
+                          <button
+                            key={menu}
+                            type="button"
+                            role="tab"
+                            aria-selected={activeTab === menu}
+                            className={`cocktails-tab ${activeTab === menu ? 'active' : ''}`}
+                            onClick={() => setActiveTab(menu)}
+                          >
+                            {t(`cocktails.sections.${menu}`, { defaultValue: t(`cocktailForm.type.${menu}`, { defaultValue: menu }) })}
+                          </button>
+                        ))}
                       </div>
                     )}
 
-                    {(activeTab === 'classic' || !isAuthenticated) && (
-                      classicCocktails.length === 0 ? (
-                        <div className="empty-state">
-                          {isSearching
-                            ? t('cocktails.empty.classicMatching', { query: searchQuery })
-                            : t('cocktails.empty.classicNone')}
-                        </div>
-                      ) : (
-                        <ul className="cocktails-grid">
-                          {classicCocktails.map((c) => {
+                    {currentCocktails.length === 0 ? (
+                      <div className="empty-state">
+                        {isSearching
+                          ? t('cocktails.empty.menuMatching', { query: searchQuery })
+                          : t('cocktails.empty.menuNone')}
+                      </div>
+                    ) : (
+                      <ul className="cocktails-grid">
+                        {currentCocktails.map((c) => {
                             const chips = getIngredientChips(c)
                             return (
                               <li key={c.id || c.name}>
@@ -438,85 +436,7 @@ const CocktailsPage = () => {
                               </li>
                             )
                           })}
-                        </ul>
-                      )
-                    )}
-
-                    {isAuthenticated && activeTab === 'signature' && (
-                      signatureCocktails.length === 0 ? (
-                        <div className="empty-state">
-                          {isSearching
-                            ? t('cocktails.empty.signatureMatching', { query: searchQuery })
-                            : t('cocktails.empty.signatureNone')}
-                        </div>
-                      ) : (
-                        <ul className="cocktails-grid">
-                          {signatureCocktails.map((c) => {
-                            const chips = getIngredientChips(c)
-                            return (
-                              <li key={c.id || c.name}>
-                                <div className="cocktail-card">
-                                  <Link to={`/cocktails/${c.id}`} className="cocktail-card-link">
-                                    <div className="cocktail-card-media">
-                                      {c.picture_url && !failedImages.has(c.id) ? (
-                                        <img
-                                          src={c.picture_url}
-                                          alt={displayCocktailName(c)}
-                                          className="cocktail-card-image"
-                                          onError={() => {
-                                            setFailedImages((prev) => new Set(prev).add(c.id))
-                                          }}
-                                        />
-                                      ) : (
-                                        <div className="cocktail-card-image-placeholder">
-                                          {c.picture_url ? t('cocktails.image.invalid') : t('cocktails.image.none')}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="cocktail-card-body">
-                                      <div className="cocktail-card-title">{displayCocktailName(c)}</div>
-                                    </div>
-                                  </Link>
-
-                                  {(chips.shown.length > 0 || (isAuthenticated && isOwner(c))) && (
-                                    <div className="cocktail-card-actions">
-                                      {(chips.shown.length > 0) && (
-                                        <div className="ingredient-chips">
-                                          {chips.shown.map((name) => (
-                                            <span key={name} className="ingredient-chip">{name}</span>
-                                          ))}
-                                          {chips.remaining > 0 && (
-                                            <span className="ingredient-chip ingredient-chip-more">
-                                              {t('cocktails.ingredients.more', { count: chips.remaining })}
-                                            </span>
-                                          )}
-                                        </div>
-                                      )}
-                                      {isAuthenticated && isOwner(c) && (
-                                        <div className="cocktail-card-action-buttons">
-                                          <button
-                                            onClick={() => editCocktail(c)}
-                                            className="button-edit"
-                                            disabled={!c.id}
-                                          >
-                                            {t('cocktails.actions.edit')}
-                                          </button>
-                                          <button
-                                            onClick={() => requestRemoveCocktail(c.id)}
-                                            className="button-remove"
-                                          >
-                                            {t('cocktails.actions.remove')}
-                                          </button>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </li>
-                            )
-                          })}
-                        </ul>
-                      )
+                      </ul>
                     )}
                   </>
                 )}

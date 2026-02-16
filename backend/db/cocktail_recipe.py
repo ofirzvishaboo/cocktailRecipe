@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text, text
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -24,7 +24,8 @@ class CocktailRecipe(Base):
     garnish_text = Column(Text, nullable=True)
     garnish_text_he = Column(Text, nullable=True)
     base_recipe_id = Column(UUID(as_uuid=True), ForeignKey("cocktail_recipes.id", ondelete="SET NULL"), nullable=True)
-    is_base = Column(Boolean, nullable=False, default=False)
+    is_base = Column(Boolean, nullable=False, default=False)  # legacy; prefer menus
+    menus = Column(ARRAY(Text), nullable=False, default=list, server_default=text("'{}'::text[]"))  # e.g. ['classic', 'signature', 'seasonal']
     preparation_method = Column(Text, nullable=True)
     preparation_method_he = Column(Text, nullable=True)
     batch_type = Column(String, nullable=True)  # 'base' or 'batch'
@@ -66,6 +67,7 @@ class CocktailRecipe(Base):
             "garnish_text_he": self.garnish_text_he,
             "base_recipe_id": self.base_recipe_id,
             "is_base": self.is_base,
+            "menus": list(self.menus) if self.menus else [],
             "preparation_method": self.preparation_method,
             "batch_type": self.batch_type,
             "recipe_ingredients": [
@@ -100,6 +102,7 @@ class CocktailRecipe(Base):
             "garnish_text_he": self.garnish_text_he,
             "base_recipe_id": self.base_recipe_id,
             "is_base": self.is_base,
+            "menus": list(self.menus) if self.menus else [],
             "preparation_method": self.preparation_method,
             "preparation_method_he": self.preparation_method_he,
             "batch_type": self.batch_type,

@@ -159,7 +159,8 @@
     "createButton": "צור קוקטייל",
     "sections": {
       "classic": "קוקטיילים קלאסיים",
-      "signature": "קוקטיילים סיגנצ׳ר"
+      "signature": "קוקטיילים סיגנצ׳ר",
+      "seasonal": "קוקטיילים עונתיים"
     },
     "actions": {
       "edit": "ערוך",
@@ -180,7 +181,9 @@
       "classicMatching": "אין קלאסיקות שמתאימות ל־\"{{query}}\"",
       "classicNone": "אין קלאסיקות עדיין.",
       "signatureMatching": "אין סיגנצ׳ר שמתאים ל־\"{{query}}\"",
-      "signatureNone": "אין סיגנצ׳ר עדיין."
+      "signatureNone": "אין סיגנצ׳ר עדיין.",
+      "menuNone": "אין עדיין קוקטיילים בתפריט זה.",
+      "menuMatching": "אין קוקטיילים בתפריט זה שמתאימים ל־\"{{query}}\"."
     },
     "deleteDialog": {
       "title": "למחוק קוקטייל?",
@@ -248,9 +251,11 @@
     "nameLabel": "שם הקוקטייל",
     "namePlaceholder": "שם הקוקטייל",
     "typeLabel": "סוג קוקטייל",
+    "menusLabel": "תפריטים (קוקטייל יכול להיות בכמה)",
     "type": {
       "signature": "סיגנצ׳ר",
-      "classic": "קלאסי"
+      "classic": "קלאסי",
+      "seasonal": "עונתי"
     },
     "descriptionLabel": "תיאור (לא חובה)",
     "descriptionPlaceholder": "הוסף תיאור לקוקטייל...",

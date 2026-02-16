@@ -994,6 +994,10 @@ async def add_normalized_columns_if_missing(engine: AsyncEngine):
         await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS description_he TEXT"))
         await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS garnish_text_he TEXT"))
         await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS preparation_method_he TEXT"))
+        await conn.execute(text("ALTER TABLE cocktail_recipes ADD COLUMN IF NOT EXISTS menus TEXT[] DEFAULT '{}'"))
+        # Backfill menus from is_base for existing rows
+        await conn.execute(text("UPDATE cocktail_recipes SET menus = ARRAY['classic']::text[] WHERE is_base = true AND (menus IS NULL OR menus = '{}')"))
+        await conn.execute(text("UPDATE cocktail_recipes SET menus = ARRAY['signature']::text[] WHERE is_base = false AND (menus IS NULL OR menus = '{}')"))
 
         # reference tables: brands / bottles / glass_types
         await conn.execute(text("ALTER TABLE brands ADD COLUMN IF NOT EXISTS name_he TEXT"))

@@ -159,7 +159,8 @@
     "createButton": "Create Cocktail",
     "sections": {
       "classic": "Classic Cocktails",
-      "signature": "Signature Cocktails"
+      "signature": "Signature Cocktails",
+      "seasonal": "Seasonal Cocktails"
     },
     "actions": {
       "edit": "Edit",
@@ -180,7 +181,9 @@
       "classicMatching": "No classic cocktails match \"{{query}}\"",
       "classicNone": "No classic cocktails yet.",
       "signatureMatching": "No signature cocktails match \"{{query}}\"",
-      "signatureNone": "No signature cocktails yet."
+      "signatureNone": "No signature cocktails yet.",
+      "menuNone": "No cocktails in this menu yet.",
+      "menuMatching": "No cocktails in this menu match \"{{query}}\"."
     },
     "deleteDialog": {
       "title": "Delete cocktail?",
@@ -248,9 +251,11 @@
     "nameLabel": "Cocktail name",
     "namePlaceholder": "Cocktail name",
     "typeLabel": "Cocktail type",
+    "menusLabel": "Menus (cocktail can be in multiple)",
     "type": {
       "signature": "Signature",
-      "classic": "Classic"
+      "classic": "Classic",
+      "seasonal": "Seasonal"
     },
     "descriptionLabel": "Description (optional)",
     "descriptionPlaceholder": "Add a description for this cocktail...",
