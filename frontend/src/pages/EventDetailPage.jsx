@@ -211,12 +211,15 @@ export default function EventDetailPage() {
     <div className="card">
       <div className="events-header">
         <div className="events-header-left">
-          <div className="muted">
-            <Link to="/events" className="link">{t('events.backToList')}</Link>
-          </div>
-          <h2 style={{ margin: '6px 0 0 0' }}>{title}</h2>
+          <Link to="/events" className="back-link" aria-label={t('events.backToList')}>
+            <span className="back-link-icon" aria-hidden="true">{lang === 'he' ? '→' : '←'}</span>
+            <span className="back-link-text">{t('events.backToList')}</span>
+          </Link>
+        </div>
+        <div className="events-header-center">
+          <h2>{title}</h2>
           {event?.event_date && (
-            <div className="muted" style={{ marginTop: 6 }}>
+            <div className="muted events-header-meta">
               {t('events.meta', { date: event.event_date, people: event.people })}
             </div>
           )}
@@ -299,10 +302,6 @@ export default function EventDetailPage() {
                 {isConsumed ? t('inventory.movement.consumed') : (consuming ? t('inventory.movement.consumingEvent') : t('inventory.movement.consumeEvent'))}
               </button>
             </div>
-
-            <div className="muted" style={{ marginTop: 10 }}>
-              {t('events.consumeHelp')}
-            </div>
           </div>
 
           <div className="events-panel" style={{ gridColumn: '1 / -1' }}>
@@ -337,33 +336,36 @@ export default function EventDetailPage() {
                 </div>
               </div>
             ) : (
-              <div style={{ marginTop: 12 }}>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <button
-                    type="button"
-                    className={`inventory-tab ${selectedSupplierKey === ALL_KEY ? 'active' : ''}`}
-                    onClick={() => { setSelectedSupplierKey(ALL_KEY); setSelectedOrderId('') }}
-                  >
-                    {t('orders.all')}
-                  </button>
-                  {(groupedBySupplier || []).map((g) => (
+              <div className="events-orders-content" style={{ marginTop: 12 }}>
+                <div className="events-orders-tabs-wrap">
+                  <div className="events-orders-tabs">
                     <button
-                      key={g.key}
                       type="button"
-                      className={`inventory-tab ${selectedSupplierKey === g.key ? 'active' : ''}`}
-                      onClick={() => {
-                        setSelectedSupplierKey(g.key)
-                        setSelectedOrderId((g.orders || [])[0]?.id || '')
-                      }}
+                      className={`inventory-tab ${selectedSupplierKey === ALL_KEY ? 'active' : ''}`}
+                      onClick={() => { setSelectedSupplierKey(ALL_KEY); setSelectedOrderId('') }}
                     >
-                      {g.label}
+                      {t('orders.all')}
                     </button>
-                  ))}
+                    {(groupedBySupplier || []).map((g) => (
+                      <button
+                        key={g.key}
+                        type="button"
+                        className={`inventory-tab ${selectedSupplierKey === g.key ? 'active' : ''}`}
+                        onClick={() => {
+                          setSelectedSupplierKey(g.key)
+                          setSelectedOrderId((g.orders || [])[0]?.id || '')
+                        }}
+                      >
+                        {g.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {selectedSupplierKey === ALL_KEY ? (
-                  <div style={{ marginTop: 12 }} className="inventory-table">
-                    <div className="inventory-table-header" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr' }}>
+                  <div className="events-orders-table-wrap" style={{ marginTop: 12 }}>
+                    <div className="inventory-table events-orders-table">
+                    <div className="inventory-table-header events-orders-table-header" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr' }}>
                       <div>{t('orders.columns.ingredient')}</div>
                       <div className="right">{t('orders.columns.requested')}</div>
                       <div className="right">{t('orders.columns.usedFromStock')}</div>
@@ -391,7 +393,7 @@ export default function EventDetailPage() {
                       const bottles = vol > 0 && Number(it.needed_ml || 0) > 0 ? Math.ceil(Number(it.needed_ml || 0) / vol) : null
 
                       return (
-                        <div key={`${it.ingredient_id}:${it.unit}`} className="inventory-table-row" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr' }}>
+                        <div key={`${it.ingredient_id}:${it.unit}`} className="inventory-table-row events-orders-table-row" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr' }}>
                           <div className="name">{name || it.ingredient_id}</div>
                           <div className="right muted">{requested}</div>
                           <div className="right muted">{used}</div>
@@ -403,6 +405,7 @@ export default function EventDetailPage() {
                     {(aggregatedAllItems || []).length === 0 && (
                       <div className="empty-state">{t('orders.empty')}</div>
                     )}
+                    </div>
                   </div>
                 ) : !selectedOrder ? (
                   <div className="empty-state" style={{ marginTop: 12 }}>{t('orders.selectSupplierHelp')}</div>
@@ -425,8 +428,9 @@ export default function EventDetailPage() {
                       </div>
                     </div>
 
-                    <div style={{ marginTop: 12 }} className="inventory-table">
-                      <div className="inventory-table-header" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr' }}>
+                    <div className="events-orders-table-wrap" style={{ marginTop: 12 }}>
+                    <div className="inventory-table events-orders-table">
+                      <div className="inventory-table-header events-orders-table-header" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr' }}>
                         <div>{t('orders.columns.ingredient')}</div>
                         <div className="right">{t('orders.columns.requested')}</div>
                         <div className="right">{t('orders.columns.usedFromStock')}</div>
@@ -451,7 +455,7 @@ export default function EventDetailPage() {
                           : `${Number(it.needed_quantity || 0).toFixed(2)} ${it.unit || ''}`
 
                         return (
-                          <div key={it.id || it.ingredient_id} className="inventory-table-row" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr' }}>
+                          <div key={it.id || it.ingredient_id} className="inventory-table-row events-orders-table-row" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr' }}>
                             <div className="name">{name || it.ingredient_id}</div>
                             <div className="right muted">{requested}</div>
                             <div className="right muted">{used}</div>
@@ -463,6 +467,7 @@ export default function EventDetailPage() {
                       {(selectedOrder.items || []).length === 0 && (
                         <div className="empty-state">{t('orders.empty')}</div>
                       )}
+                    </div>
                     </div>
                   </>
                 )}

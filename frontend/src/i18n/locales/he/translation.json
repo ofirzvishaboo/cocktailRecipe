@@ -134,7 +134,13 @@
       "generateWeekly": "צור הזמנות שבועיות",
       "generateWeeklyByEvent": "צור הזמנות שבועיות (לפי אירוע)",
       "generating": "יוצר...",
-      "editLine": "ערוך"
+      "editLine": "ערוך",
+      "addToStock": "הוסף למלאי"
+    },
+    "addToStockLocation": "הוסף למיקום",
+    "location": {
+      "WAREHOUSE": "מחסן",
+      "BAR": "בר"
     },
     "prompts": {
       "overrideNeededMl": "עדכון מ״ל נדרש (מספר):"
@@ -150,7 +156,8 @@
       "loadFailed": "טעינת ההזמנות נכשלה",
       "loadEventsFailed": "טעינת האירועים נכשלה",
       "generateFailed": "יצירת הזמנות שבועיות נכשלה",
-      "updateFailed": "עדכון ההזמנה נכשל"
+      "updateFailed": "עדכון ההזמנה נכשל",
+      "addToStockFailed": "הוספה למלאי נכשלה"
     }
   },
   "cocktails": {
@@ -370,6 +377,11 @@
       "Uncategorized": "ללא קטגוריה"
     },
     "emptyGroup": "אין פריטים בקבוצה הזו.",
+    "units": {
+      "bottle": "בקבוק",
+      "bottles": "בקבוקים",
+      "pcs": "יח'"
+    },
     "columns": {
       "name": "שם",
       "ingredient": "מרכיב",
@@ -391,7 +403,8 @@
     "status": {
       "active": "פעיל",
       "inactive": "לא פעיל",
-      "activeToggle": "פעיל"
+      "activeToggle": "פעיל",
+      "notInInventory": "לא במלאי"
     },
     "actions": {
       "saveSettings": "שמור הגדרות",

@@ -35,6 +35,12 @@ from db.bottle_price import BottlePrice  # noqa: E402
 from db.glass_type import GlassType  # noqa: E402
 from db.cocktail_recipe import CocktailRecipe  # noqa: E402
 from db.recipe_ingredient import RecipeIngredient  # noqa: E402
+from db.supplier import Supplier  # noqa: E402
+from db.ingredient import ingredient_suppliers  # noqa: E402
+from sqlalchemy.dialects.postgresql import insert as pg_insert  # noqa: E402
+from sqlalchemy.exc import DBAPIError  # noqa: E402
+
+from scripts.seed_inventory_v3 import seed as seed_inventory_v3  # noqa: E402
 
 password_helper = PasswordHelper()
 
@@ -56,28 +62,24 @@ def _volume_ml_from_key(size_key: str) -> int:
     return 1000
 
 
-# Your bottle names + Hebrew names + prices (size key -> price ILS). Used for signature menu ingredients.
+# Bottle names + Hebrew + prices + supplier (used for orders). Size key = "1 liter" or "700ml" -> price ILS.
 BOTTLE_PRICES_DATA = {
-    "Gin": {"name": "Greenall's", "name_he": "גרינלס", "1 liter": 85.0},
-    "Vodka": {"name": "Rusky standard", "name_he": "רוסקי סטנדרט", "1 liter": 75.5},
-    "Rum": {"name": "Saint james imperial", "name_he": "רום סיינט גיימס", "700ml": 64.9},
-    "Ouzo": {"name": "Ouzo Solaris", "name_he": "אוזו סולאריס", "700ml": 45.0},
-    "Tequila": {"name": "Lunazul", "name_he": "לונאזול", "700ml": 106.0},
-    "Elderflower Liqueur": {"name": "Vedrenne Elderflower", "name_he": "ודרן אלד פלוואר", "700ml": 86},
-    "Triple Sec": {"name": "Vedrenne Triple Sec", "name_he": "ודרן טריפל סק", "700ml": 80},
-    "Amaretto": {"name": "Vedrenne Amaretto", "name_he": "ודרן אמרטו", "700ml": 80},
-    "Passion Fruit Syrup": {"name": "Vedrenne Passion Fruit", "name_he": "ודרן סירופ פסיפלורה", "1 liter": 50},
-    "Hibiscus Syrup": {"name": "Vedrenne Hibiscus", "name_he": "ודרן היביסקוס", "1 liter": 50},
-    "Orgeat Syrup": {"name": "Marie brizard Orgeat", "name_he": "מרי בריזארד סירופ שקדים", "1 liter": 30},
-    "Grape Syrup": {"name": "Marie brizard Grape", "name_he": "מרי בריזארד סירופ תפוז", "1 liter": 30},
-    "Lemon Juice": {"name": "Vedrenne Lemon", "name_he": "ודרן לימון", "1 liter": 12},
-    "Apple Lime Juice": {"name": "Vedrenne Apple Lime", "name_he": "ודרן תפוח ליים", "1 liter": 18},
-    "Pineapple Juice": {"name": "Vedrenne Pineapple", "name_he": "ודרן אננס", "1 liter": 16},
-    "Red Grapefruit Juice": {"name": "Vedrenne Red Grapefruit", "name_he": "ודרן אשכולית אדומה", "1 liter": 18},
-    "Chili Pepper Juice": {"name": "Vedrenne Chili Pepper", "name_he": "ודרן פלפלים", "1 liter": 22},
-    "Hibiscus Juice": {"name": "Vedrenne Hibiscus", "name_he": "ודרן היביסקוס", "1 liter": 20},
-    "Orgeat Juice": {"name": "Marie brizard Orgeat", "name_he": "מרי בריזארד מיץ שקדים", "1 liter": 26},
-    "Grape Juice": {"name": "Marie brizard Grape", "name_he": "מרי בריזארד מיץ תפוז", "1 liter": 26},
+    "Gin": {"name": "Greenall's", "name_he": "גרינלס", "1 liter": 85.0, "supplier": "eurostandart"},
+    "Vodka": {"name": "Rusky standard", "name_he": "רוסקי סטנדרט", "1 liter": 75.5, "supplier": "eurostandart"},
+    "Rum": {"name": "Saint james imperial", "name_he": "רום סיינט גיימס", "700ml": 64.9, "supplier": "eurostandart"},
+    "Ouzo": {"name": "Ouzo Solaris", "name_he": "אוזו סולאריס", "700ml": 45.0, "supplier": "eurostandart"},
+    "Tequila": {"name": "Lunazul", "name_he": "לונאזול", "700ml": 106.0, "supplier": "eurostandart"},
+    "Elderflower Liqueur": {"name": "Vedrenne Elderflower", "name_he": "ודרן אלד פלוואר", "700ml": 86, "supplier": "dejablue"},
+    "Triple Sec": {"name": "Vedrenne Triple Sec", "name_he": "ודרן טריפל סק", "700ml": 80, "supplier": "dejablue"},
+    "Amaretto": {"name": "Vedrenne Amaretto", "name_he": "ודרן אמרטו", "700ml": 80, "supplier": "dejablue"},
+    "Passion Fruit Syrup": {"name": "Vedrenne Passion Fruit", "name_he": "ודרן סירופ פסיפלורה", "1 liter": 50, "supplier": "dejablue"},
+    "Hibiscus Syrup": {"name": "Vedrenne Hibiscus", "name_he": "ודרן היביסקוס", "1 liter": 50, "supplier": "dejablue"},
+    "Orgeat Syrup": {"name": "Marie brizard Orgeat", "name_he": "מרי בריזארד סירופ שקדים", "1 liter": 30, "supplier": "eurostandart"},
+    "Grapefruit Syrup": {"name": "Marie brizard Grapefruit", "name_he": "מרי בריזארד סירופ אשכולית אדומה", "1 liter": 30, "supplier": "eurostandart"},
+    "Lemon Juice": {"name": "Lemon Juice", "name_he": "מיץ לימון", "1 liter": 12, "supplier": "אגתד"},
+    "Apple Lime Juice": {"name": "Apple Lime Juice", "name_he": "תפוח ליים", "700ml": 7.5, "supplier": "eurostandart"},
+    "Pineapple Juice": {"name": "Pineapple Juice", "name_he": "אננס", "1 liter": 12, "supplier": "סחוט מיצים"},
+    "Red Grapefruit Juice": {"name": "Red Grapefruit Juice", "name_he": "אשכולית אדומה", "2 liter": 18, "supplier": "סחוט מיצים"},
 }
 
 # Map SeedIngredient name -> BOTTLE_PRICES_DATA key (when different)
@@ -87,6 +89,15 @@ BOTTLE_PRICES_KEY_ALIAS = {
     "Chili Pepper Syrup": "Chili Pepper Juice",
     "Almond Syrup": "Orgeat Syrup",
 }
+
+
+def _supplier_name_from_prices(ingredient_name: str) -> str | None:
+    """Return supplier name for this ingredient from BOTTLE_PRICES_DATA, or None."""
+    key = BOTTLE_PRICES_KEY_ALIAS.get(ingredient_name) or ingredient_name
+    entry = BOTTLE_PRICES_DATA.get(key)
+    if not entry:
+        return None
+    return entry.get("supplier")
 
 
 @dataclass(frozen=True)
@@ -119,7 +130,7 @@ def _bottle_from_prices(ingredient_name: str) -> list[SeedBottle] | None:
     if not entry:
         return None
     for size_key, price in entry.items():
-        if size_key in ("name", "name_he"):
+        if size_key in ("name", "name_he", "supplier"):
             continue
         vol = _volume_ml_from_key(size_key)
         base_name = entry["name"]
@@ -346,6 +357,17 @@ async def seed():
             for b in res.scalars().all():
                 brand_by_name[b.name.lower()] = b
 
+            # Ensure all suppliers from BOTTLE_PRICES_DATA exist (for orders)
+            supplier_names = {e.get("supplier") for e in BOTTLE_PRICES_DATA.values() if e.get("supplier")}
+            res = await session.execute(select(Supplier))
+            supplier_by_name: dict[str, Supplier] = {s.name: s for s in res.scalars().all()}
+            for name in supplier_names:
+                if name not in supplier_by_name:
+                    s = Supplier(name=name)
+                    session.add(s)
+                    await session.flush()
+                    supplier_by_name[name] = s
+
             today = date.today()
 
             for si in SIGNATURE_INGREDIENTS:
@@ -374,6 +396,16 @@ async def seed():
                                 start_date=today,
                                 end_date=None,
                             )
+                        )
+                    # Assign supplier from BOTTLE_PRICES_DATA so orders show it
+                    supplier_name = _supplier_name_from_prices(si.name)
+                    if supplier_name and supplier_name in supplier_by_name:
+                        sup = supplier_by_name[supplier_name]
+                        ing.default_supplier_id = sup.id
+                        await session.execute(
+                            pg_insert(ingredient_suppliers)
+                            .values(ingredient_id=ing.id, supplier_id=sup.id)
+                            .on_conflict_do_nothing(index_elements=["ingredient_id", "supplier_id"])
                         )
                     continue
                 brand_id = None
@@ -419,6 +451,16 @@ async def seed():
                             end_date=None,
                             source="seed_signature_menu",
                         )
+                    )
+                # Assign supplier from BOTTLE_PRICES_DATA so orders show it
+                supplier_name = _supplier_name_from_prices(si.name)
+                if supplier_name and supplier_name in supplier_by_name:
+                    sup = supplier_by_name[supplier_name]
+                    ing.default_supplier_id = sup.id
+                    await session.execute(
+                        pg_insert(ingredient_suppliers)
+                        .values(ingredient_id=ing.id, supplier_id=sup.id)
+                        .on_conflict_do_nothing(index_elements=["ingredient_id", "supplier_id"])
                     )
 
             for (
@@ -479,6 +521,20 @@ async def seed():
                     )
 
         await session.commit()
+
+    # Create inventory items for ALL bottles (and glass/garnish) that don't have one yet.
+    # for_cocktails=False so every bottle gets an item, not only those in recipe_ingredients.
+    for attempt in range(1, 6):
+        try:
+            await seed_inventory_v3(with_glass=True, for_cocktails=False, from_garnish_text=True, create_missing_garnish_ingredients=True)
+            break
+        except DBAPIError as e:
+            msg = str(getattr(e, "orig", e) or "")
+            if "deadlock detected" not in msg.lower():
+                raise
+            wait_s = min(10, 2 * attempt)
+            print(f"[seed_signature_menu] Deadlock during inventory seed; retrying in {wait_s}s (attempt {attempt}/5)")
+            await asyncio.sleep(wait_s)
     print("[seed_signature_menu] done.")
 
 

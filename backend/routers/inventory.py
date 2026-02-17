@@ -19,6 +19,7 @@ from db.database import (
     BottlePrice as BottlePriceModel,
     CocktailRecipe as CocktailRecipeModel,
     Event as EventModel,
+    GlassType as GlassTypeModel,
     Order as OrderModel,
     OrderItem as OrderItemModel,
     Ingredient as IngredientModel,
@@ -175,6 +176,51 @@ def _minor_from_price(price: Optional[float]) -> Optional[int]:
     except Exception:
         return None
 
+async def _get_used_in_cocktails_ids(db: AsyncSession) -> tuple[set[UUID], set[UUID], set[UUID]]:
+    """Return (bottle_ids, glass_type_ids, garnish_ingredient_ids) used in any cocktail."""
+    bottle_ids: set[UUID] = set()
+    ingredient_ids_no_bottle: set[UUID] = set()
+    res = await db.execute(
+        select(RecipeIngredientModel.bottle_id, RecipeIngredientModel.ingredient_id).where(
+            RecipeIngredientModel.recipe_id.in_(select(CocktailRecipeModel.id))
+        )
+    )
+    for (bid, iid) in res.all():
+        if bid is not None:
+            bottle_ids.add(bid)
+        else:
+            ingredient_ids_no_bottle.add(iid)
+    # One bottle per ingredient that appears without bottle_id (default bottle)
+    if ingredient_ids_no_bottle:
+        subq = (
+            select(BottleModel.id, BottleModel.ingredient_id)
+            .where(BottleModel.ingredient_id.in_(ingredient_ids_no_bottle))
+            .order_by(BottleModel.ingredient_id, BottleModel.is_default_cost.desc().nulls_last())
+        )
+        res2 = await db.execute(subq)
+        seen_ing: set[UUID] = set()
+        for row in res2.all():
+            if row.ingredient_id not in seen_ing:
+                seen_ing.add(row.ingredient_id)
+                bottle_ids.add(row.id)
+    glass_type_ids: set[UUID] = set()
+    res = await db.execute(
+        select(CocktailRecipeModel.glass_type_id).where(CocktailRecipeModel.glass_type_id.isnot(None))
+    )
+    for (gid,) in res.all():
+        glass_type_ids.add(gid)
+    garnish_ids: set[UUID] = set()
+    res = await db.execute(
+        select(RecipeIngredientModel.ingredient_id).where(
+            RecipeIngredientModel.is_garnish.is_(True),
+            RecipeIngredientModel.recipe_id.in_(select(CocktailRecipeModel.id)),
+        )
+    )
+    for (iid,) in res.all():
+        garnish_ids.add(iid)
+    return bottle_ids, glass_type_ids, garnish_ids
+
+
 async def _load_current_bottle_prices(
     db: AsyncSession, bottle_ids: List[UUID]
 ) -> dict[UUID, dict]:
@@ -205,6 +251,186 @@ async def _load_current_bottle_prices(
     return out
 
 
+@router.get("/catalog", response_model=List[Dict])
+async def list_inventory_catalog(
+    location: Optional[str] = None,
+    q: Optional[str] = None,
+    user: User = Depends(current_active_user),
+    db: AsyncSession = Depends(get_async_session),
+):
+    """
+    List all bottles, all glass types, and all garnish ingredients (subcategory Garnish).
+    Same shape as /items; each row has in_inventory=true if an inventory_item exists, else in_inventory=false.
+    """
+    # Existing inventory items by bottle_id, glass_type_id, ingredient_id
+    res = await db.execute(select(InventoryItemModel))
+    existing_items = res.scalars().all()
+    by_bottle: dict[UUID, InventoryItemModel] = {it.bottle_id: it for it in existing_items if it.bottle_id}
+    by_glass: dict[UUID, InventoryItemModel] = {it.glass_type_id: it for it in existing_items if it.glass_type_id}
+    by_garnish: dict[UUID, InventoryItemModel] = {it.ingredient_id: it for it in existing_items if it.ingredient_id}
+
+    stock_by_item: dict[UUID, dict] = {}
+    if location:
+        sres = await db.execute(select(InventoryStockModel).where(InventoryStockModel.location == location))
+        for s in sres.scalars().all():
+            stock_by_item[s.inventory_item_id] = {
+                "location": s.location,
+                "quantity": float(s.quantity or 0),
+                "reserved_quantity": float(s.reserved_quantity or 0),
+            }
+
+    out: List[Dict] = []
+    BottleIngredient = aliased(IngredientModel)
+    BottleKind = aliased(KindModel)
+    BottleSubcategory = aliased(SubcategoryModel)
+
+    # All bottles with ingredient + subcategory
+    stmt_bottles = (
+        select(BottleModel, BottleIngredient, BottleKind, BottleSubcategory)
+        .join(BottleIngredient, BottleModel.ingredient_id == BottleIngredient.id)
+        .outerjoin(BottleKind, BottleIngredient.kind_id == BottleKind.id)
+        .outerjoin(BottleSubcategory, BottleIngredient.subcategory_id == BottleSubcategory.id)
+        .order_by(func.lower(BottleModel.name))
+    )
+    res = await db.execute(stmt_bottles)
+    all_bottle_ids = []
+    for (bottle, ing, kind, sub) in res.all():
+        all_bottle_ids.append(bottle.id)
+    bottle_prices = await _load_current_bottle_prices(db, all_bottle_ids)
+
+    res = await db.execute(stmt_bottles)
+    for (bottle, ing, kind, sub) in res.all():
+        inv = by_bottle.get(bottle.id)
+        # Name is always the bottle name (or inventory item name if in inventory)
+        name = (inv.name if inv else (bottle.name or "")) or ""
+        if q and q.strip():
+            qq = q.strip().lower()
+            if qq not in (name or "").lower() and qq not in (getattr(ing, "name", "") or "").lower() and qq not in (getattr(ing, "name_he", "") or "").lower():
+                continue
+        price_info = bottle_prices.get(bottle.id) or {}
+        name_he = (inv.name_he if inv and getattr(inv, "name_he", None) else getattr(bottle, "name_he", None)) or getattr(ing, "name_he", None)
+        row = {
+            "id": inv.id if inv else None,
+            "item_type": "BOTTLE",
+            "bottle_id": bottle.id,
+            "ingredient_id": None,
+            "glass_type_id": None,
+            "name": name,
+            "name_he": name_he,
+            "unit": inv.unit if inv else "bottles",
+            "kind_id": getattr(ing, "kind_id", None),
+            "kind_name": getattr(kind, "name", None),
+            "subcategory_id": getattr(ing, "subcategory_id", None),
+            "subcategory_name": getattr(sub, "name", None),
+            "ingredient_name": getattr(ing, "name", None),
+            "ingredient_name_he": getattr(ing, "name_he", None),
+            "price_minor": int(inv.price_minor) if inv and inv.price_minor is not None else price_info.get("price_minor"),
+            "currency": (inv.currency if inv else None) or price_info.get("currency"),
+            "price": (float(inv.price_minor) / 100.0) if inv and inv.price_minor is not None else price_info.get("price"),
+            "is_active": bool(inv.is_active) if inv else True,
+            "min_level": float(inv.min_level) if inv and inv.min_level is not None else None,
+            "reorder_level": float(inv.reorder_level) if inv and inv.reorder_level is not None else None,
+            "stock": stock_by_item.get(inv.id) if inv and location else None,
+            "in_inventory": inv is not None,
+        }
+        if not user.is_superuser:
+            row["price_minor"] = None
+            row["currency"] = None
+            row["price"] = None
+        out.append(row)
+
+    # All glass types
+    res = await db.execute(select(GlassTypeModel).order_by(func.lower(GlassTypeModel.name)))
+    for g in res.scalars().all():
+        inv = by_glass.get(g.id)
+        name = (inv.name if inv else g.name) or ""
+        if q and q.strip():
+            qq = q.strip().lower()
+            if qq not in name.lower() and qq not in (getattr(g, "name_he", "") or "").lower():
+                continue
+        name_he_glass = getattr(g, "name_he", None)
+        row = {
+            "id": inv.id if inv else None,
+            "item_type": "GLASS",
+            "bottle_id": None,
+            "ingredient_id": None,
+            "glass_type_id": g.id,
+            "name": name or g.name,
+            "name_he": name_he_glass,
+            "unit": inv.unit if inv else "pcs",
+            "kind_id": None,
+            "kind_name": "Glass",
+            "subcategory_id": None,
+            "subcategory_name": "Glass",
+            "ingredient_name": None,
+            "ingredient_name_he": None,
+            "price_minor": int(inv.price_minor) if inv and inv.price_minor is not None else None,
+            "currency": inv.currency if inv else None,
+            "price": (float(inv.price_minor) / 100.0) if inv and inv.price_minor is not None else None,
+            "is_active": bool(inv.is_active) if inv else True,
+            "min_level": float(inv.min_level) if inv and inv.min_level is not None else None,
+            "reorder_level": float(inv.reorder_level) if inv and inv.reorder_level is not None else None,
+            "stock": stock_by_item.get(inv.id) if inv and location else None,
+            "in_inventory": inv is not None,
+        }
+        if not user.is_superuser:
+            row["price_minor"] = None
+            row["currency"] = None
+            row["price"] = None
+        out.append(row)
+
+    # All garnish ingredients (subcategory name = Garnish)
+    GarnishSub = aliased(SubcategoryModel)
+    GarnishKind = aliased(KindModel)
+    stmt_garnish = (
+        select(IngredientModel, GarnishSub, GarnishKind)
+        .join(GarnishSub, IngredientModel.subcategory_id == GarnishSub.id)
+        .outerjoin(GarnishKind, IngredientModel.kind_id == GarnishKind.id)
+        .where(func.lower(GarnishSub.name) == "garnish")
+        .order_by(func.lower(IngredientModel.name))
+    )
+    res = await db.execute(stmt_garnish)
+    for (ing, sub, kind) in res.all():
+        inv = by_garnish.get(ing.id)
+        name = (inv.name if inv else ing.name) or ""
+        if q and q.strip():
+            qq = q.strip().lower()
+            if qq not in name.lower() and qq not in (getattr(ing, "name_he", "") or "").lower():
+                continue
+        name_he_garnish = getattr(ing, "name_he", None)
+        row = {
+            "id": inv.id if inv else None,
+            "item_type": "GARNISH",
+            "bottle_id": None,
+            "ingredient_id": ing.id,
+            "glass_type_id": None,
+            "name": name or ing.name,
+            "name_he": name_he_garnish,
+            "unit": inv.unit if inv else "pcs",
+            "kind_id": getattr(ing, "kind_id", None),
+            "kind_name": getattr(kind, "name", None),
+            "subcategory_id": getattr(sub, "id", None),
+            "subcategory_name": getattr(sub, "name", None),
+            "ingredient_name": ing.name,
+            "ingredient_name_he": name_he_garnish,
+            "price_minor": int(inv.price_minor) if inv and inv.price_minor is not None else None,
+            "currency": inv.currency if inv else None,
+            "price": (float(inv.price_minor) / 100.0) if inv and inv.price_minor is not None else None,
+            "is_active": bool(inv.is_active) if inv else True,
+            "min_level": float(inv.min_level) if inv and inv.min_level is not None else None,
+            "reorder_level": float(inv.reorder_level) if inv and inv.reorder_level is not None else None,
+            "stock": stock_by_item.get(inv.id) if inv and location else None,
+            "in_inventory": inv is not None,
+        }
+        if not user.is_superuser:
+            row["price_minor"] = None
+            row["currency"] = None
+            row["price"] = None
+        out.append(row)
+
+    return out
+
+
 @router.get("/items", response_model=List[Dict])
 async def list_inventory_items(
     item_type: Optional[str] = None,
@@ -212,6 +438,7 @@ async def list_inventory_items(
     brand_id: Optional[UUID] = None,
     location: Optional[str] = None,
     q: Optional[str] = None,
+    used_in_cocktails: bool = Query(False, description="If true, only items used in cocktails; add virtual rows for missing."),
     user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_async_session),
 ):
@@ -220,7 +447,14 @@ async def list_inventory_items(
 
     - kind_id/brand_id apply to bottle-backed items via bottle -> ingredient.
     - location optionally attaches stock quantities for that location.
+    - used_in_cocktails: when true, return only bottles/glasses/garnishes used in cocktails,
+      and add virtual rows for those not yet in inventory (in_inventory=false).
     """
+    if used_in_cocktails:
+        used_bottle_ids, used_glass_ids, used_garnish_ids = await _get_used_in_cocktails_ids(db)
+        if not used_bottle_ids and not used_glass_ids and not used_garnish_ids:
+            return []
+
     stmt = select(InventoryItemModel)
 
     BottleIngredient = aliased(IngredientModel)
@@ -547,6 +781,7 @@ async def get_stock(
         GarnishSubcategory.name.label("garnish_subcategory_name"),
         GarnishIngredient.name.label("garnish_ingredient_name"),
         GarnishIngredient.name_he.label("garnish_ingredient_name_he"),
+        BottleModel.name_he.label("bottle_name_he"),
     )
     if item_type:
         stmt = stmt.where(InventoryItemModel.item_type == item_type)
@@ -570,27 +805,32 @@ async def get_stock(
         garnish_subcategory_name,
         garnish_ingredient_name,
         garnish_ingredient_name_he,
+        bottle_name_he,
     ) in rows:
         subcategory_id = None
         subcategory_name = None
         ingredient_name_out = None
         ingredient_name_he_out = None
+        name_he_out = None
         if it.item_type == "BOTTLE":
             subcategory_id = bottle_subcategory_id
             subcategory_name = bottle_subcategory_name
             ingredient_name_out = bottle_ingredient_name
             ingredient_name_he_out = bottle_ingredient_name_he
+            name_he_out = bottle_name_he
         elif it.item_type == "GARNISH":
             subcategory_id = garnish_subcategory_id
             subcategory_name = garnish_subcategory_name
             ingredient_name_out = garnish_ingredient_name
             ingredient_name_he_out = garnish_ingredient_name_he
+            name_he_out = garnish_ingredient_name_he
 
         row_out = {
                 "location": location,
                 "inventory_item_id": it.id,
                 "item_type": it.item_type,
                 "name": it.name,
+                "name_he": name_he_out,
                 "unit": it.unit,
                 "is_active": bool(it.is_active),
                 "quantity": float(st.quantity) if st and st.quantity is not None else 0.0,
@@ -1487,6 +1727,8 @@ async def list_movements(
     stmt = stmt.add_columns(
         BottleSubcategory.name.label("bottle_subcategory_name"),
         GarnishSubcategory.name.label("garnish_subcategory_name"),
+        BottleModel.name_he.label("bottle_name_he"),
+        GarnishIngredient.name_he.label("garnish_ingredient_name_he"),
     )
 
     if location:
@@ -1520,7 +1762,7 @@ async def list_movements(
     res = await db.execute(stmt)
     rows = res.all()
     out = []
-    for (mv, it, bottle_subcategory_name, garnish_subcategory_name) in rows:
+    for (mv, it, bottle_subcategory_name, garnish_subcategory_name, bottle_name_he, garnish_ingredient_name_he) in rows:
         subcategory_name = None
         if it and it.item_type == "GLASS":
             subcategory_name = "Glass"
@@ -1531,6 +1773,12 @@ async def list_movements(
         if not subcategory_name:
             subcategory_name = "Uncategorized"
 
+        item_name_he = None
+        if it and it.item_type == "BOTTLE":
+            item_name_he = bottle_name_he
+        elif it and it.item_type == "GARNISH":
+            item_name_he = garnish_ingredient_name_he
+
         out.append(
             {
                 "id": mv.id,
@@ -1539,6 +1787,7 @@ async def list_movements(
                 "inventory_item_id": mv.inventory_item_id,
                 "item_type": it.item_type if it else None,
                 "item_name": it.name if it else None,
+                "item_name_he": item_name_he,
                 "subcategory_name": subcategory_name,
                 "change": float(mv.change),
                 "reason": mv.reason,

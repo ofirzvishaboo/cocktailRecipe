@@ -134,7 +134,13 @@
       "generateWeekly": "Generate weekly orders",
       "generateWeeklyByEvent": "Generate weekly (by event)",
       "generating": "Generating...",
-      "editLine": "Edit"
+      "editLine": "Edit",
+      "addToStock": "Add to stock"
+    },
+    "addToStockLocation": "Add to location",
+    "location": {
+      "WAREHOUSE": "Warehouse",
+      "BAR": "Bar"
     },
     "prompts": {
       "overrideNeededMl": "Override needed ml (number):"
@@ -150,7 +156,8 @@
       "loadFailed": "Failed to load orders",
       "loadEventsFailed": "Failed to load events",
       "generateFailed": "Failed to generate weekly orders",
-      "updateFailed": "Failed to update order"
+      "updateFailed": "Failed to update order",
+      "addToStockFailed": "Failed to add order to stock"
     }
   },
   "cocktails": {
@@ -370,6 +377,11 @@
       "Uncategorized": "Uncategorized"
     },
     "emptyGroup": "No items in this group.",
+    "units": {
+      "bottle": "bottle",
+      "bottles": "bottles",
+      "pcs": "pcs"
+    },
     "columns": {
       "name": "Name",
       "ingredient": "Ingredient",
@@ -391,7 +403,8 @@
     "status": {
       "active": "ACTIVE",
       "inactive": "INACTIVE",
-      "activeToggle": "Active"
+      "activeToggle": "Active",
+      "notInInventory": "Not in inventory"
     },
     "actions": {
       "saveSettings": "Save settings",

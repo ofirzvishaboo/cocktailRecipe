@@ -127,6 +127,21 @@ export default function InventoryPage() {
     return en || he
   }
 
+  const displayItemName = (row) => {
+    const en = (row?.name || row?.ingredient_name || '').trim()
+    const he = (row?.name_he || row?.ingredient_name_he || '').trim()
+    if (lang === 'he') return he || en
+    return en || he
+  }
+
+  const displayUnit = (row) => {
+    const u = (row?.unit || '').trim().toLowerCase()
+    if (!u) return '—'
+    const key = u === 'bottle' ? 'bottle' : u === 'bottles' ? 'bottles' : u === 'pcs' || u === 'piece' || u === 'pieces' ? 'pcs' : null
+    if (key) return t(`inventory.units.${key}`, { defaultValue: row?.unit || u })
+    return row?.unit || u
+  }
+
   const displayPrice = (row) => {
     const price = row?.price
     const cur = row?.currency
@@ -185,17 +200,23 @@ export default function InventoryPage() {
 
   const movementItemOptions = useMemo(() => {
     const query = (movementItemSearch || '').trim().toLowerCase()
-    const all = (items || []).filter((it) => it?.is_active)
+    const all = (items || []).filter((it) => it?.is_active && it?.id)
     const filtered = query
       ? all.filter((it) => {
           const name = (it?.name || '').toLowerCase()
           const ingredientName = (it?.ingredient_name || '').toLowerCase()
           const ingredientNameHe = (it?.ingredient_name_he || '').toLowerCase()
-          return name.startsWith(query) || ingredientName.includes(query) || ingredientNameHe.includes(query)
+          const nameHe = (it?.name_he || '').toLowerCase()
+          return name.startsWith(query) || ingredientName.includes(query) || ingredientNameHe.includes(query) || nameHe.includes(query)
         })
       : all
-    return filtered.map((it) => ({ value: it.id, label: `${it.name}` }))
-  }, [items, movementItemSearch])
+    return filtered.map((it) => {
+      const label = lang === 'he' && (it.name_he || it.ingredient_name_he)
+        ? (it.name_he || it.ingredient_name_he)
+        : (it.name || it.ingredient_name) || ''
+      return { value: it.id, label: label || it.name || '' }
+    })
+  }, [items, movementItemSearch, lang])
 
   const visibleMovements = useMemo(() => {
     const query = (movementItemSearch || '').trim().toLowerCase()
@@ -242,6 +263,9 @@ export default function InventoryPage() {
               inventory_item_id: id,
               item_type: base?.item_type,
               name: base?.name || '',
+              name_he: base?.name_he ?? null,
+              ingredient_name: base?.ingredient_name ?? null,
+              ingredient_name_he: base?.ingredient_name_he ?? null,
               unit: base?.unit || '',
               subcategory_id: base?.subcategory_id ?? null,
               subcategory_name: base?.subcategory_name ?? null,
@@ -278,12 +302,12 @@ export default function InventoryPage() {
     try {
       const params = new URLSearchParams()
       if (location !== 'ALL') params.set('location', location)
-      if (itemType) params.set('item_type', itemType)
       if ((q || '').trim()) params.set('q', q.trim())
-      const res = await api.get(`/inventory/items?${params.toString()}`)
+      // Catalog = all bottles, all glass types, all garnish ingredients (not only inventory items)
+      const res = await api.get(`/inventory/catalog?${params.toString()}`)
       setItems(Array.isArray(res.data) ? res.data : [])
     } catch (e) {
-      console.error('Failed to load items', e)
+      console.error('Failed to load catalog', e)
       setError(t('inventory.errors.loadItemsFailed'))
     } finally {
       setLoading(false)
@@ -351,6 +375,7 @@ export default function InventoryPage() {
   const visibleTabs = showMovements ? TABS : ['Stock', 'Items']
 
   const startEditItem = (it) => {
+    if (!it?.id) return
     setEditingItemId(it.id)
     setEditForm({
       name: it.name ?? '',
@@ -691,11 +716,11 @@ export default function InventoryPage() {
                       </div>
                       {(section.items || []).map((r) => (
                         <div key={r.inventory_item_id} className={`inventory-table-row ${showPrices ? 'inventory-table-row-stock-all' : 'inventory-table-row-stock-all-noprice'}`}>
-                          <div className="name">{r.name}</div>
+                          <div className="name">{displayItemName(r) || '—'}</div>
                           <div className="muted">{displayIngredient(r)}</div>
                           <div className="right">{formatNumber(r.quantity_bar)}</div>
                           <div className="right">{formatNumber(r.quantity_warehouse)}</div>
-                          <div className="muted">{r.unit}</div>
+                          <div className="muted">{displayUnit(r)}</div>
                           {showPrices && <div className="right muted">{displayPrice(r)}</div>}
                         </div>
                       ))}
@@ -712,11 +737,11 @@ export default function InventoryPage() {
                       </div>
                       {(section.items || []).map((r) => (
                         <div key={r.inventory_item_id} className={`inventory-table-row ${showPrices ? 'inventory-table-row-stock' : 'inventory-table-row-stock-noprice'}`}>
-                          <div className="name">{r.name}</div>
+                          <div className="name">{displayItemName(r) || '—'}</div>
                           <div className="muted">{displayIngredient(r)}</div>
                           <div className="right">{formatNumber(r.quantity)}</div>
                           <div className="right">{formatNumber(r.reserved_quantity)}</div>
-                          <div className="muted">{r.unit}</div>
+                          <div className="muted">{displayUnit(r)}</div>
                           {showPrices && <div className="right muted">{displayPrice(r)}</div>}
                         </div>
                       ))}
@@ -765,12 +790,14 @@ export default function InventoryPage() {
                   </div>
                   {(section.items || []).map((it) => {
                     const isEditing = editingItemId === it.id
+                    const inInventory = it?.id != null
                     const qty = it?.stock?.quantity ?? 0
                     const barQty = stockByItemAndLoc?.[it.id]?.BAR?.quantity ?? 0
                     const whQty = stockByItemAndLoc?.[it.id]?.WAREHOUSE?.quantity ?? 0
+                    const rowKey = it.id || `catalog-${it.item_type}-${it.bottle_id || it.glass_type_id || it.ingredient_id}`
                     return (
                       <div
-                        key={it.id}
+                        key={rowKey}
                         className={`inventory-table-row ${
                           showPrices
                             ? (location === 'ALL' ? 'inventory-table-row-items-all' : 'inventory-table-row-items')
@@ -785,7 +812,7 @@ export default function InventoryPage() {
                               onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
                             />
                           ) : (
-                            it.name
+                            displayItemName(it) || '—'
                           )}
                         </div>
                         <div>
@@ -796,7 +823,7 @@ export default function InventoryPage() {
                               onChange={(e) => setEditForm((p) => ({ ...p, unit: e.target.value }))}
                             />
                           ) : (
-                            <span className="muted">{it.unit}</span>
+                            <span className="muted">{displayUnit(it)}</span>
                           )}
                         </div>
                         <div className="muted">{displayIngredient(it)}</div>
@@ -826,14 +853,16 @@ export default function InventoryPage() {
                         )}
                         {location === 'ALL' ? (
                           <>
-                            <div className="right">{formatNumber(barQty)}</div>
-                            <div className="right">{formatNumber(whQty)}</div>
+                            <div className="right">{inInventory ? formatNumber(barQty) : '—'}</div>
+                            <div className="right">{inInventory ? formatNumber(whQty) : '—'}</div>
                           </>
                         ) : (
-                          <div className="right">{formatNumber(qty)}</div>
+                          <div className="right">{inInventory ? formatNumber(qty) : '—'}</div>
                         )}
                         <div>
-                          {isEditing ? (
+                          {!inInventory ? (
+                            <span className="pill pill-muted">{t('inventory.status.notInInventory')}</span>
+                          ) : isEditing ? (
                             <label className="inventory-toggle">
                               <input
                                 type="checkbox"
@@ -848,7 +877,7 @@ export default function InventoryPage() {
                             </span>
                           )}
                         </div>
-                        {isAdmin && (
+                        {isAdmin && inInventory && (
                           <div className="actions">
                             {isEditing ? (
                               <>
@@ -1086,7 +1115,11 @@ export default function InventoryPage() {
               <div key={m.id} className={`inventory-table-row ${location === 'ALL' ? 'inventory-table-row-movements-all' : 'inventory-table-row-movements'}`}>
                 <div className="muted">{m.created_at ? new Date(m.created_at).toLocaleDateString(lang === 'he' ? 'he-IL' : 'en-US') : ''}</div>
                 {location === 'ALL' && <div className="muted">{t(`inventory.locations.${m.location}`)}</div>}
-                <div className="name">{m.item_name || m.inventory_item_id}</div>
+                <div className="name">
+                  {lang === 'he' && (m.item_name_he || '').trim()
+                    ? m.item_name_he
+                    : (m.item_name || m.inventory_item_id)}
+                </div>
                 <div className="muted">
                   {(() => {
                     const raw = (m.subcategory_name || '').trim()
@@ -1095,7 +1128,9 @@ export default function InventoryPage() {
                   })()}
                 </div>
                 <div className={`right ${Number(m.change) < 0 ? 'neg' : 'pos'}`}>{formatNumber(m.change)}</div>
-                <div className="muted">{m.reason || ''}</div>
+                <div className="muted">
+                  {m.reason ? t(`inventory.movementReasons.${m.reason}`, { defaultValue: m.reason }) : ''}
+                </div>
               </div>
             ))}
             {(visibleMovements || []).length === 0 && (

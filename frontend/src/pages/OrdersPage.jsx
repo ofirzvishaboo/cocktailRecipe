@@ -19,6 +19,8 @@ export default function OrdersPage() {
   const [selectedOrderId, setSelectedOrderId] = useState('')
   const [selectedSupplierKey, setSelectedSupplierKey] = useState(ALL_KEY)
   const [saving, setSaving] = useState(false)
+  const [addToStockLoading, setAddToStockLoading] = useState(false)
+  const [addToStockLocation, setAddToStockLocation] = useState('WAREHOUSE')
 
   const aggregateItems = useCallback((ordersList) => {
     const map = new Map()
@@ -160,6 +162,21 @@ export default function OrdersPage() {
     }
   }
 
+  const addOrderToStock = useCallback(async (orderId, location) => {
+    setAddToStockLoading(true)
+    setError('')
+    try {
+      await api.post(`/orders/${orderId}/add-to-stock`, { location: location || 'WAREHOUSE' })
+      await loadWeeklyOrders()
+    } catch (e) {
+      console.error('Add to stock failed', e)
+      const msg = e?.response?.data?.detail
+      setError(typeof msg === 'string' ? msg : t('orders.errors.addToStockFailed'))
+    } finally {
+      setAddToStockLoading(false)
+    }
+  }, [loadWeeklyOrders, t])
+
   const updateOrderItem = async (orderId, itemId, patch) => {
     if (!orderId || !itemId) return
     try {
@@ -300,7 +317,7 @@ export default function OrdersPage() {
                       {selectedOrder.period_start} → {selectedOrder.period_end}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <label className="muted">{t('orders.filters.status')}</label>
                     <select
                       className="form-input"
@@ -312,6 +329,29 @@ export default function OrdersPage() {
                         <option key={s} value={s}>{t(`orders.status.${s}`, { defaultValue: s })}</option>
                       ))}
                     </select>
+                    {selectedOrder.status === 'RECEIVED' && (
+                      <>
+                        <select
+                          className="form-input"
+                          value={addToStockLocation}
+                          onChange={(e) => setAddToStockLocation(e.target.value)}
+                          disabled={addToStockLoading}
+                          title={t('orders.addToStockLocation')}
+                          style={{ minWidth: 100 }}
+                        >
+                          <option value="WAREHOUSE">{t('orders.location.WAREHOUSE')}</option>
+                          <option value="BAR">{t('orders.location.BAR')}</option>
+                        </select>
+                        <button
+                          type="button"
+                          className="button-edit"
+                          disabled={addToStockLoading || (selectedOrder.items || []).length === 0}
+                          onClick={() => addOrderToStock(selectedOrder.id, addToStockLocation)}
+                        >
+                          {addToStockLoading ? t('common.saving') : t('orders.actions.addToStock')}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 

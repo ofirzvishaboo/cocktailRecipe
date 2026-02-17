@@ -55,6 +55,10 @@ class OrderUpdate(BaseModel):
     notes: Optional[str] = None
 
 
+class AddToStockRequest(BaseModel):
+    location: str = "WAREHOUSE"  # BAR | WAREHOUSE
+
+
 class WeeklyOrderRequest(BaseModel):
     order_date: Optional[date] = None
     location_scope: str = "ALL"  # ALL|BAR|WAREHOUSE

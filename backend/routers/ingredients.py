@@ -20,6 +20,7 @@ from db.database import (
     Brand as BrandModel,
     Supplier as SupplierModel,
 )
+from db.inventory.item import InventoryItem as InventoryItemModel
 from typing import List, Dict
 from uuid import UUID
 from core.auth import current_active_user
@@ -292,6 +293,22 @@ async def create_bottle_for_ingredient(
         is_default_cost=bool(bottle.is_default_cost),
     )
     db.add(bottle_model)
+    await db.flush()
+
+    # Create an inventory item for this bottle so it appears in Inventory
+    existing = await db.execute(
+        select(InventoryItemModel).where(InventoryItemModel.bottle_id == bottle_model.id)
+    )
+    if existing.scalar_one_or_none() is None:
+        inv_item = InventoryItemModel(
+            item_type="BOTTLE",
+            bottle_id=bottle_model.id,
+            name=bottle_model.name or "",
+            unit="bottles",
+            is_active=True,
+        )
+        db.add(inv_item)
+
     await db.commit()
     await db.refresh(bottle_model)
     return {

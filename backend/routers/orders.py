@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
+from sqlalchemy.dialects.postgresql import insert
 from typing import List, Optional
 from uuid import UUID
 from datetime import date, timedelta
 import math
+import uuid as uuid_mod
 
 from core.auth import current_active_superuser
 from db.users import User
@@ -22,12 +24,14 @@ from db.database import (
     Bottle as BottleModel,
     InventoryItem as InventoryItemModel,
     InventoryStock as InventoryStockModel,
+    InventoryMovement as InventoryMovementModel,
 )
 from schemas.orders import (
     OrderRead,
     OrderItemRead,
     OrderUpdate,
     OrderItemUpdate,
+    AddToStockRequest,
     WeeklyOrderRequest,
     WeeklyOrderResponse,
     WeeklyByEventResponse,
@@ -323,6 +327,124 @@ async def update_order_item(
         setattr(it, k, v)
     await db.commit()
     return await get_order(order_id, db=db, user=user)
+
+
+@router.post("/{order_id}/add-to-stock")
+async def add_order_to_stock(
+    order_id: UUID,
+    payload: AddToStockRequest,
+    db: AsyncSession = Depends(get_async_session),
+    user: User = Depends(current_active_superuser),
+):
+    location = (payload.location or "WAREHOUSE").strip().upper()
+    if location not in ("BAR", "WAREHOUSE"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="location must be BAR or WAREHOUSE",
+        )
+    res = await db.execute(
+        select(OrderModel)
+        .options(
+            selectinload(OrderModel.items).selectinload(OrderItemModel.bottle),
+            selectinload(OrderModel.items).selectinload(OrderItemModel.ingredient),
+        )
+        .where(OrderModel.id == order_id)
+    )
+    order = res.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    if (order.status or "").upper() != "RECEIVED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Order must have status RECEIVED to add to stock",
+        )
+
+    # Resolve each order item to (inventory_item_id, change)
+    to_add: List[tuple[UUID, int]] = []
+    missing: List[str] = []
+    for it in order.items or []:
+        change = 0
+        inv_item_id: Optional[UUID] = None
+        if it.bottle_id:
+            r = await db.execute(
+                select(InventoryItemModel)
+                .where(InventoryItemModel.bottle_id == it.bottle_id)
+                .limit(1)
+            )
+            inv = r.scalar_one_or_none()
+            if not inv:
+                name = getattr(it.bottle, "name", None) or str(it.bottle_id)
+                missing.append(f"Bottle: {name}")
+                continue
+            inv_item_id = inv.id
+            rec = it.recommended_bottles
+            if rec is not None and rec > 0:
+                change = int(rec)
+            else:
+                vol = it.bottle_volume_ml or getattr(it.bottle, "volume_ml", None) or 0
+                need_ml = float(it.needed_ml or 0)
+                if vol and need_ml > 0:
+                    change = max(1, math.ceil(need_ml / vol))
+        else:
+            r = await db.execute(
+                select(InventoryItemModel).where(
+                    InventoryItemModel.ingredient_id == it.ingredient_id,
+                    InventoryItemModel.item_type == "GARNISH",
+                ).limit(1)
+            )
+            inv = r.scalar_one_or_none()
+            if not inv:
+                name = getattr(it.ingredient, "name", None) or str(it.ingredient_id)
+                missing.append(f"Garnish: {name}")
+                continue
+            inv_item_id = inv.id
+            q = it.needed_quantity or it.requested_quantity
+            change = int(float(q or 0))
+        if change <= 0:
+            continue
+        to_add.append((inv_item_id, change))
+
+    if missing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No inventory item found for: {', '.join(missing)}",
+        )
+    if not to_add:
+        return {"message": "No items to add", "movements_count": 0}
+
+    stock_tbl = InventoryStockModel.__table__
+    for inv_item_id, delta in to_add:
+        movement_id = uuid_mod.uuid4()
+        stock_insert_id = uuid_mod.uuid4()
+        db.add(
+            InventoryMovementModel(
+                id=movement_id,
+                location=location,
+                inventory_item_id=inv_item_id,
+                change=delta,
+                reason="PURCHASE",
+                source_type="ORDER",
+                source_id=None,
+                created_by_user_id=user.id,
+            )
+        )
+        upsert = (
+            insert(stock_tbl)
+            .values(
+                id=stock_insert_id,
+                location=location,
+                inventory_item_id=inv_item_id,
+                quantity=delta,
+                reserved_quantity=0,
+            )
+            .on_conflict_do_update(
+                constraint="ux_inventory_stock_location_item",
+                set_={"quantity": stock_tbl.c.quantity + delta},
+            )
+        )
+        await db.execute(upsert)
+    await db.commit()
+    return {"message": "Added to stock", "movements_count": len(to_add)}
 
 
 @router.post("/weekly", response_model=WeeklyOrderResponse, status_code=status.HTTP_201_CREATED)

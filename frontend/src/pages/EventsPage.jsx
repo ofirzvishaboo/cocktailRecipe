@@ -122,9 +122,9 @@ export default function EventsPage() {
         </div>
       </div>
 
-      <div className="events-grid">
-        <div className="events-panel">
-          <div className="events-panel-title">{t('events.listTitle')}</div>
+      <div className="events-list-grid">
+        <div className="events-list-panel">
+          <div className="events-list-panel-title">{t('events.listTitle')}</div>
           {loading ? (
             <div className="loading">{t('common.loading')}</div>
           ) : (events || []).length === 0 ? (
@@ -138,9 +138,9 @@ export default function EventsPage() {
                 return (
                   <div key={ev.id} className="events-list-item">
                     <div className="events-list-main">
-                      <div className="name">{title}</div>
-                      <div className="muted" style={{ marginTop: 4 }}>
-                        {t('events.meta', { date: dateStr, people: ev.people })}
+                      <div className="events-list-info">
+                        <span className="name">{title}</span>
+                        <span className="muted">{t('events.meta', { date: dateStr, people: ev.people })}</span>
                       </div>
                       <div className="events-chips">
                         {menu.map((mi) => {
