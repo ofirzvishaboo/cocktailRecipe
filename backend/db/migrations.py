@@ -797,6 +797,23 @@ async def add_order_event_scope_columns_if_missing(engine: AsyncEngine):
         await conn.execute(text("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS used_from_stock_ml NUMERIC NULL"))
         await conn.execute(text("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS used_from_stock_quantity NUMERIC NULL"))
 
+
+async def add_images_table_if_missing(engine: AsyncEngine):
+    """Create images table for binary image storage (replaces ImageKit)."""
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS images (
+                    id UUID PRIMARY KEY,
+                    data BYTEA NOT NULL,
+                    content_type VARCHAR(255) NOT NULL
+                )
+                """
+            )
+        )
+
+
 async def add_normalized_schema_tables_if_missing(engine: AsyncEngine):
     """Create new normalized tables if they don't exist (create_all handles most, but keep for safety)."""
     async with engine.begin() as conn:

@@ -63,4 +63,9 @@ api.interceptors.response.use(
     }
 )
 
+/** Base URL for API (and for image src when picture_url is relative). */
+export function getApiBaseUrl() {
+  return computeBaseUrl()
+}
+
 export default api

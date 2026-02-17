@@ -43,6 +43,7 @@ from . import (
     event,
     order,
     inventory,
+    image,
 )
 
 from .ingredient import Ingredient
@@ -64,6 +65,7 @@ from .order import Order, OrderItem
 from .inventory.item import InventoryItem
 from .inventory.stock import InventoryStock
 from .inventory.movement import InventoryMovement
+from .image import Image
 
 engine = create_async_engine(DATABASE_URL)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
@@ -87,6 +89,7 @@ async def create_db_and_tables():
         add_events_if_missing,
         add_orders_if_missing,
         add_order_event_scope_columns_if_missing,
+        add_images_table_if_missing,
     )
     await add_missing_user_columns(engine)
     await add_user_id_column_if_missing(engine)
@@ -101,6 +104,7 @@ async def create_db_and_tables():
     await add_events_if_missing(engine)
     await add_orders_if_missing(engine)
     await add_order_event_scope_columns_if_missing(engine)
+    await add_images_table_if_missing(engine)
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:

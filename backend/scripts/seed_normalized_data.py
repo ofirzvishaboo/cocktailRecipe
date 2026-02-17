@@ -1,5 +1,4 @@
 import asyncio
-import base64
 import sys
 from dataclasses import dataclass
 from datetime import date
@@ -10,7 +9,7 @@ Reset + seed the NEW normalized schema:
 - Deletes existing sample data (cocktails, recipe_ingredients, bottles, prices, ingredients, reference rows).
 - Keeps users.
 - Seeds fresh data (ingredients, bottles, bottle_prices, cocktails, recipe_ingredients).
-- Uploads simple SVG "cocktail cards" to ImageKit (if credentials are configured) and stores the URL in cocktail_recipes.picture_url.
+- Stores simple SVG "cocktail cards" in the images table and sets cocktail_recipes.picture_url to /images/serve/{id}.
 
 Run:
 - inside backend/: `uv run python scripts/seed_normalized_data.py`
@@ -34,9 +33,9 @@ from db.bottle_price import BottlePrice
 from db.cocktail_recipe import CocktailRecipe
 from db.recipe_ingredient import RecipeIngredient
 from db.glass_type import GlassType
+from db.image import Image
 
-from core.imagekit_client import upload_base64_to_imagekit
-
+import uuid as uuid_mod
 
 password_helper = PasswordHelper()
 
@@ -96,15 +95,17 @@ async def _ensure_admin(session) -> User:
     return user
 
 
-async def _try_upload_cocktail_image(cocktail_name: str, subtitle: str) -> str | None:
+async def _store_cocktail_image(session, cocktail_name: str, subtitle: str) -> str | None:
+    """Store SVG in images table and return /images/serve/{id}."""
     try:
         svg_bytes = _svg_card(cocktail_name, subtitle)
-        b64 = base64.b64encode(svg_bytes).decode("ascii")
-        data_url = f"data:image/svg+xml;base64,{b64}"
-        result = await upload_base64_to_imagekit(data_url, f"{cocktail_name.lower().replace(' ', '_')}.svg", folder="cocktails")
-        return result.get("url")
+        image_id = uuid_mod.uuid4()
+        img = Image(id=image_id, data=svg_bytes, content_type="image/svg+xml")
+        session.add(img)
+        await session.flush()
+        return f"/images/serve/{image_id}"
     except Exception as e:
-        print(f"[seed] ImageKit upload skipped for '{cocktail_name}': {e}")
+        print(f"[seed] Image store skipped for '{cocktail_name}': {e}")
         return None
 
 
@@ -296,7 +297,7 @@ async def seed():
                 garnish_text: str | None = None,
             ):
                 # lines: (ingredient_name, qty, unit, bottle_name(optional))
-                picture_url = await _try_upload_cocktail_image(name, "seeded via ImageKit")
+                picture_url = await _store_cocktail_image(session, name, "seeded")
                 glass_type_id = glass_type_cache.get(glass_type_name).id if glass_type_name else None
                 c = CocktailRecipe(
                     created_by_user_id=user.id,

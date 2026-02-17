@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import api from '../../api'
+import api, { getApiBaseUrl } from '../../api'
 import IngredientInputs from './IngredientInputs'
 import Select from '../common/Select'
 import { useAuth } from '../../contexts/AuthContext'
@@ -485,7 +485,11 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 />
                 {form.imagePreview && (
                     <div className="image-preview-container">
-                        <img src={form.imagePreview} alt={t('cocktailForm.imagePreviewAlt')} className="image-preview" />
+                        <img
+                            src={form.imagePreview.startsWith('http') ? form.imagePreview : getApiBaseUrl() + form.imagePreview}
+                            alt={t('cocktailForm.imagePreviewAlt')}
+                            className="image-preview"
+                        />
                         <button
                             type="button"
                             onClick={removeImage}

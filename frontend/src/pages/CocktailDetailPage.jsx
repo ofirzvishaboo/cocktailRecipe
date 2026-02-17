@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import api from '../api'
+import api, { getApiBaseUrl } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import AddCocktailForm from '../components/cocktail/AddCocktailForm'
 import ConfirmDialog from '../components/common/ConfirmDialog'
@@ -312,7 +312,7 @@ const CocktailDetailPage = () => {
         <div className="cocktail-detail-image">
           {cocktail.picture_url && !imageError ? (
             <img
-              src={cocktail.picture_url}
+              src={cocktail.picture_url.startsWith('http') ? cocktail.picture_url : getApiBaseUrl() + cocktail.picture_url}
               alt={displayCocktailName()}
               className="cocktail-detail-image-large"
               onError={() => setImageError(true)}

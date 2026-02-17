@@ -32,9 +32,6 @@ services:
       # Auth settings (dev-friendly defaults). Change SECRET in your environment for production.
       SECRET: ${SECRET:-dev-secret-change-me}
       JWT_LIFETIME_SECONDS: ${JWT_LIFETIME_SECONDS:-604800}
-      IMAGEKIT_PUBLIC_KEY: ${IMAGEKIT_PUBLIC_KEY:-}
-      IMAGEKIT_PRIVATE_KEY: ${IMAGEKIT_PRIVATE_KEY:-}
-      IMAGEKIT_URL_ENDPOINT: ${IMAGEKIT_URL_ENDPOINT:-}
     depends_on:
       postgres:
         condition: service_healthy

@@ -28,9 +28,6 @@ services:
       # Auth settings (REQUIRED in production).
       SECRET: ${SECRET}
       JWT_LIFETIME_SECONDS: ${JWT_LIFETIME_SECONDS:-604800}
-      IMAGEKIT_PUBLIC_KEY: ${IMAGEKIT_PUBLIC_KEY:-}
-      IMAGEKIT_PRIVATE_KEY: ${IMAGEKIT_PRIVATE_KEY:-}
-      IMAGEKIT_URL_ENDPOINT: ${IMAGEKIT_URL_ENDPOINT:-}
       # Allow the public domain(s) in production:
       # Example: https://your-domain.com,https://www.your-domain.com
       CORS_ORIGINS: ${CORS_ORIGINS:-}

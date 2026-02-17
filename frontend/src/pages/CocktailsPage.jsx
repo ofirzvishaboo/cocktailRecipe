@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import AddCocktailForm from '../components/cocktail/AddCocktailForm'
-import api from '../api'
+import api, { getApiBaseUrl } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 
@@ -381,7 +381,7 @@ const CocktailsPage = () => {
                                     <div className="cocktail-card-media">
                                       {c.picture_url && !failedImages.has(c.id) ? (
                                         <img
-                                          src={c.picture_url}
+                                          src={c.picture_url.startsWith('http') ? c.picture_url : getApiBaseUrl() + c.picture_url}
                                           alt={displayCocktailName(c)}
                                           className="cocktail-card-image"
                                           onError={() => {
