@@ -29,8 +29,9 @@
     }
   },
   "nav": {
-    "title": "מנהל מתכוני קוקטיילים",
-    "cocktails": "קוקטיילים",
+    "title": "מנהל הקוקטיילים",
+    "dashboard": "לוח בקרה",
+    "cocktails": "תפריטים",
     "ingredients": "מרכיבים",
     "scaler": "מחשבון באצ׳",
     "inventory": "מלאי",
@@ -54,7 +55,7 @@
     "menuTitle": "תפריט (4 קוקטיילים)",
     "unnamed": "אירוע ללא שם",
     "empty": "אין אירועים",
-    "backToList": "⭢ חזרה לאירועים",
+    "backToList": "חזרה לאירועים",
     "confirmDelete": "למחוק את האירוע?",
     "meta": "{{date}} • {{people}} אנשים",
     "consumeHelp": "צריכה/ביטול צריכה משפיעים על המלאי (לפי ההזמנות שנוצרו לאירוע).",
@@ -165,9 +166,9 @@
     "searchPlaceholder": "חפש לפי שם או מרכיבים (למשל: וודקה, ליים)...",
     "createButton": "צור קוקטייל",
     "sections": {
-      "classic": "קוקטיילים קלאסיים",
-      "signature": "קוקטיילים סיגנצ׳ר",
-      "seasonal": "קוקטיילים עונתיים"
+      "classic": "קלאסיים",
+      "signature": "סיגנצ׳ר",
+      "seasonal": "עונתי"
     },
     "actions": {
       "edit": "ערוך",
@@ -553,6 +554,25 @@
       "loginLink": "התחבר",
       "passwordsNoMatch": "הסיסמאות לא תואמות",
       "passwordTooShort": "הסיסמה חייבת להיות לפחות 8 תווים"
+    }
+  },
+  "dashboard": {
+    "title": "לוח בקרה",
+    "thisWeekEvents": "אירועים השבוע",
+    "thisWeekOrders": "הזמנות השבוע",
+    "emptyEvents": "אין אירועים השבוע",
+    "emptyOrders": "אין הזמנות השבוע",
+    "people": "{{count}} אנשים",
+    "viewEvent": "צפה באירוע",
+    "viewEvents": "כל האירועים",
+    "viewOrders": "צפה בהזמנות",
+    "prevWeek": "שבוע קודם",
+    "nextWeek": "שבוע הבא",
+    "createEvent": "צור אירוע",
+    "batchCalculator": "מחשבון באצי",
+    "ordersTotal": "סה״כ הזמנות ממתינות",
+    "errors": {
+      "loadFailed": "טעינת לוח הבקרה נכשלה"
     }
   }
 }

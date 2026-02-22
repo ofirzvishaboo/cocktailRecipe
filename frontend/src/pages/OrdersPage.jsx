@@ -100,10 +100,14 @@ export default function OrdersPage() {
   }, [isAdmin, loadWeeklyOrders])
 
   useEffect(() => {
-    // Reset selection when filters change
-    setSelectedSupplierKey(ALL_KEY)
-    setSelectedOrderId('')
-  }, [statusFilter])
+    // Reset selection when filters change, unless the selected order is in the new list
+    const sel = (orders || []).find((o) => String(o.id) === String(selectedOrderId))
+    setSelectedSupplierKey(sel ? (sel.supplier_id || 'UNKNOWN') : ALL_KEY)
+    setSelectedOrderId((prev) => {
+      const inList = (orders || []).some((o) => String(o.id) === String(prev))
+      return inList ? prev : ''
+    })
+  }, [statusFilter, orders, selectedOrderId])
 
   const selectedOrder = useMemo(() => {
     if (!selectedOrderId) return null
@@ -151,14 +155,22 @@ export default function OrdersPage() {
     if (!orderId) return
     try {
       setSaving(true)
+      setLoading(true)
       setError('')
       await api.patch(`/orders/${orderId}`, { status: nextStatus })
-      await loadWeeklyOrders()
+      setStatusFilter(nextStatus)
+      const params = new URLSearchParams()
+      params.set('status', nextStatus)
+      params.set('scope', 'WEEKLY')
+      const res = await api.get(`/orders?${params.toString()}`)
+      setOrders(Array.isArray(res.data) ? res.data : [])
+      setSelectedOrderId(orderId)
     } catch (e) {
       console.error('Failed to update order', e)
       setError(t('orders.errors.updateFailed'))
     } finally {
       setSaving(false)
+      setLoading(false)
     }
   }
 
@@ -203,7 +215,7 @@ export default function OrdersPage() {
   return (
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>{t('orders.title')}</h2>
+        <h2 style={{ margin: 0,  }}>{t('orders.title')}</h2>
         <button type="button" className="button-primary" onClick={generateWeeklyByEvent} disabled={saving}>
           {saving ? t('orders.actions.generating') : t('orders.actions.generateWeeklyByEvent')}
         </button>

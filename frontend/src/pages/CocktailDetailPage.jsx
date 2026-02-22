@@ -270,8 +270,8 @@ const CocktailDetailPage = () => {
   if (editing) {
     return (
       <div className="card">
-        <h2>{t('cocktailDetail.editTitle')}</h2>
         <AddCocktailForm
+          title={t('cocktailDetail.editTitle')}
           AddCocktail={handleUpdate}
           initialCocktail={cocktail}
           onCancel={() => setEditing(false)}

@@ -639,7 +639,15 @@ async def generate_weekly_orders(
         .where(OrderModel.scope == "WEEKLY")
     )
     existing_orders = existing_res.scalars().all() or []
-    existing_by_supplier: dict[Optional[UUID], OrderModel] = {o.supplier_id: o for o in existing_orders}
+    # Prefer non-DRAFT over DRAFT so we skip instead of updating when user already marked received
+    existing_by_supplier: dict[Optional[UUID], OrderModel] = {}
+    for o in existing_orders:
+        sid = o.supplier_id
+        curr = existing_by_supplier.get(sid)
+        if curr is None or (
+            (o.status or "").upper() != "DRAFT" and ((curr.status or "").upper() == "DRAFT")
+        ):
+            existing_by_supplier[sid] = o
 
     created_ids: List[UUID] = []
     updated_ids: List[UUID] = []
@@ -692,6 +700,26 @@ async def generate_weekly_orders(
                     leftover_ml=item.get("leftover_ml"),
                 )
             )
+
+    # Delete orphaned DRAFT orders when RECEIVED exists for same supplier
+    suppliers_with_non_draft = {
+        sid for sid, ex in existing_by_supplier.items()
+        if ex is not None and (ex.status or "").upper() != "DRAFT"
+    }
+    supplier_ids_in_batch = set(orders_by_supplier.keys())
+    for o in existing_orders:
+        if (o.status or "").upper() != "DRAFT":
+            continue
+        if o.supplier_id not in supplier_ids_in_batch:
+            continue
+        ex = existing_by_supplier.get(o.supplier_id)
+        if (
+            o.supplier_id in suppliers_with_non_draft
+            and ex
+            and ex.id != o.id
+            and (ex.status or "").upper() != "DRAFT"
+        ):
+            await db.delete(o)
 
     await db.commit()
 
@@ -790,9 +818,17 @@ async def generate_weekly_orders_by_event(
         .where(OrderModel.period_end <= end)
     )
     existing_event_orders = existing_event_res.scalars().all() or []
-    existing_event_map: dict[tuple[UUID, Optional[UUID]], OrderModel] = {
-        (o.event_id, o.supplier_id): o for o in existing_event_orders if o.event_id is not None
-    }
+    # Prefer non-DRAFT over DRAFT so we skip instead of updating when user already marked received
+    existing_event_map: dict[tuple[UUID, Optional[UUID]], OrderModel] = {}
+    for o in existing_event_orders:
+        if o.event_id is None:
+            continue
+        key = (o.event_id, o.supplier_id)
+        curr = existing_event_map.get(key)
+        if curr is None or (
+            (o.status or "").upper() != "DRAFT" and ((curr.status or "").upper() == "DRAFT")
+        ):
+            existing_event_map[key] = o
 
     existing_weekly_res = await db.execute(
         select(OrderModel)
@@ -802,7 +838,15 @@ async def generate_weekly_orders_by_event(
         .where(OrderModel.period_end == end)
     )
     existing_weekly_orders = existing_weekly_res.scalars().all() or []
-    existing_weekly_map: dict[Optional[UUID], OrderModel] = {o.supplier_id: o for o in existing_weekly_orders}
+    # Prefer non-DRAFT (RECEIVED/SENT) over DRAFT so we skip instead of updating when user already marked received
+    existing_weekly_map: dict[Optional[UUID], OrderModel] = {}
+    for o in existing_weekly_orders:
+        sid = o.supplier_id
+        curr = existing_weekly_map.get(sid)
+        if curr is None or (
+            (o.status or "").upper() != "DRAFT" and ((curr.status or "").upper() == "DRAFT")
+        ):
+            existing_weekly_map[sid] = o
 
     # If there are no events in the window, remove stale DRAFT orders for this window.
     # (Otherwise old items keep showing even though there is nothing to order.)
@@ -1162,17 +1206,36 @@ async def generate_weekly_orders_by_event(
     # Cleanup stale DRAFT orders that no longer belong after event removal / zero shortfall:
     # - EVENT orders for events no longer in the window
     # - WEEKLY orders for suppliers with no remaining shortfall
+    # - WEEKLY DRAFT orders when RECEIVED exists for same supplier (avoid duplicates)
     weekly_supplier_ids_present: set[Optional[UUID]] = set(weekly_suppliers.keys())
+    suppliers_we_skipped_non_draft: set[Optional[UUID]] = {
+        sid for sid, ex in existing_weekly_map.items()
+        if ex is not None and (ex.status or "").upper() != "DRAFT"
+    }
+    event_keys_we_skipped_non_draft: set[tuple[UUID, Optional[UUID]]] = {
+        k for k, ex in existing_event_map.items()
+        if ex is not None and (ex.status or "").upper() != "DRAFT"
+    }
     for o in existing_event_orders:
         if (o.status or "").upper() != "DRAFT":
             continue
         if o.event_id is None or o.event_id not in event_ids_in_window:
             await db.delete(o)
+        else:
+            key = (o.event_id, o.supplier_id)
+            ex = existing_event_map.get(key)
+            if key in event_keys_we_skipped_non_draft and ex and ex.id != o.id:
+                await db.delete(o)
     for o in existing_weekly_orders:
         if (o.status or "").upper() != "DRAFT":
             continue
         if o.supplier_id not in weekly_supplier_ids_present:
             await db.delete(o)
+        else:
+            ex = existing_weekly_map.get(o.supplier_id)
+            if ex and ex.id != o.id and (ex.status or "").upper() != "DRAFT":
+                # Orphaned DRAFT when RECEIVED exists for same supplier – delete to avoid duplicates
+                await db.delete(o)
 
     await db.commit()
 

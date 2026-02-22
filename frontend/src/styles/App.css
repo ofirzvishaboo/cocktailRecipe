@@ -6,8 +6,8 @@
   padding: 0;
 }
 
-/* Professional Navbar */
-.navbar {
+/* Professional Navbar (scoped so Bootstrap does not override) */
+.app-navbar {
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow-sm);
@@ -17,7 +17,7 @@
   border-bottom: 1px solid var(--border);
 }
 
-.navbar-container {
+.app-navbar .navbar-container {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0.85rem 1.5rem;
@@ -28,14 +28,14 @@
   flex-wrap: nowrap;
 }
 
-.navbar-left {
+.app-navbar .navbar-left {
   display: flex;
   align-items: center;
   min-width: 0;
   flex: 0 0 auto;
 }
 
-.navbar-title-link {
+.app-navbar .navbar-title-link {
   text-decoration: none;
   cursor: pointer;
   display: inline-flex;
@@ -43,7 +43,7 @@
   min-width: 0;
 }
 
-.navbar-title {
+.app-navbar .navbar-title {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 800;
@@ -54,7 +54,7 @@
   text-overflow: ellipsis;
 }
 
-.navbar-links {
+.app-navbar .navbar-links {
   display: flex;
   gap: 0.75rem;
   align-items: center;
@@ -64,53 +64,52 @@
   min-width: 0;
 }
 
-.navbar-nav,
-.navbar-auth {
+.app-navbar .navbar-nav,
+.app-navbar .navbar-auth {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   flex-wrap: nowrap;
   min-width: 0;
+  flex-direction: row;
 }
 
 /* RTL support (only when <html dir="rtl">) */
-html[dir="rtl"] .navbar-container {
-  /* Keep flex "end" on the right, but reorder items for RTL layout */
+html[dir="rtl"] .app-navbar .navbar-container {
   direction: ltr;
 }
 
-html[dir="rtl"] .navbar-links {
+html[dir="rtl"] .app-navbar .navbar-links {
   direction: rtl;
 }
 
-/* Desktop RTL: title on the right, links next to it */
-html[dir="rtl"] .navbar-left {
+html[dir="rtl"] .app-navbar .navbar-left {
   direction: rtl;
   order: 3;
 }
 
-html[dir="rtl"] .navbar-links {
+html[dir="rtl"] .app-navbar .navbar-links {
   order: 1;
 }
 
-html[dir="rtl"] .navbar-toggle {
+html[dir="rtl"] .app-navbar .navbar-toggle {
   order: 2;
 }
 
-html[dir="rtl"] .navbar-nav,
-html[dir="rtl"] .navbar-auth {
+html[dir="rtl"] .app-navbar .navbar-nav,
+html[dir="rtl"] .app-navbar .navbar-auth {
   direction: rtl;
 }
 
-html[dir="rtl"] .lang-toggle {
+html[dir="rtl"] .app-navbar .lang-toggle {
   flex-direction: row-reverse;
 }
 
-html[dir="rtl"] .navbar-user {
+html[dir="rtl"] .app-navbar .navbar-user {
   direction: ltr;
 }
 
-.navbar-toggle {
+.app-navbar .navbar-toggle {
   display: none;
   flex-direction: column;
   justify-content: center;
@@ -125,7 +124,7 @@ html[dir="rtl"] .navbar-user {
   flex: 0 0 auto;
 }
 
-.navbar-toggle span {
+.app-navbar .navbar-toggle span {
   display: block;
   width: 100%;
   height: 3px;
@@ -134,7 +133,9 @@ html[dir="rtl"] .navbar-user {
   transition: transform 0.3s ease;
 }
 
-.nav-link {
+.app-navbar .nav-link {
+  display: inline-flex;
+  align-items: center;
   padding: 0.55rem 0.9rem;
   border: none;
   background: transparent;
@@ -145,24 +146,21 @@ html[dir="rtl"] .navbar-user {
   border-radius: 8px;
   transition: all 0.3s ease;
   position: relative;
+  text-decoration: none;
 }
 
-.nav-link:hover {
+.app-navbar .nav-link:hover {
   background: var(--primary-soft);
   color: var(--primary);
 }
 
-.nav-link.active {
+.app-navbar .nav-link.active {
   background: var(--primary);
   color: white;
   box-shadow: 0 4px 12px rgba(47, 127, 247, 0.25);
 }
 
-.nav-link {
-  text-decoration: none;
-}
-
-.navbar-user {
+.app-navbar .navbar-user {
   padding: 0.55rem 0.75rem;
   color: var(--text-muted);
   font-size: 0.85rem;
@@ -175,12 +173,12 @@ html[dir="rtl"] .navbar-user {
   text-overflow: ellipsis;
 }
 
-.logout-button {
+.app-navbar .logout-button {
   background: var(--danger) !important;
   color: white !important;
 }
 
-.logout-button:hover {
+.app-navbar .logout-button:hover {
   background: var(--danger-hover) !important;
 }
 
@@ -289,10 +287,31 @@ html[dir="rtl"] .navbar-user {
   margin-bottom: 2rem;
 }
 
+/* Cocktails page: compact width, centered content */
+.cocktails-page-wrap {
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0.75rem 1rem 1.5rem;
+}
+
+.cocktails-page-wrap .cocktails-list .row {
+  --cocktail-card-max: 420px;
+}
+.cocktails-page-wrap .cocktails-list .row > .col {
+  max-width: var(--cocktail-card-max);
+}
+@media (min-width: 768px) {
+  .cocktails-page-wrap .cocktails-list .row > .col {
+    flex: 0 1 var(--cocktail-card-max);
+    min-width: 0;
+  }
+}
+
 /* Cocktails List */
 .cocktails-list {
   text-align: start;
-  margin-top: 2rem;
+  margin-top: 1rem;
 }
 
 .cocktails-tabs {
@@ -1254,17 +1273,16 @@ html[dir="rtl"] .navbar-user {
 }
 
 @media (max-width: 1024px) {
-  .navbar-container {
+  .app-navbar .navbar-container {
     padding: 1rem 1.25rem;
   }
 
-  /* Keep navbar on one line on medium screens by tightening spacing */
-  .nav-link {
+  .app-navbar .nav-link {
     padding: 0.5rem 0.75rem;
     font-size: 0.93rem;
   }
 
-  .navbar-user {
+  .app-navbar .navbar-user {
     padding: 0.5rem 0.6rem;
     max-width: 180px;
   }
@@ -1285,36 +1303,35 @@ html[dir="rtl"] .navbar-user {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .navbar-container {
+  .app-navbar .navbar-container {
     flex-direction: row;
     align-items: center;
     flex-wrap: wrap;
   }
 
-  html[dir="rtl"] .navbar-container {
+  html[dir="rtl"] .app-navbar .navbar-container {
     direction: ltr;
   }
 
-  /* Mobile RTL: keep header row (toggle + title), links stack below */
-  html[dir="rtl"] .navbar-toggle {
+  html[dir="rtl"] .app-navbar .navbar-toggle {
     order: 1;
   }
-  html[dir="rtl"] .navbar-left {
+  html[dir="rtl"] .app-navbar .navbar-left {
     order: 2;
   }
-  html[dir="rtl"] .navbar-links {
+  html[dir="rtl"] .app-navbar .navbar-links {
     order: 3;
   }
 
-  .navbar-title {
+  .app-navbar .navbar-title {
     font-size: 1.1rem;
   }
 
-  .navbar-toggle {
+  .app-navbar .navbar-toggle {
     display: flex;
   }
 
-  .navbar-links {
+  .app-navbar .navbar-links {
     width: 100%;
     flex-direction: column;
     align-items: stretch;
@@ -1326,53 +1343,52 @@ html[dir="rtl"] .navbar-user {
     transition: max-height 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
   }
 
-  .navbar-links.open {
+  .app-navbar .navbar-links.open {
     max-height: 500px;
     opacity: 1;
     transform: translateY(0);
     margin-top: 0.5rem;
   }
 
-  .navbar-nav,
-  .navbar-auth {
+  .app-navbar .navbar-nav,
+  .app-navbar .navbar-auth {
     width: 100%;
     flex-direction: column;
     align-items: stretch;
   }
 
-  .navbar-auth {
+  .app-navbar .navbar-auth {
     margin-top: 0.5rem;
     padding-top: 0.5rem;
     border-top: 1px solid var(--border);
   }
 
-  .nav-link,
-  .navbar-user,
-  .logout-button {
+  .app-navbar .nav-link,
+  .app-navbar .navbar-user,
+  .app-navbar .logout-button {
     width: 100%;
     text-align: start;
     justify-content: flex-start;
   }
 
-  /* Language dropdown should behave like a full-width control on mobile */
-  .lang-toggle--dropdown {
+  .app-navbar .lang-toggle--dropdown {
     width: 100%;
   }
 
-  .lang-btn--trigger {
+  .app-navbar .lang-btn--trigger {
     width: 100%;
     justify-content: space-between;
     padding: 0.6rem 0.75rem;
     font-size: 0.95rem;
   }
 
-  .lang-menu {
+  .app-navbar .lang-menu {
     inset-inline-start: 0;
     inset-inline-end: 0;
     min-width: 0;
   }
 
-  html[dir="rtl"] .navbar-user {
+  html[dir="rtl"] .app-navbar .navbar-user {
     justify-content: flex-end;
   }
 
@@ -1667,11 +1683,11 @@ html[dir="rtl"] .navbar-user {
 }
 
 @media (max-width: 480px) {
-  .navbar-title {
+  .app-navbar .navbar-title {
     font-size: 1.1rem;
   }
 
-  .navbar-toggle {
+  .app-navbar .navbar-toggle {
     width: 40px;
     height: 40px;
   }

@@ -154,15 +154,17 @@ export default function EventFormPage() {
 
   return (
     <div className="card">
-      <div className="events-header">
-        <div className="events-header-left">
-          <div className="muted">
-            <Link to="/events" className="link">{t('events.backToList')}</Link>
-          </div>
-          <h2 style={{ margin: '6px 0 0 0' }}>
-            {isNew ? t('events.createTitle') : t('events.editTitle')}
-          </h2>
+      <div className="events-header" style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="events-header-left" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Link to="/events" className="back-link" aria-label={t('events.backToList')}>
+              <span className="back-link-icon" aria-hidden="true">{lang === 'he' ? '→' : '←'}</span>
+              <span className="back-link-text">{t('events.backToList')}</span>
+            </Link>
+
         </div>
+        <h2 className="event-form-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {isNew ? t('events.createTitle') : t('events.editTitle')}
+        </h2>
       </div>
 
       {error && <div className="error-message">{error}</div>}

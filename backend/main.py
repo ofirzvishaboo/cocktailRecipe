@@ -16,6 +16,7 @@ from routers.subcategories import router as subcategories_router
 from routers.suppliers import router as suppliers_router
 from routers.events import router as events_router
 from routers.orders import router as orders_router
+from routers.dashboard import router as dashboard_router
 from core.auth import fastapi_users, auth_backend
 from contextlib import asynccontextmanager
 from schemas.users import UserRead, UserCreate, UserUpdate
@@ -90,6 +91,7 @@ app.include_router(subcategories_router, prefix="/subcategories", tags=["subcate
 app.include_router(suppliers_router, prefix="/suppliers", tags=["suppliers"])
 app.include_router(events_router, prefix="/events", tags=["events"])
 app.include_router(orders_router, prefix="/orders", tags=["orders"])
+app.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])
 
 
 # Global exception handler to ensure CORS headers are sent even on errors

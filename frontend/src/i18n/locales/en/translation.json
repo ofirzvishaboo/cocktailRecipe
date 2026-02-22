@@ -29,8 +29,9 @@
     }
   },
   "nav": {
-    "title": "Cocktail Recipe Manager",
-    "cocktails": "Cocktails",
+    "title": "Cocktail Manager",
+    "dashboard": "Dashboard",
+    "cocktails": "Menus",
     "ingredients": "Ingredients",
     "scaler": "Cocktail Scaler",
     "inventory": "Inventory",
@@ -54,7 +55,7 @@
     "menuTitle": "Menu (4 cocktails)",
     "unnamed": "Unnamed event",
     "empty": "No events",
-    "backToList": "← Back to events",
+    "backToList": "Back to events",
     "confirmDelete": "Delete this event?",
     "meta": "{{date}} • {{people}} people",
     "consumeHelp": "Consume/unconsume affects inventory stock (uses the event's generated orders).",
@@ -165,9 +166,9 @@
     "searchPlaceholder": "Search by name or ingredients (e.g., vodka, lime)...",
     "createButton": "Create Cocktail",
     "sections": {
-      "classic": "Classic Cocktails",
-      "signature": "Signature Cocktails",
-      "seasonal": "Seasonal Cocktails"
+      "classic": "Classic",
+      "signature": "Signature",
+      "seasonal": "Seasonal"
     },
     "actions": {
       "edit": "Edit",
@@ -552,6 +553,25 @@
       "loginLink": "Login",
       "passwordsNoMatch": "Passwords do not match",
       "passwordTooShort": "Password must be at least 8 characters long"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "thisWeekEvents": "This week's events",
+    "thisWeekOrders": "This week's orders",
+    "emptyEvents": "No events this week",
+    "emptyOrders": "No orders this week",
+    "people": "{{count}} people",
+    "viewEvent": "View event",
+    "viewEvents": "All events",
+    "viewOrders": "View orders",
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "createEvent": "Create event",
+    "batchCalculator": "Batch calculator",
+    "ordersTotal": "Pending orders total",
+    "errors": {
+      "loadFailed": "Failed to load dashboard"
     }
   }
 }

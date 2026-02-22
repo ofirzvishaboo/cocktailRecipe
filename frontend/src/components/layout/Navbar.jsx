@@ -40,7 +40,7 @@ const Navbar = () => {
   }, [isLangMenuOpen])
 
   return (
-    <nav className="navbar">
+    <nav className="app-navbar">
       <div className="navbar-container">
         <div className="navbar-left">
           <Link to="/" className="navbar-title-link" onClick={handleNavClick}>
@@ -60,6 +60,15 @@ const Navbar = () => {
         </button>
         <div className={`navbar-links ${isMenuOpen ? 'open' : ''}`}>
           <div className="navbar-nav">
+            {isAuthenticated && isAdmin && (
+              <Link
+                to="/dashboard"
+                className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`}
+                onClick={handleNavClick}
+              >
+                {t('nav.dashboard')}
+              </Link>
+            )}
             <Link
               to="/"
               className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}

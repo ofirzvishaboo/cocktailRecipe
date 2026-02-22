@@ -2,6 +2,7 @@ import uuid
 from datetime import date
 from datetime import datetime, time, timedelta
 from decimal import Decimal
+import math
 from typing import Dict, List, Optional
 from uuid import UUID
 
@@ -67,18 +68,17 @@ def _trunc_int(x: Decimal) -> int:
 
 
 def _default_event_consumed_reason(ev: EventModel) -> str:
-    # Include id to make the reason uniquely traceable (helps future unconsume).
     name = (getattr(ev, "name", None) or "").strip()
     if name:
-        return f"Event consumed: {name} ({ev.id})"
-    return f"Event consumed: {ev.id}"
+        return f'לאירוע - "{name}"'
+    return f"לאירוע - {ev.id}"
 
 
 def _default_event_unconsumed_reason(ev: EventModel) -> str:
     name = (getattr(ev, "name", None) or "").strip()
     if name:
-        return f"Event unconsumed: {name} ({ev.id})"
-    return f"Event unconsumed: {ev.id}"
+        return f'ביטול - לאירוע - "{name}"'
+    return f"ביטול - לאירוע - {ev.id}"
 
 
 def _legacy_event_reason_candidates(ev: EventModel) -> List[str]:
@@ -1423,8 +1423,9 @@ async def consume_event_from_stock(
                     if requested_ml is None:
                         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bottle-backed line missing requested_ml")
 
-                    bottles_used = (Decimal(str(float(requested_ml))) / Decimal(str(int(bottle.volume_ml))))
-                    delta = -int(bottles_used)
+                    # Use ceiling so any partial bottle use counts as at least 1 bottle consumed
+                    bottles_used = float(requested_ml) / float(bottle.volume_ml)
+                    delta = -math.ceil(bottles_used)
                 else:
                     ing_id = getattr(it, "ingredient_id", None)
                     if not ing_id:

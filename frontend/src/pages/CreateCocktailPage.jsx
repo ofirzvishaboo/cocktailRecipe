@@ -26,8 +26,7 @@ const CreateCocktailPage = () => {
 
   return (
     <div className="card">
-      <h2>{t('createCocktail.title')}</h2>
-      <AddCocktailForm AddCocktail={handleCreateCocktail} />
+      <AddCocktailForm AddCocktail={handleCreateCocktail} title={t('createCocktail.title')} />
     </div>
   )
 }

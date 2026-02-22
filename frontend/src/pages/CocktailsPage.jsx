@@ -63,7 +63,7 @@ const CocktailsPage = () => {
     return []
   }, [displayIngredientName])
 
-  const getIngredientChips = (cocktail, max = 7) => {
+  const getIngredientChips = (cocktail, max = 10) => {
     const names = getIngredientNames(cocktail)
     const shown = names.slice(0, max)
     const remaining = Math.max(0, names.length - shown.length)
@@ -298,9 +298,9 @@ const CocktailsPage = () => {
     <div className="card">
       {editingCocktail ? (
         <div>
-          <h3>{t('cocktails.editTitle')}</h3>
           <AddCocktailForm
             AddCocktail={updateCocktail}
+            title={t('cocktails.editTitle')}
             initialCocktail={editingCocktail}
             onCancel={cancelEdit}
             isEdit={true}
@@ -308,6 +308,22 @@ const CocktailsPage = () => {
         </div>
       ) : (
         <>
+        {activeMenus.length > 1 && (
+                      <div className="cocktails-tabs" role="tablist" aria-label={t('cocktails.tabs.label', { defaultValue: 'Cocktail sections' })}>
+                        {activeMenus.map((menu) => (
+                          <button
+                            key={menu}
+                            type="button"
+                            role="tab"
+                            aria-selected={activeTab === menu}
+                            className={`cocktails-tab ${activeTab === menu ? 'active' : ''}`}
+                            onClick={() => setActiveTab(menu)}
+                          >
+                            {t(`cocktails.sections.${menu}`, { defaultValue: t(`cocktailForm.type.${menu}`, { defaultValue: menu }) })}
+                          </button>
+                        ))}
+                      </div>
+                    )}
           <div className="cocktails-header">
             <div className={`search-container ${!isAuthenticated ? 'search-container-full' : ''}`}>
               <input
@@ -316,6 +332,7 @@ const CocktailsPage = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="search-input"
+                aria-label={t('cocktails.searchPlaceholder')}
               />
             </div>
             {isAuthenticated && (
@@ -332,7 +349,6 @@ const CocktailsPage = () => {
           </div>
 
           <div className="cocktails-list">
-
             {loading && <div className="loading">{t('common.loading')}</div>}
             {error && <div className="error-message">{error}</div>}
             {!loading && !error && (
@@ -347,22 +363,7 @@ const CocktailsPage = () => {
                   </p>
                 ) : (
                   <>
-                    {activeMenus.length > 1 && (
-                      <div className="cocktails-tabs" role="tablist" aria-label={t('cocktails.tabs.label', { defaultValue: 'Cocktail sections' })}>
-                        {activeMenus.map((menu) => (
-                          <button
-                            key={menu}
-                            type="button"
-                            role="tab"
-                            aria-selected={activeTab === menu}
-                            className={`cocktails-tab ${activeTab === menu ? 'active' : ''}`}
-                            onClick={() => setActiveTab(menu)}
-                          >
-                            {t(`cocktails.sections.${menu}`, { defaultValue: t(`cocktailForm.type.${menu}`, { defaultValue: menu }) })}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+
 
                     {currentCocktails.length === 0 ? (
                       <div className="empty-state">
@@ -373,69 +374,70 @@ const CocktailsPage = () => {
                     ) : (
                       <ul className="cocktails-grid">
                         {currentCocktails.map((c) => {
-                            const chips = getIngredientChips(c)
-                            return (
-                              <li key={c.id || c.name}>
-                                <div className="cocktail-card">
-                                  <Link to={`/cocktails/${c.id}`} className="cocktail-card-link">
-                                    <div className="cocktail-card-media">
-                                      {c.picture_url && !failedImages.has(c.id) ? (
-                                        <img
-                                          src={c.picture_url.startsWith('http') ? c.picture_url : getApiBaseUrl() + c.picture_url}
-                                          alt={displayCocktailName(c)}
-                                          className="cocktail-card-image"
-                                          onError={() => {
-                                            setFailedImages((prev) => new Set(prev).add(c.id))
-                                          }}
-                                        />
-                                      ) : (
-                                        <div className="cocktail-card-image-placeholder">
-                                          {c.picture_url ? t('cocktails.image.invalid') : t('cocktails.image.none')}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="cocktail-card-body">
-                                      <div className="cocktail-card-title">{displayCocktailName(c)}</div>
-                                    </div>
-                                  </Link>
+                          const chips = getIngredientChips(c)
+                          return (
+                            <li key={c.id || c.name}>
+                              <div className="cocktail-card">
+                                <Link to={`/cocktails/${c.id}`} className="cocktail-card-link">
+                                  <div className="cocktail-card-media">
+                                    {c.picture_url && !failedImages.has(c.id) ? (
+                                      <img
+                                        src={c.picture_url.startsWith('http') ? c.picture_url : getApiBaseUrl() + c.picture_url}
+                                        alt={displayCocktailName(c)}
+                                        className="cocktail-card-image"
+                                        loading="lazy"
+                                        onError={() => {
+                                          setFailedImages((prev) => new Set(prev).add(c.id))
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="cocktail-card-image-placeholder">
+                                        {c.picture_url ? t('cocktails.image.invalid') : t('cocktails.image.none')}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="cocktail-card-body">
+                                    <div className="cocktail-card-title">{displayCocktailName(c)}</div>
+                                  </div>
+                                </Link>
 
-                                  {(chips.shown.length > 0 || (isAuthenticated && isOwner(c))) && (
-                                    <div className="cocktail-card-actions">
-                                      {(chips.shown.length > 0) && (
-                                        <div className="ingredient-chips">
-                                          {chips.shown.map((name) => (
-                                            <span key={name} className="ingredient-chip">{name}</span>
-                                          ))}
-                                          {chips.remaining > 0 && (
-                                            <span className="ingredient-chip ingredient-chip-more">
-                                              {t('cocktails.ingredients.more', { count: chips.remaining })}
-                                            </span>
-                                          )}
-                                        </div>
-                                      )}
-                                      {isAuthenticated && isOwner(c) && (
-                                        <div className="cocktail-card-action-buttons">
-                                          <button
-                                            onClick={() => editCocktail(c)}
-                                            className="button-edit"
-                                            disabled={!c.id}
-                                          >
-                                            {t('cocktails.actions.edit')}
-                                          </button>
-                                          <button
-                                            onClick={() => requestRemoveCocktail(c.id)}
-                                            className="button-remove"
-                                          >
-                                            {t('cocktails.actions.remove')}
-                                          </button>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </li>
-                            )
-                          })}
+                                {(chips.shown.length > 0 || (isAuthenticated && isOwner(c))) && (
+                                  <div className="cocktail-card-actions">
+                                    {chips.shown.length > 0 && (
+                                      <div className="ingredient-chips">
+                                        {chips.shown.map((name) => (
+                                          <span key={name} className="ingredient-chip">{name}</span>
+                                        ))}
+                                        {chips.remaining > 0 && (
+                                          <span className="ingredient-chip ingredient-chip-more">
+                                            {t('cocktails.ingredients.more', { count: chips.remaining })}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                    {isAuthenticated && isOwner(c) && (
+                                      <div className="cocktail-card-action-buttons">
+                                        <button
+                                          onClick={() => editCocktail(c)}
+                                          className="button-edit"
+                                          disabled={!c.id}
+                                        >
+                                          {t('cocktails.actions.edit')}
+                                        </button>
+                                        <button
+                                          onClick={() => requestRemoveCocktail(c.id)}
+                                          className="button-remove"
+                                        >
+                                          {t('cocktails.actions.remove')}
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </li>
+                          )
+                        })}
                       </ul>
                     )}
                   </>

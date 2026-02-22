@@ -17,6 +17,7 @@ import EventsPage from './pages/EventsPage'
 import EventDetailPage from './pages/EventDetailPage'
 import EventFormPage from './pages/EventFormPage'
 import ProtectedRoute from './components/layout/ProtectedRoute'
+import DashboardPage from './pages/DashboardPage'
 
 function App() {
   const { isAuthenticated } = useAuth()
@@ -68,6 +69,14 @@ function App() {
           <Route path="/signup" element={
             isAuthenticated ? <Navigate to="/" replace /> : <SignupPage />
           } />
+          <Route
+            path="/dashboard"
+            element={(
+              <ProtectedRoute requireAdmin>
+                <DashboardPage />
+              </ProtectedRoute>
+            )}
+          />
           <Route path="/" element={<CocktailsPage />} />
           <Route path="/cocktail-scaler" element={<CocktailScaler />} />
           <Route path="/cocktails/:id" element={<CocktailDetailPage />} />

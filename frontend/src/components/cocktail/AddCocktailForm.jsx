@@ -4,8 +4,8 @@ import api, { getApiBaseUrl } from '../../api'
 import IngredientInputs from './IngredientInputs'
 import Select from '../common/Select'
 import { useAuth } from '../../contexts/AuthContext'
-
-function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = false }) {
+import { Link } from 'react-router-dom'
+function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = false, title }) {
     const { t, i18n } = useTranslation()
     const lang = (i18n.language || 'en').split('-')[0]
     const { isAdmin } = useAuth()
@@ -386,6 +386,14 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
     }
 
     return (
+        <>
+        <div className="cocktail-title-row">
+        <Link to="/cocktails" className="back-link" aria-label={t('cocktailDetail.backToCocktails')}>
+            <span className="back-link-icon" aria-hidden="true">{lang === 'he' ? '→' : '←'}</span>
+            <span className="back-link-text">{t('cocktailDetail.backToCocktails')}</span>
+        </Link>
+        <h2 className="cocktail-detail-title">{title}</h2>
+        </div>
         <form onSubmit={handleSubmit} className="cocktail-form">
             <div className="form-group">
                 <label htmlFor="form-name">{t('cocktailForm.nameLabel')}</label>
@@ -531,7 +539,7 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                     </button>
                 )}
             </div>
-        </form>
+        </form></>
     )
 }
 
