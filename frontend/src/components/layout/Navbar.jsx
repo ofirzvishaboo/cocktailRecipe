@@ -43,7 +43,7 @@ const Navbar = () => {
     <nav className="app-navbar">
       <div className="navbar-container">
         <div className="navbar-left">
-          <Link to="/" className="navbar-title-link" onClick={handleNavClick}>
+          <Link to={{ pathname: '/', search: location.pathname === '/' ? location.search : '' }} className="navbar-title-link" onClick={handleNavClick}>
             <span className="navbar-title">{t('nav.title')}</span>
           </Link>
         </div>
@@ -70,7 +70,7 @@ const Navbar = () => {
               </Link>
             )}
             <Link
-              to="/"
+              to={{ pathname: '/', search: location.pathname === '/' ? location.search : '' }}
               className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
               onClick={handleNavClick}
             >

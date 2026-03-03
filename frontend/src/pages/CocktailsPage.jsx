@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import AddCocktailForm from '../components/cocktail/AddCocktailForm'
 import api, { getApiBaseUrl } from '../api'
@@ -22,7 +22,52 @@ const CocktailsPage = () => {
   const [failedImages, setFailedImages] = useState(new Set())
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [pendingDeleteCocktailId, setPendingDeleteCocktailId] = useState(null)
-  const [activeTab, setActiveTab] = useState('classic')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const menuFromUrl = searchParams.get('menu')
+  // Initialize from window.location so refresh at /?menu=signature keeps the tab before React Router hydrates
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === 'undefined') return 'classic'
+    const p = new URLSearchParams(window.location.search)
+    const m = p.get('menu')
+    return (m && MENU_ORDER.includes(m)) ? m : 'classic'
+  })
+
+  // URL wins: show the tab from the URL so refresh keeps the same menu
+  const effectiveTab = (menuFromUrl && MENU_ORDER.includes(menuFromUrl)) ? menuFromUrl : activeTab
+
+  const setActiveTabAndUrl = useCallback((menu) => {
+    setActiveTab(menu)
+    try {
+      if (menu === 'classic') sessionStorage.removeItem('cocktails-menu')
+      else sessionStorage.setItem('cocktails-menu', menu)
+    } catch {
+      /* ignore */
+    }
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (menu === 'classic') next.delete('menu')
+      else next.set('menu', menu)
+      return next
+    }, { replace: true })
+  }, [setSearchParams])
+
+  // On mount: if URL has no menu param, restore from sessionStorage so refresh keeps last tab
+  useEffect(() => {
+    if (menuFromUrl && MENU_ORDER.includes(menuFromUrl)) return
+    try {
+      const saved = sessionStorage.getItem('cocktails-menu')
+      if (saved && MENU_ORDER.includes(saved)) {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev)
+          next.set('menu', saved)
+          return next
+        }, { replace: true })
+        setActiveTab(saved)
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [menuFromUrl, setSearchParams])
 
   const displayCocktailName = useCallback((cocktail) => {
     if (!cocktail) return ''
@@ -275,19 +320,23 @@ const CocktailsPage = () => {
     return out
   }, [viewerFilteredCocktails])
 
-  const currentCocktails = cocktailsByMenu[activeTab] || []
+  const currentCocktails = cocktailsByMenu[effectiveTab] || []
   const hasAnyCocktails = activeMenus.length > 0
   const isSearching = !!(searchQuery || '').trim()
 
+  // Sync activeTab from URL when user navigates (e.g. back/forward)
   useEffect(() => {
-    if (!isAuthenticated && activeTab !== 'classic') setActiveTab('classic')
-  }, [activeTab, isAuthenticated])
+    const menuParam = searchParams.get('menu')
+    const tab = menuParam && MENU_ORDER.includes(menuParam) ? menuParam : 'classic'
+    if (tab !== activeTab) setActiveTab(tab)
+  }, [searchParams, activeTab])
 
+  // Only correct tab after loading; don't overwrite URL tab during load
   useEffect(() => {
-    if (!hasAnyCocktails) return
-    if (activeMenus.includes(activeTab)) return
-    setActiveTab(activeMenus[0])
-  }, [activeMenus, activeTab, hasAnyCocktails])
+    if (loading || !hasAnyCocktails) return
+    if (activeMenus.includes(effectiveTab)) return
+    setActiveTabAndUrl(activeMenus[0])
+  }, [loading, activeMenus, effectiveTab, hasAnyCocktails, setActiveTabAndUrl])
 
   // Check if the current user owns this cocktail
   const isOwner = (cocktail) => {
@@ -315,9 +364,9 @@ const CocktailsPage = () => {
                             key={menu}
                             type="button"
                             role="tab"
-                            aria-selected={activeTab === menu}
-                            className={`cocktails-tab ${activeTab === menu ? 'active' : ''}`}
-                            onClick={() => setActiveTab(menu)}
+                            aria-selected={effectiveTab === menu}
+                            className={`cocktails-tab ${effectiveTab === menu ? 'active' : ''}`}
+                            onClick={() => setActiveTabAndUrl(menu)}
                           >
                             {t(`cocktails.sections.${menu}`, { defaultValue: t(`cocktailForm.type.${menu}`, { defaultValue: menu }) })}
                           </button>

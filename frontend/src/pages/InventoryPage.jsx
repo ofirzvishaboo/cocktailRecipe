@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import DatePicker, { registerLocale } from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import he from 'date-fns/locale/he'
@@ -39,8 +40,28 @@ export default function InventoryPage() {
   const MIN_VISIBLE_STOCK_QTY = 1 // show only items with quantity >= 1
   const [filtersOpen, setFiltersOpen] = useState(false)
 
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabFromUrl = searchParams.get('tab')
+
   const [location, setLocation] = useState('ALL')
-  const [tab, setTab] = useState('Stock')
+  const [tab, setTab] = useState(() => {
+    if (typeof window === 'undefined') return 'Stock'
+    const params = new URLSearchParams(window.location.search)
+    const tParam = params.get('tab')
+    return tParam && TABS.includes(tParam) ? tParam : 'Stock'
+  })
+
+  const effectiveTab = tabFromUrl && TABS.includes(tabFromUrl) ? tabFromUrl : tab
+
+  const setTabAndUrl = (nextTab) => {
+    setTab(nextTab)
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (!nextTab || nextTab === 'Stock') next.delete('tab')
+      else next.set('tab', nextTab)
+      return next
+    }, { replace: true })
+  }
   const [movementLocation, setMovementLocation] = useState('WAREHOUSE')
 
   const [loading, setLoading] = useState(false)
@@ -339,6 +360,13 @@ export default function InventoryPage() {
     }
   }
 
+  // Keep tab state in sync with URL (e.g. browser back/forward)
+  useEffect(() => {
+    const tParam = searchParams.get('tab')
+    const next = tParam && TABS.includes(tParam) ? tParam : 'Stock'
+    if (next !== tab) setTab(next)
+  }, [searchParams, tab])
+
   const loadMovementEvents = async () => {
     if (!showMovements) {
       setMovementEvents([])
@@ -362,15 +390,15 @@ export default function InventoryPage() {
   }, [location, itemType])
 
   useEffect(() => {
-    if (tab === 'Stock') loadStock()
-    if (tab === 'Items') loadItems()
-    if (tab === 'Movements') {
+    if (effectiveTab === 'Stock') loadStock()
+    if (effectiveTab === 'Items') loadItems()
+    if (effectiveTab === 'Movements') {
       if (showMovements) loadMovements()
-      else setTab('Stock')
+      else setTabAndUrl('Stock')
       if (showMovements) loadMovementEvents()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, location, itemType, subcategoryFilter, movementFromDate, movementToDate, showMovements])
+  }, [effectiveTab, location, itemType, subcategoryFilter, movementFromDate, movementToDate, showMovements])
 
   const visibleTabs = showMovements ? TABS : ['Stock', 'Items']
 
@@ -566,8 +594,8 @@ export default function InventoryPage() {
             <button
               key={tabKey}
               type="button"
-              className={`inventory-tab ${tab === tabKey ? 'active' : ''}`}
-              onClick={() => setTab(tabKey)}
+              className={`inventory-tab ${effectiveTab === tabKey ? 'active' : ''}`}
+              onClick={() => setTabAndUrl(tabKey)}
             >
               {tabKey === 'Stock' ? t('inventory.tabs.stock') : tabKey === 'Items' ? t('inventory.tabs.items') : t('inventory.tabs.movements')}
             </button>
@@ -585,7 +613,7 @@ export default function InventoryPage() {
           </button>
         </div>
 
-        {(tab === 'Items') && (
+        {(effectiveTab === 'Items') && (
           <div className="inventory-control inventory-control-wide" style={{ marginTop: '0.75rem' }}>
             <InventorySearchInput
               id="inv-items-search"
@@ -597,7 +625,7 @@ export default function InventoryPage() {
           </div>
         )}
 
-        {(tab === 'Stock') && (
+        {(effectiveTab === 'Stock') && (
           <div className="inventory-control inventory-control-wide" style={{ marginTop: '0.75rem' }}>
             <InventorySearchInput
               id="inv-stock-search"
@@ -610,7 +638,7 @@ export default function InventoryPage() {
         )}
 
         {filtersOpen && (
-          <div className="inventory-controls">
+            <div className="inventory-controls">
             <div className="inventory-control">
               <label className="inventory-label" htmlFor="inv-location">{t('inventory.filters.location')}</label>
               <Select
@@ -650,7 +678,7 @@ export default function InventoryPage() {
               />
             </div>
 
-            {(tab === 'Movements') && (
+            {(effectiveTab === 'Movements') && (
               <div className="inventory-control inventory-control-wide inventory-dates-row">
                 <div className="inventory-control">
                   <label className="inventory-label">{t('common.from')}</label>
@@ -693,7 +721,7 @@ export default function InventoryPage() {
       {error && <div className="error-message">{error}</div>}
       {loading && <div className="loading">{t('common.loading')}</div>}
 
-      {!loading && tab === 'Stock' && (
+      {!loading && effectiveTab === 'Stock' && (
         <div className="inventory-section">
           {(groupStockSections || []).length === 0 ? (
             <div className="empty-state">{t('inventory.emptyGroup')}</div>
@@ -754,7 +782,7 @@ export default function InventoryPage() {
         </div>
       )}
 
-      {!loading && tab === 'Items' && (
+      {!loading && effectiveTab === 'Items' && (
         <div className="inventory-section">
           {(groupItemsSections || []).length === 0 ? (
             <div className="empty-state">{t('inventory.emptyGroup')}</div>
@@ -957,7 +985,7 @@ export default function InventoryPage() {
         </div>
       )}
 
-      {!loading && tab === 'Movements' && showMovements && (
+      {!loading && effectiveTab === 'Movements' && showMovements && (
         <div className="inventory-section">
           {isAdmin && (
             <>

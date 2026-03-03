@@ -10,7 +10,7 @@ Seed EVERYTHING (demo dataset):
 - Keeps users, ensures an admin exists.
 - Resets normalized cocktail data (kinds/subcategories/brands/ingredients/bottles/prices/cocktails/recipe_ingredients).
 - Seeds Hebrew name fields where supported.
-- Seeds Suppliers + assigns default suppliers.
+- Seeds Suppliers + assigns supplier_id to bottles.
 - Seeds Inventory (items + stock rows) including glass + garnish inferred from garnish_text.
 - Seeds 10 Classic cocktails (is_base=True).
 
@@ -24,6 +24,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from sqlalchemy import text, select, func  # noqa: E402
+from sqlalchemy.orm import selectinload  # noqa: E402
 from fastapi_users.password import PasswordHelper  # noqa: E402
 
 from db.database import async_session_maker  # noqa: E402
@@ -533,7 +534,7 @@ async def seed():
                         )
                     )
 
-            # Suppliers (seed + assign)
+            # Suppliers (seed + assign supplier_id to bottles)
             suppliers_by_name = {}
             for s in SEED_SUPPLIERS:
                 sup = Supplier(id=uuid.uuid4(), name=s.name, contact=s.contact, notes=s.notes)
@@ -541,14 +542,19 @@ async def seed():
                 suppliers_by_name[s.name] = sup
             await session.flush()
 
-            res = await session.execute(select(Ingredient).order_by(func.lower(Ingredient.name).asc()))
-            all_ings = res.scalars().all()
-            for ing in all_ings:
+            res = await session.execute(
+                select(Bottle).options(selectinload(Bottle.ingredient).selectinload(Ingredient.kind))
+            )
+            all_bottles = res.scalars().all()
+            for bottle in all_bottles:
+                ing = bottle.ingredient
+                if not ing:
+                    continue
                 pick = _pick_supplier_name_for_ingredient(ing)
                 sup = suppliers_by_name.get(pick)
                 if not sup:
                     continue
-                ing.default_supplier_id = sup.id
+                bottle.supplier_id = sup.id
 
             # Cocktails
             for (

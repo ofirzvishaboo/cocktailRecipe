@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import api from '../api'
 import { useAuth } from '../contexts/AuthContext'
@@ -439,16 +440,6 @@ const ingredientSections = useMemo(() => {
   }
 
 
-
-
-
-
-
-
-
-
-
-
   const loadBrands = async (ingredientId) => {
     try {
       setBrandsByIngredientId((prev) => ({
@@ -800,7 +791,9 @@ const ingredientSections = useMemo(() => {
                         </div>
                       ) : (
                         <>
-                          <strong>{displayName(ing)}</strong>
+                          <Link to={`/ingredients/${ing.id}`} className="ingredient-detail-link" style={{ fontWeight: 600 }}>
+                            {displayName(ing)}
+                          </Link>
                           {isAdmin && taxonomy.subcategories.length > 0 && (
                             <select
                               className="button-secondary"

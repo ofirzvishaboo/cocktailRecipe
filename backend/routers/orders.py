@@ -565,23 +565,21 @@ async def generate_weekly_orders(
             unit = (inv_item.unit or "").strip().lower()
             stock_qty[(inv_item.ingredient_id, unit)] = stock_qty.get((inv_item.ingredient_id, unit), 0.0) + q
 
-    # Subtract stock once; group by default supplier
-    # Load ingredients to get default_supplier_id for all involved ingredient ids
+    # Group by supplier: supplier comes from the bottle (suppliers supply bottles, not ingredients)
     all_ing_ids = set(ml_need.keys()) | {k[0] for k in non_ml_need.keys()}
     if all_ing_ids:
         ing_res = await db.execute(select(IngredientModel).where(IngredientModel.id.in_(list(all_ing_ids))))
         for ing in ing_res.scalars().all():
             ingredient_cache.setdefault(ing.id, ing)
 
-    # supplier_id can be None (unknown supplier) so we can still show ALL required ingredients.
     orders_by_supplier: dict[Optional[UUID], list[dict]] = {}
     missing_supplier_ids: List[UUID] = []
     missing_supplier_names: List[str] = []
 
-    def _assign(ingredient_id: UUID) -> Optional[UUID]:
-        ing = ingredient_cache.get(ingredient_id)
-        sid = getattr(ing, "default_supplier_id", None) if ing is not None else None
+    def _assign_supplier(ingredient_id: UUID, bottle: Optional[BottleModel] = None) -> Optional[UUID]:
+        sid = getattr(bottle, "supplier_id", None) if bottle is not None else None
         if not sid:
+            ing = ingredient_cache.get(ingredient_id)
             missing_supplier_ids.append(ingredient_id)
             missing_supplier_names.append(getattr(ing, "name", None) or str(ingredient_id))
             return None
@@ -593,8 +591,8 @@ async def generate_weekly_orders(
         short = max(0.0, float(need_ml) - float(have))
         if short <= 0:
             continue
-        sid = _assign(ingredient_id)
         b = bottle_choice.get(ingredient_id)
+        sid = _assign_supplier(ingredient_id, b)
         bottle_volume = int(getattr(b, "volume_ml", 0) or 0) if b else 0
         bottles_needed = None
         leftover_ml = None
@@ -612,13 +610,13 @@ async def generate_weekly_orders(
             }
         )
 
-    # non-ml lines
+    # non-ml lines (garnishes - no bottle, so no supplier from bottle)
     for (ingredient_id, unit), need_qty in non_ml_need.items():
         have = stock_qty.get((ingredient_id, unit), 0.0)
         short = max(0.0, float(need_qty) - float(have))
         if short <= 0:
             continue
-        sid = _assign(ingredient_id)
+        sid = _assign_supplier(ingredient_id, None)
         orders_by_supplier.setdefault(sid, []).append(
             {
                 "ingredient_id": ingredient_id,
@@ -894,9 +892,10 @@ async def generate_weekly_orders_by_event(
         supplier_name_by_id[supplier_id] = s.name
         return s.name
 
-    def _assign_supplier(ing: Optional[IngredientModel], ingredient_id: UUID) -> Optional[UUID]:
-        sid = getattr(ing, "default_supplier_id", None) if ing is not None else None
+    def _assign_supplier(ingredient_id: UUID, bottle: Optional[BottleModel] = None) -> Optional[UUID]:
+        sid = getattr(bottle, "supplier_id", None) if bottle is not None else None
         if not sid:
+            ing = ingredient_cache.get(ingredient_id)
             missing_supplier_ids.append(ingredient_id)
             missing_supplier_names.append(getattr(ing, "name", None) or str(ingredient_id))
             return None
@@ -910,7 +909,7 @@ async def generate_weekly_orders_by_event(
             default_bottles=default_bottles,
         )
 
-        # Ensure we have Ingredient rows (for default_supplier_id) for all involved ingredients
+        # Ensure we have Ingredient rows (for missing_supplier_names) for all involved ingredients
         all_ing_ids = set(ml_need.keys()) | {k[0] for k in non_ml_need.keys()}
         if all_ing_ids:
             ing_res = await db.execute(select(IngredientModel).where(IngredientModel.id.in_(list(all_ing_ids))))
@@ -926,8 +925,8 @@ async def generate_weekly_orders_by_event(
             stock_ml[ingredient_id] = float(available) - float(used)
             shortfall = max(0.0, float(requested) - float(used))
 
-            ing = ingredient_cache.get(ingredient_id)
-            sid = _assign_supplier(ing, ingredient_id)
+            b = bottle_choice.get(ingredient_id)
+            sid = _assign_supplier(ingredient_id, b)
             b = bottle_choice.get(ingredient_id)
             bottle_volume = int(getattr(b, "volume_ml", 0) or 0) if b else 0
             bottles_needed = None
@@ -965,8 +964,7 @@ async def generate_weekly_orders_by_event(
             stock_qty[(ingredient_id, unit_l)] = float(available) - float(used)
             shortfall = max(0.0, float(requested_qty) - float(used))
 
-            ing = ingredient_cache.get(ingredient_id)
-            sid = _assign_supplier(ing, ingredient_id)
+            sid = _assign_supplier(ingredient_id, None)  # Garnish: no bottle, no supplier
             event_lines_by_supplier.setdefault(sid, []).append(
                 {
                     "ingredient_id": ingredient_id,

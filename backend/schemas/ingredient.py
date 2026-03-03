@@ -15,8 +15,7 @@ class IngredientRead(BaseModel):
     subcategory_id: Optional[UUID] = None
     abv_percent: Optional[float] = None
     notes: Optional[str] = None
-    supplier_ids: Optional[List[UUID]] = None
-    default_supplier_id: Optional[UUID] = None
+    supplier_ids: Optional[List[UUID]] = None  # Derived from bottles
 
 class IngredientCreate(BaseModel):
     name: str
@@ -26,8 +25,6 @@ class IngredientCreate(BaseModel):
     subcategory_id: Optional[UUID] = None
     abv_percent: Optional[float] = None
     notes: Optional[str] = None
-    supplier_ids: Optional[List[UUID]] = None
-    default_supplier_id: Optional[UUID] = None
 
 class IngredientUpdate(BaseModel):
     name: Optional[str] = None
@@ -37,8 +34,6 @@ class IngredientUpdate(BaseModel):
     subcategory_id: Optional[UUID] = None
     abv_percent: Optional[float] = None
     notes: Optional[str] = None
-    supplier_ids: Optional[List[UUID]] = None
-    default_supplier_id: Optional[UUID] = None
 
 class IngredientDelete(BaseModel):
     name: str
@@ -85,6 +80,7 @@ class GlassTypeUpdate(BaseModel):
 class BottleRead(BaseModel):
     id: UUID
     ingredient_id: UUID
+    supplier_id: Optional[UUID] = None
     name: str
     name_he: Optional[str] = None
     volume_ml: int
@@ -98,6 +94,7 @@ class BottleCreate(BaseModel):
     name: str
     name_he: Optional[str] = None
     volume_ml: int
+    supplier_id: Optional[UUID] = None
     importer_id: Optional[UUID] = None
     description: Optional[str] = None
     description_he: Optional[str] = None
@@ -108,6 +105,7 @@ class BottleUpdate(BaseModel):
     name: Optional[str] = None
     name_he: Optional[str] = None
     volume_ml: Optional[int] = None
+    supplier_id: Optional[UUID] = None
     importer_id: Optional[UUID] = None
     description: Optional[str] = None
     description_he: Optional[str] = None

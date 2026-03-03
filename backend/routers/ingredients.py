@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
+from sqlalchemy.orm import selectinload
 from schemas.ingredient import (
     IngredientCreate,
     IngredientUpdate,
@@ -18,7 +19,6 @@ from db.database import (
     CocktailRecipe as CocktailRecipeModel,
     RecipeIngredient as RecipeIngredientModel,
     Brand as BrandModel,
-    Supplier as SupplierModel,
 )
 from db.inventory.item import InventoryItem as InventoryItemModel
 from typing import List, Dict
@@ -119,15 +119,9 @@ async def create_ingredient(ingredient: IngredientCreate, user: User = Depends(c
         subcategory_id=ingredient.subcategory_id,
         abv_percent=ingredient.abv_percent,
         notes=ingredient.notes,
-        default_supplier_id=getattr(ingredient, "default_supplier_id", None),
     )
     db.add(ingredient_model)
     await db.flush()
-
-    supplier_ids = getattr(ingredient, "supplier_ids", None) or []
-    if supplier_ids:
-        sup_res = await db.execute(select(SupplierModel).where(SupplierModel.id.in_(supplier_ids)))
-        ingredient_model.suppliers = sup_res.scalars().all()
 
     await db.commit()
     await db.refresh(ingredient_model)
@@ -165,15 +159,6 @@ async def update_ingredient(ingredient_id: UUID, ingredient: IngredientUpdate, u
         ingredient_model.abv_percent = ingredient.abv_percent
     if "notes" in fields:
         ingredient_model.notes = ingredient.notes
-    if "default_supplier_id" in fields:
-        ingredient_model.default_supplier_id = ingredient.default_supplier_id
-    if "supplier_ids" in fields:
-        supplier_ids = ingredient.supplier_ids or []
-        if supplier_ids:
-            sup_res = await db.execute(select(SupplierModel).where(SupplierModel.id.in_(supplier_ids)))
-            ingredient_model.suppliers = sup_res.scalars().all()
-        else:
-            ingredient_model.suppliers = []
     await db.commit()
     await db.refresh(ingredient_model)
     return ingredient_model.to_schema
@@ -206,7 +191,11 @@ async def list_bottles_for_ingredient(
     if not ingredient:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ingredient not found")
 
-    bottles_result = await db.execute(select(BottleModel).where(BottleModel.ingredient_id == ingredient_id))
+    bottles_result = await db.execute(
+        select(BottleModel)
+        .options(selectinload(BottleModel.supplier))
+        .where(BottleModel.ingredient_id == ingredient_id)
+    )
     bottles = bottles_result.scalars().all()
     today = date.today()
     out = []
@@ -222,9 +211,12 @@ async def list_bottles_for_ingredient(
             .limit(1)
         )
         p = price_result.scalar_one_or_none()
+        supplier = getattr(b, "supplier", None)
         row_out = {
                 "id": b.id,
                 "ingredient_id": b.ingredient_id,
+                "supplier_id": getattr(b, "supplier_id", None),
+                "supplier_name": getattr(supplier, "name", None) if supplier else None,
                 "name": b.name,
                 "name_he": getattr(b, "name_he", None),
                 "volume_ml": b.volume_ml,
@@ -284,6 +276,7 @@ async def create_bottle_for_ingredient(
 
     bottle_model = BottleModel(
         ingredient_id=ingredient_id,
+        supplier_id=getattr(bottle, "supplier_id", None),
         name=bottle.name,
         name_he=bottle.name_he,
         volume_ml=bottle.volume_ml,
@@ -314,6 +307,7 @@ async def create_bottle_for_ingredient(
     return {
         "id": bottle_model.id,
         "ingredient_id": bottle_model.ingredient_id,
+        "supplier_id": bottle_model.supplier_id,
         "name": bottle_model.name,
         "name_he": bottle_model.name_he,
         "volume_ml": bottle_model.volume_ml,
@@ -355,6 +349,8 @@ async def update_bottle(
         bottle_model.volume_ml = bottle.volume_ml
     if bottle.importer_id is not None:
         bottle_model.importer_id = bottle.importer_id
+    if "supplier_id" in getattr(bottle, "model_fields_set", set()):
+        bottle_model.supplier_id = bottle.supplier_id
     if bottle.description is not None:
         bottle_model.description = bottle.description
     if bottle.description_he is not None:
@@ -371,6 +367,7 @@ async def update_bottle(
     return {
         "id": bottle_model.id,
         "ingredient_id": bottle_model.ingredient_id,
+        "supplier_id": bottle_model.supplier_id,
         "name": bottle_model.name,
         "name_he": bottle_model.name_he,
         "volume_ml": bottle_model.volume_ml,

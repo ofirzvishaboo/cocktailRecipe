@@ -2291,4 +2291,146 @@ html[dir="rtl"] .cocktail-detail-header {
   display: inline;
 }
 
+/* --- Ingredient Detail Page: mobile --- */
+@media (max-width: 768px) {
+  .ingredient-detail-page .ingredient-detail-header {
+    gap: 0.75rem;
+  }
+
+  .ingredient-detail-page h2 {
+    font-size: 1.35rem;
+    word-break: break-word;
+  }
+
+  /* Edit name: stack inputs and buttons */
+  .ingredient-detail-page h2 .form-input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .ingredient-detail-page h2 .button-primary,
+  .ingredient-detail-page h2 .button-edit {
+    min-width: 44px;
+  }
+
+  /* Add bottle form: single column */
+  .ingredient-detail-add-form {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem;
+  }
+
+  .ingredient-detail-add-form > div:last-child {
+    justify-content: flex-start;
+    margin-top: 0.25rem;
+  }
+
+  .ingredient-detail-add-form .form-input,
+  .ingredient-detail-add-form select.form-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  /* Brands title + Add button: stack on very small */
+  .ingredient-detail-brands-title-row {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .ingredient-detail-brands-title-row .button-primary {
+    width: auto;
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .ingredient-detail-page .ingredient-detail-bottles .ingredient-detail-bottles-header {
+    display: none;
+  }
+
+  .ingredient-detail-page .ingredient-detail-bottles {
+    border: none;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .ingredient-detail-page .ingredient-detail-bottles-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 0.6rem;
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .ingredient-detail-page .ingredient-detail-bottles-row > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .ingredient-detail-page .ingredient-detail-bottles-row > div::before {
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 800;
+  }
+
+  .ingredient-detail-page .ingredient-detail-bottles-row .name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .ingredient-detail-page .ingredient-detail-bottles-row .right {
+    text-align: left;
+  }
+
+  /* Labels (use CSS vars for i18n: --ingredient-detail-lbl-*) */
+  .ingredient-detail-page .ingredient-detail-bottles-row > div:nth-child(1)::before {
+    content: var(--ingredient-detail-lbl-brand, "Brand");
+  }
+  .ingredient-detail-page .ingredient-detail-bottles-row > div:nth-child(2)::before {
+    content: var(--ingredient-detail-lbl-size, "Size");
+  }
+  .ingredient-detail-page .ingredient-detail-bottles-row > div:nth-child(3)::before {
+    content: var(--ingredient-detail-lbl-price, "Price");
+  }
+  .ingredient-detail-page .ingredient-detail-bottles-row > div:nth-child(4)::before {
+    content: var(--ingredient-detail-lbl-supplier, "Supplier");
+  }
+  .ingredient-detail-page .ingredient-detail-bottles-row > div:nth-child(5)::before {
+    content: var(--ingredient-detail-lbl-actions, "Actions");
+  }
+
+  /* Actions cell: full width, buttons in a row */
+  .ingredient-detail-page .ingredient-detail-bottles-row > div:nth-child(5) {
+    flex-wrap: wrap;
+  }
+
+  .ingredient-detail-page .ingredient-detail-bottles-row > div:nth-child(5)::before {
+    width: 100%;
+    margin-bottom: 0.25rem;
+  }
+
+  /* Inline edit inputs full width */
+  .ingredient-detail-page .ingredient-detail-bottles-row .form-input {
+    width: 100% !important;
+    min-width: 0;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .ingredient-detail-page .ingredient-detail-bottles-row .button-primary,
+  .ingredient-detail-page .ingredient-detail-bottles-row .button-edit {
+    min-width: 44px;
+  }
+}
+
 

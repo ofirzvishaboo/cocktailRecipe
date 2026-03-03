@@ -1,5 +1,5 @@
 """
-Seed suppliers + auto-assign default suppliers for ingredients.
+Seed suppliers + auto-assign supplier_id for bottles (suppliers supply bottles, not ingredients).
 
 Run locally:
   python backend/scripts/seed_suppliers.py
@@ -17,6 +17,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from db.database import async_session_maker, Supplier, Ingredient
+from db.bottle import Bottle
 
 
 @dataclass(frozen=True)
@@ -93,50 +94,35 @@ async def main() -> None:
         suppliers = res.scalars().all()
         by_name = {sup.name: sup for sup in suppliers}
 
-        # 2) Auto-assign default_supplier_id for ingredients that don't have it
+        # 2) Auto-assign supplier_id for bottles that don't have it (based on ingredient)
         res = await db.execute(
-            select(Ingredient)
+            select(Bottle)
             .options(
-                selectinload(Ingredient.kind),
-                selectinload(Ingredient.subcategory),
-                selectinload(Ingredient.suppliers),
-                selectinload(Ingredient.default_supplier),
+                selectinload(Bottle.ingredient).selectinload(Ingredient.kind),
+                selectinload(Bottle.ingredient).selectinload(Ingredient.subcategory),
             )
-            .order_by(func.lower(Ingredient.name).asc())
         )
-        ingredients = res.scalars().all()
+        bottles = res.scalars().all()
 
         assigned = 0
-        linked = 0
-        for ing in ingredients:
-            if getattr(ing, "default_supplier_id", None):
-                # also ensure default supplier is included in supplier list
-                default_sup = getattr(ing, "default_supplier", None)
-                current_sups = list(getattr(ing, "suppliers", None) or [])
-                if default_sup and default_sup not in current_sups:
-                    ing.suppliers = current_sups + [default_sup]
-                    linked += 1
+        for bottle in bottles:
+            if bottle.supplier_id:
                 continue
-
+            ing = bottle.ingredient
+            if not ing:
+                continue
             pick = _pick_supplier_name_for_ingredient(ing)
             sup = by_name.get(pick)
             if not sup:
                 continue
-
-            ing.default_supplier_id = sup.id
-            current_sups = list(getattr(ing, "suppliers", None) or [])
-            if sup not in current_sups:
-                current_sups.append(sup)
-                ing.suppliers = current_sups
-                linked += 1
+            bottle.supplier_id = sup.id
             assigned += 1
 
         await db.commit()
 
         print(
             f"Done. Suppliers created: {created}. "
-            f"Ingredients assigned default_supplier_id: {assigned}. "
-            f"Ingredient-supplier links added: {linked}."
+            f"Bottles assigned supplier_id: {assigned}."
         )
 
 

@@ -36,8 +36,6 @@ from db.glass_type import GlassType  # noqa: E402
 from db.cocktail_recipe import CocktailRecipe  # noqa: E402
 from db.recipe_ingredient import RecipeIngredient  # noqa: E402
 from db.supplier import Supplier  # noqa: E402
-from db.ingredient import ingredient_suppliers  # noqa: E402
-from sqlalchemy.dialects.postgresql import insert as pg_insert  # noqa: E402
 from sqlalchemy.exc import DBAPIError  # noqa: E402
 
 from scripts.seed_inventory_v3 import seed as seed_inventory_v3  # noqa: E402
@@ -76,9 +74,9 @@ BOTTLE_PRICES_DATA = {
     "Hibiscus Syrup": {"name": "Vedrenne Hibiscus", "name_he": "ודרן היביסקוס", "1 liter": 50, "supplier": "dejablue"},
     "Orgeat Syrup": {"name": "Marie brizard Orgeat", "name_he": "מרי בריזארד סירופ שקדים", "1 liter": 30, "supplier": "eurostandart"},
     "Grapefruit Syrup": {"name": "Marie brizard Grapefruit", "name_he": "מרי בריזארד סירופ אשכולית אדומה", "1 liter": 30, "supplier": "eurostandart"},
-    "Lemon Juice": {"name": "Lemon Juice", "name_he": "מיץ לימון", "1 liter": 12, "supplier": "אגתד"},
+    "Lemon Juice": {"name": "Lemon Juice", "name_he": "מיץ לימון", "1 liter": 18, "supplier": "אגתד"},
     "Apple Lime Juice": {"name": "Apple Lime Juice", "name_he": "תפוח ליים", "700ml": 7.5, "supplier": "eurostandart"},
-    "Pineapple Juice": {"name": "Pineapple Juice", "name_he": "אננס", "1 liter": 12, "supplier": "סחוט מיצים"},
+    "Pineapple Juice": {"name": "Pineapple Juice", "name_he": "אננס", "1 liter": 18, "supplier": "סחוט מיצים"},
     "Red Grapefruit Juice": {"name": "Red Grapefruit Juice", "name_he": "אשכולית אדומה", "2 liter": 18, "supplier": "סחוט מיצים"},
 }
 
@@ -336,7 +334,7 @@ async def seed():
                 subcat_by_name[en.lower()] = sc
 
             # Glass types (get or create)
-            glass_seed = [("Coupe", "קופה", 180), ("Rocks", "רוקס", 250), ("Highball", "הייבול", 350), ("Collins", "קולינס", 400)]
+            glass_seed = [("Coupe", "קופ", 180), ("Rocks", "רוקס", 250), ("Highball", "הייבול", 350), ("Collins", "קולינס", 400)]
             glass_by_name: dict[str, GlassType] = {}
             for en, he, cap in glass_seed:
                 res = await session.execute(select(GlassType).where(GlassType.name == en).limit(1))
@@ -378,8 +376,13 @@ async def seed():
                     for sb in bottles_to_use:
                         if sb.name.lower() in bottle_by_name:
                             continue
+                        supplier_id = None
+                        supplier_name = _supplier_name_from_prices(si.name)
+                        if supplier_name and supplier_name in supplier_by_name:
+                            supplier_id = supplier_by_name[supplier_name].id
                         bottle = Bottle(
                             ingredient_id=ing.id,
+                            supplier_id=supplier_id,
                             name=sb.name,
                             name_he=sb.name_he,
                             volume_ml=sb.volume_ml,
@@ -396,16 +399,6 @@ async def seed():
                                 start_date=today,
                                 end_date=None,
                             )
-                        )
-                    # Assign supplier from BOTTLE_PRICES_DATA so orders show it
-                    supplier_name = _supplier_name_from_prices(si.name)
-                    if supplier_name and supplier_name in supplier_by_name:
-                        sup = supplier_by_name[supplier_name]
-                        ing.default_supplier_id = sup.id
-                        await session.execute(
-                            pg_insert(ingredient_suppliers)
-                            .values(ingredient_id=ing.id, supplier_id=sup.id)
-                            .on_conflict_do_nothing(index_elements=["ingredient_id", "supplier_id"])
                         )
                     continue
                 brand_id = None
@@ -429,11 +422,16 @@ async def seed():
                 await session.flush()
                 ing_by_name[si.name.lower()] = ing
 
+                supplier_id = None
+                supplier_name = _supplier_name_from_prices(si.name)
+                if supplier_name and supplier_name in supplier_by_name:
+                    supplier_id = supplier_by_name[supplier_name].id
                 for sb in bottles_to_use:
                     if sb.name.lower() in bottle_by_name:
                         continue
                     bottle = Bottle(
                         ingredient_id=ing.id,
+                        supplier_id=supplier_id,
                         name=sb.name,
                         name_he=sb.name_he,
                         volume_ml=sb.volume_ml,
@@ -451,16 +449,6 @@ async def seed():
                             end_date=None,
                             source="seed_signature_menu",
                         )
-                    )
-                # Assign supplier from BOTTLE_PRICES_DATA so orders show it
-                supplier_name = _supplier_name_from_prices(si.name)
-                if supplier_name and supplier_name in supplier_by_name:
-                    sup = supplier_by_name[supplier_name]
-                    ing.default_supplier_id = sup.id
-                    await session.execute(
-                        pg_insert(ingredient_suppliers)
-                        .values(ingredient_id=ing.id, supplier_id=sup.id)
-                        .on_conflict_do_nothing(index_elements=["ingredient_id", "supplier_id"])
                     )
 
             for (

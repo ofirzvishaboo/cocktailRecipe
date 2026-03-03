@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
@@ -8,6 +8,8 @@ from core.auth import current_active_superuser
 from db.database import get_async_session, Supplier as SupplierModel
 from schemas.suppliers import SupplierRead, SupplierCreate, SupplierUpdate
 from db.users import User
+from db.bottle import Bottle as BottleModel
+from schemas.ingredient import BottleRead
 
 router = APIRouter()
 
@@ -67,3 +69,27 @@ async def update_supplier(
     await db.refresh(m)
     return SupplierRead(**m.to_schema)
 
+@router.delete("/{supplier_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_supplier(
+    supplier_id: UUID,
+    db: AsyncSession = Depends(get_async_session),
+    user: User = Depends(current_active_superuser),
+):
+    res = await db.execute(select(SupplierModel).where(SupplierModel.id == supplier_id))
+    m = res.scalar_one_or_none()
+    if not m:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
+    await db.delete(m)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/supplier-bottles", response_model=List[BottleRead])
+async def list_supplier_bottles(
+    supplier_id: UUID,
+    db: AsyncSession = Depends(get_async_session),
+    user: User = Depends(current_active_superuser),
+):
+    res = await db.execute(select(BottleModel).where(BottleModel.supplier_id == supplier_id))
+    bottles = res.scalars().all()
+    return [BottleRead(**b.to_schema) for b in bottles]

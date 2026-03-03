@@ -515,6 +515,7 @@
       "updateBrandFailed": "עדכון מותג נכשל",
       "deleteBrandFailed": "מחיקת מותג נכשלה"
     },
+    "backToList": "חזרה למרכיבים",
     "deleteDialog": {
       "title": "למחוק מרכיב?",
       "usedBy": "המרכיב בשימוש אצל:",
@@ -523,6 +524,11 @@
       "confirmQuestion": "בטוח שברצונך למחוק את \"{{name}}\"?",
       "confirm": "מחק"
     }
+  },
+  "ingredientDetail": {
+    "supplier": "ספק",
+    "deleteBottleTitle": "למחוק בקבוק?",
+    "deleteBottleMessage": "בטוח? לא ניתן לבטל."
   },
   "auth": {
     "login": {

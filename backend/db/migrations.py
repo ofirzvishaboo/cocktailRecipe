@@ -148,17 +148,56 @@ async def add_suppliers_if_missing(engine: AsyncEngine):
                     """
                 )
             )
-            await conn.execute(
-                text(
-                    """
-                    ALTER TABLE ingredients
-                    ADD CONSTRAINT fk_ingredients_default_supplier
-                    FOREIGN KEY (default_supplier_id)
-                    REFERENCES suppliers(id)
-                    ON DELETE SET NULL
-                    """
+            try:
+                await conn.execute(
+                    text(
+                        """
+                        ALTER TABLE ingredients
+                        ADD CONSTRAINT fk_ingredients_default_supplier
+                        FOREIGN KEY (default_supplier_id)
+                        REFERENCES suppliers(id)
+                        ON DELETE SET NULL
+                        """
+                    )
                 )
-            )
+            except Exception:
+                pass  # Constraint may already exist
+
+    # Bottles get supplier_id (suppliers supply bottles, not ingredients)
+    await add_bottles_supplier_id_if_missing(engine)
+
+
+async def add_bottles_supplier_id_if_missing(engine: AsyncEngine):
+    """Add bottles.supplier_id and backfill from ingredient.default_supplier_id."""
+    async with engine.begin() as conn:
+        res = await conn.execute(
+            text("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'bottles' AND column_name = 'supplier_id'
+            """)
+        )
+        if res.scalar() is None:
+            await conn.execute(text("ALTER TABLE bottles ADD COLUMN supplier_id UUID NULL"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_bottles_supplier_id ON bottles(supplier_id)"))
+            # Backfill: copy ingredient.default_supplier_id to bottles (if ingredients has that column)
+            try:
+                await conn.execute(text("""
+                    UPDATE bottles b
+                    SET supplier_id = i.default_supplier_id
+                    FROM ingredients i
+                    WHERE b.ingredient_id = i.id AND i.default_supplier_id IS NOT NULL
+                """))
+            except Exception:
+                pass
+            try:
+                await conn.execute(text("""
+                    ALTER TABLE bottles
+                    ADD CONSTRAINT fk_bottles_supplier_id
+                    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
+                """))
+            except Exception:
+                pass
+
 
 async def add_user_id_column_if_missing(engine: AsyncEngine):
     """Add user_id column to cocktail_recipes table if it doesn't exist"""

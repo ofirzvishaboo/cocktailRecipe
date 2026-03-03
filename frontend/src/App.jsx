@@ -10,6 +10,7 @@ import CocktailsPage from './pages/CocktailsPage'
 import CocktailDetailPage from './pages/CocktailDetailPage'
 import CreateCocktailPage from './pages/CreateCocktailPage'
 import IngredientsPage from './pages/IngredientsPage'
+import IngredientDetailPage from './pages/IngredientDetailPage'
 import CocktailScaler from './pages/cocktailScaler'
 import InventoryPage from './pages/InventoryPage'
 import OrdersPage from './pages/OrdersPage'
@@ -82,6 +83,7 @@ function App() {
           <Route path="/cocktails/:id" element={<CocktailDetailPage />} />
           <Route path="/create-cocktail" element={<CreateCocktailPage />} />
           <Route path="/ingredients" element={<IngredientsPage />} />
+          <Route path="/ingredients/:id" element={<IngredientDetailPage />} />
           <Route
             path="/inventory"
             element={(

@@ -13,7 +13,7 @@ class Supplier(Base):
     contact = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
 
-    ingredients = relationship("Ingredient", secondary="ingredient_suppliers", back_populates="suppliers")
+    bottles = relationship("Bottle", back_populates="supplier")
 
     @property
     def to_schema(self):

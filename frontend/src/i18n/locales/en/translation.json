@@ -514,6 +514,7 @@
       "updateBrandFailed": "Failed to update brand",
       "deleteBrandFailed": "Failed to delete brand"
     },
+    "backToList": "Back to ingredients",
     "deleteDialog": {
       "title": "Delete ingredient?",
       "usedBy": "This ingredient is being used by:",
@@ -522,6 +523,11 @@
       "confirmQuestion": "Are you sure you want to delete \"{{name}}\"?",
       "confirm": "Delete"
     }
+  },
+  "ingredientDetail": {
+    "supplier": "Supplier",
+    "deleteBottleTitle": "Delete bottle?",
+    "deleteBottleMessage": "Are you sure? This cannot be undone."
   },
   "auth": {
     "login": {
