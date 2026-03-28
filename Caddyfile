@@ -1,4 +1,4 @@
-{$DOMAIN:ofirzvishaboo.com}, www.{$DOMAIN:ofirzvishaboo.com} {
+{$DOMAIN:cocktailmanager.online}, www.{$DOMAIN:cocktailmanager.online} {
   encode gzip zstd
 
   # API under /api (strip /api prefix before proxying to FastAPI)

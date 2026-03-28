@@ -57,6 +57,9 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      - default
+      - mimzag_net
     depends_on:
       - frontend
       - api
@@ -65,4 +68,10 @@ volumes:
   postgres_data:
   caddy_data:
   caddy_config:
+
+networks:
+  default:
+  mimzag_net:
+    external: true
+    name: mimzag_default  # ← replace with actual network name (see below)
 
