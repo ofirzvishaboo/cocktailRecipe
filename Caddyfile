@@ -26,4 +26,18 @@
     reverse_proxy frontend:80
   }
 }
+# ── ממזג ─────────────────────────────────────────────────────────────────────
+mimzag.com, www.mimzag.com {
+  encode gzip zstd
 
+  # Static files served directly by Caddy (faster, no FastAPI overhead)
+  handle /static/* {
+    root * /srv/mimzag
+    file_server
+  }
+
+  # Everything else → FastAPI
+  handle {
+    reverse_proxy mimzag_app:8000
+  }
+}
