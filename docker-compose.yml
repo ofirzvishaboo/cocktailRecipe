@@ -73,5 +73,5 @@ networks:
   default:
   mimzag_net:
     external: true
-    name: mimzag_default  # ← replace with actual network name (see below)
+    name: caddy_net
 
