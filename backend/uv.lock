@@ -105,12 +105,16 @@ dependencies = [
     { name = "fastapi", extra = ["all"] },
     { name = "fastapi-users", extra = ["sqlalchemy"] },
     { name = "greenlet" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
     { name = "python-dotenv" },
     { name = "python-multipart" },
     { name = "sqlalchemy" },
     { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
 ]
 
 [package.metadata]
@@ -119,12 +123,16 @@ requires-dist = [
     { name = "fastapi", extras = ["all"], specifier = ">=0.118.3" },
     { name = "fastapi-users", extras = ["sqlalchemy"], specifier = ">=12.0.0" },
     { name = "greenlet", specifier = ">=3.0.0" },
-    { name = "pytest", specifier = ">=8.0.0" },
-    { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "python-multipart", specifier = ">=0.0.6" },
     { name = "sqlalchemy", specifier = ">=2.0.44" },
     { name = "uvicorn", specifier = ">=0.37.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24.0" },
 ]
 
 [[package]]

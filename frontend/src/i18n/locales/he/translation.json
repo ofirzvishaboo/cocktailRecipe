@@ -513,7 +513,8 @@
       "loadBrandsFailed": "טעינת המותגים נכשלה",
       "createBrandFailed": "יצירת מותג נכשלה",
       "updateBrandFailed": "עדכון מותג נכשל",
-      "deleteBrandFailed": "מחיקת מותג נכשלה"
+      "deleteBrandFailed": "מחיקת מותג נכשלה",
+      "nameRequired": "שם המרכיב חובה"
     },
     "backToList": "חזרה למרכיבים",
     "deleteDialog": {

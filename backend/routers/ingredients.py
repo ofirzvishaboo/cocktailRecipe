@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, delete
+from sqlalchemy import select, func, delete, and_
 from sqlalchemy.orm import selectinload
 from schemas.ingredient import (
     IngredientCreate,
@@ -198,19 +198,31 @@ async def list_bottles_for_ingredient(
     )
     bottles = bottles_result.scalars().all()
     today = date.today()
-    out = []
-    for b in bottles:
-        price_result = await db.execute(
+
+    # Bulk-fetch all active prices for the bottles in a single query, then pick the
+    # latest (highest start_date) per bottle in Python — avoids N+1 round-trips.
+    bottle_ids = [b.id for b in bottles]
+    prices_by_bottle: dict = {}
+    if bottle_ids:
+        prices_result = await db.execute(
             select(BottlePriceModel)
             .where(
-                BottlePriceModel.bottle_id == b.id,
-                BottlePriceModel.start_date <= today,
-                (BottlePriceModel.end_date.is_(None) | (BottlePriceModel.end_date >= today)),
+                and_(
+                    BottlePriceModel.bottle_id.in_(bottle_ids),
+                    BottlePriceModel.start_date <= today,
+                    (BottlePriceModel.end_date.is_(None) | (BottlePriceModel.end_date >= today)),
+                )
             )
             .order_by(BottlePriceModel.start_date.desc())
-            .limit(1)
         )
-        p = price_result.scalar_one_or_none()
+        for price_row in prices_result.scalars().all():
+            bid = price_row.bottle_id
+            if bid not in prices_by_bottle:
+                prices_by_bottle[bid] = price_row
+
+    out = []
+    for b in bottles:
+        p = prices_by_bottle.get(b.id)
         supplier = getattr(b, "supplier", None)
         row_out = {
                 "id": b.id,
@@ -468,8 +480,17 @@ async def delete_ingredient(ingredient_id: UUID, user: User = Depends(current_ac
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Ingredient with id {ingredient_id} not found"
         )
-    # Remove from cocktails first (ingredient FK is RESTRICT on recipe_ingredients)
-    await db.execute(delete(RecipeIngredientModel).where(RecipeIngredientModel.ingredient_id == ingredient_id))
+    # Block deletion if this ingredient is used in any cocktail recipe.
+    usage_result = await db.execute(
+        select(func.count()).select_from(RecipeIngredientModel).where(RecipeIngredientModel.ingredient_id == ingredient_id)
+    )
+    usage_count = usage_result.scalar_one()
+    if usage_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot delete ingredient: it is used in {usage_count} cocktail recipe(s). "
+                   "Remove it from all recipes before deleting.",
+        )
     await db.delete(ingredient_model)
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

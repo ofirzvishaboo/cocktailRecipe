@@ -880,6 +880,7 @@ async def get_stock_all(
 @router.get("/stock/item/{item_id}", response_model=Dict)
 async def get_stock_for_item(
     item_id: UUID,
+    user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_async_session),
 ):
     """

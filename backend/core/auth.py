@@ -10,7 +10,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SECRET = os.getenv("SECRET", "SECRET")  # Should be in environment variables
+_raw_secret = os.getenv("SECRET", "")
+if not _raw_secret or _raw_secret == "SECRET":
+    raise RuntimeError(
+        "SECRET environment variable is not set or is using the insecure default. "
+        "Set a random string of at least 32 characters before starting the server."
+    )
+if len(_raw_secret) < 32:
+    raise RuntimeError(
+        f"SECRET environment variable is too short ({len(_raw_secret)} chars). "
+        "Use at least 32 random characters."
+    )
+SECRET = _raw_secret
 JWT_LIFETIME_SECONDS = int(os.getenv("JWT_LIFETIME_SECONDS", "604800"))  # default: 7 days
 
 

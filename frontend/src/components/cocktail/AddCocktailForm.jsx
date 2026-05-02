@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import api, { getApiBaseUrl } from '../../api'
 import IngredientInputs from './IngredientInputs'
-import Select from '../common/Select'
+import GlassTypePicker from './GlassTypePicker'
 import { useAuth } from '../../contexts/AuthContext'
 import { Link } from 'react-router-dom'
 function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = false, title }) {
@@ -44,19 +44,25 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
         submitting: false,
     })
 
-    const ingredientNameSuggestions = useMemo(
-        () => {
-            const out = []
-            for (const i of (ingredientsCatalog || [])) {
-                const he = (i?.name_he || '').trim()
-                const en = (i?.name || '').trim()
-                const label = lang === 'he' ? (he || en) : (en || he)
-                if (label) out.push(label)
-            }
-            return out
-        },
-        [ingredientsCatalog, lang]
-    )
+    const ingredientOptions = useMemo(() => {
+        const out = []
+        for (const i of (ingredientsCatalog || [])) {
+            const he = (i?.name_he || '').trim()
+            const en = (i?.name || '').trim()
+            const label = lang === 'he' ? (he || en) : (en || he)
+            if (!i?.id || !label) continue
+            out.push({
+                value: i.id,
+                label,
+                // extra fields for picker wiring/search
+                en,
+                he,
+                search: [en, he].filter(Boolean).join(' '),
+            })
+        }
+        // stable ordering
+        return out.sort((a, b) => String(a.label).localeCompare(String(b.label)))
+    }, [ingredientsCatalog, lang])
 
     useEffect(() => {
         const loadIngredientsCatalog = async () => {
@@ -442,12 +448,13 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
 
             <div className="form-group">
                 <label htmlFor="form-glass-type">{t('cocktailForm.glassLabel')}</label>
-                <Select
+                <GlassTypePicker
                     id="form-glass-type"
                     value={form.glass_type_id}
                     onChange={(v) => setForm((prev) => ({ ...prev, glass_type_id: v }))}
                     ariaLabel={t('cocktailForm.glassLabel')}
                     placeholder={t('cocktailForm.glassPlaceholder')}
+                    dir={lang === 'he' ? 'rtl' : 'ltr'}
                     options={(glassTypes || []).map((g) => {
                         const label = (lang === 'he'
                             ? ((g?.name_he || '').trim() || (g?.name || '').trim())
@@ -516,7 +523,7 @@ function AddCocktailForm({ AddCocktail, initialCocktail, onCancel, isEdit = fals
                 onRemoveIngredient={removeIngredient}
                 minIngredients={1}
                 amountStep="1"
-                nameSuggestions={ingredientNameSuggestions}
+                ingredientOptions={ingredientOptions}
                 showBottleSelect={true}
                 brandOptionsByIndex={brandOptionsByIndex}
                 showPrices={!!isAdmin}

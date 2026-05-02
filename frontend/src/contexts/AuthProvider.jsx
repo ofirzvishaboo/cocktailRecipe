@@ -54,9 +54,7 @@ const AuthProvider = ({ children }) => {
       setToken(accessToken)
       localStorage.setItem('token', accessToken)
       api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
-
-      // Fetch user data
-      await fetchCurrentUser()
+      // fetchCurrentUser is called by the useEffect that watches token — no need to call it here too.
       return { success: true }
     } catch (error) {
       console.error('Login failed:', error)

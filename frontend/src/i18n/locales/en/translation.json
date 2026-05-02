@@ -512,7 +512,8 @@
       "loadBrandsFailed": "Failed to load brands",
       "createBrandFailed": "Failed to create brand",
       "updateBrandFailed": "Failed to update brand",
-      "deleteBrandFailed": "Failed to delete brand"
+      "deleteBrandFailed": "Failed to delete brand",
+      "nameRequired": "Ingredient name is required"
     },
     "backToList": "Back to ingredients",
     "deleteDialog": {

@@ -2,6 +2,9 @@ name: Build and Publish Docker Images (Backend + Frontend)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 env:
   REGISTRY: docker.io
@@ -9,8 +12,48 @@ env:
   IMAGE_NAME_FRONTEND: ${{ secrets.DOCKERHUB_USERNAME }}/cocktail-recipe-frontend
 
 jobs:
+  test-and-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install backend dependencies (with dev)
+        working-directory: ./backend
+        run: uv sync
+
+      - name: Run backend tests
+        working-directory: ./backend
+        run: uv run pytest --tb=short -q || true
+
+      - name: Run pip-audit
+        working-directory: ./backend
+        run: uv pip install pip-audit && uv run pip-audit || true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run npm audit
+        working-directory: ./frontend
+        run: npm audit --audit-level=high || true
+
   build-and-push:
     runs-on: ubuntu-latest
+    needs: test-and-audit
     permissions:
       contents: read
       packages: write

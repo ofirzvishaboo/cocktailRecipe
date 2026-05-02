@@ -1,6 +1,17 @@
 {$DOMAIN:cocktailmanager.online}, www.{$DOMAIN:cocktailmanager.online} {
   encode gzip zstd
 
+  # Security headers
+  header {
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    X-XSS-Protection "1; mode=block"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    # Remove server fingerprinting
+    -Server
+  }
+
   # API under /api (strip /api prefix before proxying to FastAPI)
   handle_path /api/* {
     reverse_proxy api:8000 {
@@ -29,6 +40,13 @@
 # ── ממזג ─────────────────────────────────────────────────────────────────────
 mimzag.com, www.mimzag.com {
   encode gzip zstd
+
+  header {
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    -Server
+  }
 
   # Static files served directly by Caddy (faster, no FastAPI overhead)
   handle /static/* {

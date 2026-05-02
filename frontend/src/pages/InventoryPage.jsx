@@ -384,19 +384,31 @@ export default function InventoryPage() {
   }
 
   useEffect(() => {
-    // Keep the item list warm for dropdowns, regardless of tab.
-    loadItems()
+    let cancelled = false
+    const run = async () => {
+      if (!cancelled) await loadItems()
+    }
+    run()
+    return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location, itemType])
 
   useEffect(() => {
-    if (effectiveTab === 'Stock') loadStock()
-    if (effectiveTab === 'Items') loadItems()
-    if (effectiveTab === 'Movements') {
-      if (showMovements) loadMovements()
-      else setTabAndUrl('Stock')
-      if (showMovements) loadMovementEvents()
+    let cancelled = false
+    const run = async () => {
+      if (effectiveTab === 'Stock' && !cancelled) await loadStock()
+      if (effectiveTab === 'Items' && !cancelled) await loadItems()
+      if (effectiveTab === 'Movements') {
+        if (showMovements) {
+          if (!cancelled) await loadMovements()
+          if (!cancelled) await loadMovementEvents()
+        } else {
+          setTabAndUrl('Stock')
+        }
+      }
     }
+    run()
+    return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveTab, location, itemType, subcategoryFilter, movementFromDate, movementToDate, showMovements])
 
@@ -570,15 +582,17 @@ export default function InventoryPage() {
       setMovementStock(null)
       return
     }
+    let cancelled = false
     const load = async () => {
       try {
         const res = await api.get(`/inventory/stock/item/${id}`)
-        setMovementStock(res.data || null)
+        if (!cancelled) setMovementStock(res.data || null)
       } catch {
-        setMovementStock(null)
+        if (!cancelled) setMovementStock(null)
       }
     }
     load()
+    return () => { cancelled = true }
   }, [movementForm.inventory_item_id])
 
   // When a specific location is selected, keep the movement location in sync.

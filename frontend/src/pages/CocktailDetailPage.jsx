@@ -29,13 +29,15 @@ const CocktailDetailPage = () => {
   const [ingredientsByNameLower, setIngredientsByNameLower] = useState({})
 
   useEffect(() => {
+    const ac = new AbortController()
     const loadCocktail = async () => {
       try {
         setLoading(true)
         setError('')
-        const response = await api.get(`/cocktail-recipes/${id}`)
+        const response = await api.get(`/cocktail-recipes/${id}`, { signal: ac.signal })
         setCocktail(response.data)
       } catch (e) {
+        if (e.name === 'CanceledError' || e.code === 'ERR_CANCELED') return
         if (e.response?.status === 404) {
           setError(t('cocktailDetail.errors.notFound'))
         } else {
@@ -43,27 +45,31 @@ const CocktailDetailPage = () => {
           console.error('Failed to load cocktail', e)
         }
       } finally {
-        setLoading(false)
+        if (!ac.signal.aborted) setLoading(false)
       }
     }
     loadCocktail()
+    return () => ac.abort()
   }, [id, t])
 
   useEffect(() => {
+    const ac = new AbortController()
     const loadGlassTypes = async () => {
       try {
-        const res = await api.get('/glass-types')
+        const res = await api.get('/glass-types', { signal: ac.signal })
         const map = {}
         for (const g of res.data || []) {
           map[String(g.id)] = g
         }
         setGlassTypesById(map)
       } catch (e) {
+        if (e.name === 'CanceledError' || e.code === 'ERR_CANCELED') return
         console.error('Failed to load glass types', e)
         setGlassTypesById({})
       }
     }
     loadGlassTypes()
+    return () => ac.abort()
   }, [])
 
   useEffect(() => {
@@ -76,9 +82,10 @@ const CocktailDetailPage = () => {
 
     if (!shouldLoad) return
 
+    const ac = new AbortController()
     const load = async () => {
       try {
-        const res = await api.get('/ingredients/')
+        const res = await api.get('/ingredients/', { signal: ac.signal })
         const list = Array.isArray(res.data) ? res.data : []
         const byLower = {}
         for (const ing of list) {
@@ -89,15 +96,18 @@ const CocktailDetailPage = () => {
         }
         setIngredientsByNameLower(byLower)
       } catch (e) {
+        if (e.name === 'CanceledError' || e.code === 'ERR_CANCELED') return
         console.error('Failed to load ingredients for garnish translation', e)
         setIngredientsByNameLower({})
       }
     }
 
     load()
+    return () => ac.abort()
   }, [cocktail?.garnish_text, cocktail?.garnish_text_he, lang])
 
   useEffect(() => {
+    const ac = new AbortController()
     const loadCost = async () => {
       if (!id) return
       if (!isAdmin) {
@@ -108,17 +118,19 @@ const CocktailDetailPage = () => {
       try {
         setCostLoading(true)
         setCostError('')
-        const res = await api.get(`/cocktail-recipes/${id}/cost`, { params: { scale_factor: 1.0 } })
+        const res = await api.get(`/cocktail-recipes/${id}/cost`, { params: { scale_factor: 1.0 }, signal: ac.signal })
         setCostData(res.data)
       } catch (e) {
+        if (e.name === 'CanceledError' || e.code === 'ERR_CANCELED') return
         setCostData(null)
         setCostError(t('cocktailDetail.errors.costLoadFailed'))
         console.error('Failed to load cost', e)
       } finally {
-        setCostLoading(false)
+        if (!ac.signal.aborted) setCostLoading(false)
       }
     }
     loadCost()
+    return () => ac.abort()
   }, [id, t, isAdmin])
 
   useEffect(() => {

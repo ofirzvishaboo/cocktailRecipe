@@ -42,36 +42,39 @@ export default function IngredientDetailPage() {
   const [deleteBottleId, setDeleteBottleId] = useState(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
-  const loadIngredient = useCallback(async () => {
+  const loadIngredient = useCallback(async (signal) => {
     if (!id) return
     try {
       setError('')
-      const res = await api.get(`/ingredients/${id}`)
+      const res = await api.get(`/ingredients/${id}`, { signal })
       setIngredient(res.data)
     } catch (err) {
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return
       console.error('Failed to load ingredient', err)
       setError(t('ingredients.errors.loadFailed'))
       setIngredient(null)
     }
   }, [id, t])
 
-  const loadBottles = useCallback(async () => {
+  const loadBottles = useCallback(async (signal) => {
     if (!id) return
     try {
-      const res = await api.get(`/ingredients/${id}/bottles`)
+      const res = await api.get(`/ingredients/${id}/bottles`, { signal })
       setBottles(res.data || [])
     } catch (e) {
+      if (e.name === 'CanceledError' || e.code === 'ERR_CANCELED') return
       console.error('Failed to load bottles', e)
       setBottles([])
     }
   }, [id])
 
-  const loadSuppliers = useCallback(async () => {
+  const loadSuppliers = useCallback(async (signal) => {
     if (!isAdmin) return
     try {
-      const res = await api.get('/suppliers/')
+      const res = await api.get('/suppliers/', { signal })
       setSuppliers(res.data || [])
     } catch (e) {
+      if (e.name === 'CanceledError' || e.code === 'ERR_CANCELED') return
       console.error('Failed to load suppliers', e)
       setSuppliers([])
     }
@@ -79,13 +82,21 @@ export default function IngredientDetailPage() {
 
   useEffect(() => {
     if (!id) return
+    const ac = new AbortController()
     setLoading(true)
-    Promise.all([loadIngredient(), loadBottles(), loadSuppliers()]).finally(() => setLoading(false))
+    Promise.all([
+      loadIngredient(ac.signal),
+      loadBottles(ac.signal),
+      loadSuppliers(ac.signal),
+    ]).finally(() => {
+      if (!ac.signal.aborted) setLoading(false)
+    })
+    return () => ac.abort()
   }, [id, loadIngredient, loadBottles, loadSuppliers])
 
   const refreshAll = useCallback(() => {
-    loadIngredient()
-    loadBottles()
+    loadIngredient(undefined)
+    loadBottles(undefined)
   }, [loadIngredient, loadBottles])
 
   // --- Ingredient name ---
@@ -105,7 +116,7 @@ export default function IngredientDetailPage() {
   const saveIngredientName = async () => {
     const nameEn = (nameForm.name || '').trim() || (nameForm.name_he || '').trim()
     if (!nameEn) {
-      setError('Ingredient name is required')
+      setError(t('ingredients.errors.nameRequired'))
       return
     }
     try {

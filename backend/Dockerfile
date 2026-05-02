@@ -9,11 +9,15 @@ WORKDIR /app
 # Copy dependency files
 COPY pyproject.toml uv.lock* ./
 
-# Install dependencies
-RUN uv sync
+# Install production dependencies only (skip dev group)
+RUN uv sync --no-dev
 
 # Copy application code
 COPY . .
+
+# Run as a non-root user
+RUN useradd -m app
+USER app
 
 # Expose port
 EXPOSE 8000

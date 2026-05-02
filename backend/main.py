@@ -97,16 +97,24 @@ app.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])
 # Global exception handler to ensure CORS headers are sent even on errors
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    """Handle all unhandled exceptions and ensure CORS headers are included"""
+    """Handle all unhandled exceptions and ensure CORS headers are included."""
+    # Log full details server-side only — never send internal info to clients.
     print(f"Unhandled exception: {exc}")
     print(traceback.format_exc())
+
+    # Only echo back an origin that is on our explicit allowlist.
+    request_origin = request.headers.get("origin", "")
+    allowed_origin = request_origin if request_origin in cors_origins else ""
+
+    headers: dict[str, str] = {}
+    if allowed_origin:
+        headers["Access-Control-Allow-Origin"] = allowed_origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": f"Internal server error: {str(exc)}"},
-        headers={
-            "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
-            "Access-Control-Allow-Credentials": "true",
-        }
+        content={"detail": "Internal server error"},
+        headers=headers,
     )
 
 

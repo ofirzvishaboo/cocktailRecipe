@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import IngredientPicker from './IngredientPicker'
 
 function IngredientInputs({
   ingredients,
@@ -12,7 +13,7 @@ function IngredientInputs({
   amountPlaceholder,
   minIngredients = 1,
   amountStep = '0.1',
-  nameSuggestions = [],
+  ingredientOptions = [],
   showBottleSelect = false,
   brandOptionsByIndex = [],
   bottlePlaceholder,
@@ -46,27 +47,40 @@ function IngredientInputs({
       <h3>{t('common.ingredients')}</h3>
       {ingredients.map((ingredient, index) => (
         <div key={index} className="ingredient-row">
-          <input
-            type="text"
-            placeholder={resolvedNamePlaceholder}
-            value={
-              lang === 'he'
-                ? (ingredient?.name_he ?? '')
-                : (ingredient?.name ?? '')
-            }
-            onChange={(e) => onIngredientChange(index, lang === 'he' ? 'name_he' : 'name', e.target.value)}
-            list={nameSuggestions.length ? 'ingredient-suggestions' : undefined}
+          <div
             ref={(el) => {
               ingredientNameRefs.current[index] = el
             }}
-          />
-          {nameSuggestions.length > 0 && index === 0 && (
-            <datalist id="ingredient-suggestions">
-              {nameSuggestions.map((n) => (
-                <option key={n} value={n} />
-              ))}
-            </datalist>
-          )}
+            style={{ width: '100%', minWidth: 0 }}
+          >
+            <IngredientPicker
+              id={`ingredient-picker-${index}`}
+              value={ingredient.ingredient_id || ''}
+              onChange={(nextId) => {
+                const id = String(nextId || '')
+                if (!id) {
+                  onIngredientChange(index, 'name', '')
+                  onIngredientChange(index, 'name_he', '')
+                  onIngredientChange(index, 'ingredient_id', '')
+                  onIngredientChange(index, 'bottle_id', '')
+                  return
+                }
+                const opt = (ingredientOptions || []).find((o) => String(o.value) === id)
+                const en = opt?.en ?? ''
+                const he = opt?.he ?? ''
+                // Set names first (will clear ingredient_id/bottle_id by design), then set ingredient_id.
+                onIngredientChange(index, 'name', en)
+                onIngredientChange(index, 'name_he', he)
+                onIngredientChange(index, 'ingredient_id', id)
+                onIngredientChange(index, 'bottle_id', '')
+              }}
+              options={ingredientOptions}
+              placeholder={resolvedNamePlaceholder}
+              ariaLabel={resolvedNamePlaceholder}
+              dir={lang === 'he' ? 'rtl' : 'ltr'}
+              searchPlaceholder={t('common.search')}
+            />
+          </div>
           <input
             type="number"
             placeholder={resolvedAmountPlaceholder}

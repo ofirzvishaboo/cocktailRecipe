@@ -233,20 +233,23 @@ const CocktailsPage = () => {
   }
 
   useEffect(() => {
+    const ac = new AbortController()
     const load = async () => {
       try {
         setLoading(true)
-        const res = await api.get('/cocktail-recipes/')
+        const res = await api.get('/cocktail-recipes/', { signal: ac.signal })
         setCocktails(res.data || [])
         setFilteredCocktails(res.data || [])
       } catch (e) {
+        if (e.name === 'CanceledError' || e.code === 'ERR_CANCELED') return
         setError(t('cocktails.errors.loadFailed'))
         console.error('Failed to load cocktails', e)
       } finally {
-        setLoading(false)
+        if (!ac.signal.aborted) setLoading(false)
       }
     }
     load()
+    return () => ac.abort()
   }, [t])
 
   // Filter cocktails based on search query
