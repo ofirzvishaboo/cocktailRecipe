@@ -15,13 +15,13 @@ RUN uv sync --no-dev
 # Copy application code
 COPY . .
 
-# Run as a non-root user
-RUN useradd -m app
+# Non-root runtime must own the project tree (including .venv); uv sync ran as root above.
+RUN useradd -m app && chown -R app:app /app
 USER app
 
 # Expose port
 EXPOSE 8000
 
-# Run the application using uv run to use the virtual environment
-CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Bake deps at build time; skip implicit `uv sync` on start (it would reinstall dev-only groups).
+CMD ["uv", "run", "--no-sync", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 

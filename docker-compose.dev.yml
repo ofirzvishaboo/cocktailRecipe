@@ -35,10 +35,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Match host UID/GID so bind-mounted ./backend and .venv are writable (defaults suit many Linux desktops).
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ./backend:/app
-      - /app/venv
-      - /app/node_modules
     command: uv run uvicorn main:app --host 0.0.0.0 --port 8000
 
   frontend:
