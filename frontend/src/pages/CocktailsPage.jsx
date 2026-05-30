@@ -6,7 +6,7 @@ import api, { getApiBaseUrl } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 
-const MENU_ORDER = ['classic', 'signature', 'seasonal'] // tab order; add more menu keys here as needed
+const MENU_ORDER = ['signature', 'classic', 'spritz'] // matches physical menu order
 
 const CocktailsPage = () => {
   const { user, isAuthenticated, isAdmin } = useAuth()
@@ -29,7 +29,7 @@ const CocktailsPage = () => {
     if (typeof window === 'undefined') return 'classic'
     const p = new URLSearchParams(window.location.search)
     const m = p.get('menu')
-    return (m && MENU_ORDER.includes(m)) ? m : 'classic'
+    return (m && MENU_ORDER.includes(m)) ? m : 'signature'
   })
 
   // URL wins: show the tab from the URL so refresh keeps the same menu
@@ -38,15 +38,13 @@ const CocktailsPage = () => {
   const setActiveTabAndUrl = useCallback((menu) => {
     setActiveTab(menu)
     try {
-      if (menu === 'classic') sessionStorage.removeItem('cocktails-menu')
-      else sessionStorage.setItem('cocktails-menu', menu)
+      sessionStorage.setItem('cocktails-menu', menu)
     } catch {
       /* ignore */
     }
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
-      if (menu === 'classic') next.delete('menu')
-      else next.set('menu', menu)
+      next.set('menu', menu)
       return next
     }, { replace: true })
   }, [setSearchParams])
@@ -330,7 +328,8 @@ const CocktailsPage = () => {
   // Sync activeTab from URL when user navigates (e.g. back/forward)
   useEffect(() => {
     const menuParam = searchParams.get('menu')
-    const tab = menuParam && MENU_ORDER.includes(menuParam) ? menuParam : 'classic'
+    if (!menuParam) return
+    const tab = MENU_ORDER.includes(menuParam) ? menuParam : 'signature'
     if (tab !== activeTab) setActiveTab(tab)
   }, [searchParams, activeTab])
 

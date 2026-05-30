@@ -33,6 +33,7 @@
     "dashboard": "לוח בקרה",
     "cocktails": "תפריטים",
     "ingredients": "מרכיבים",
+    "barMenu": "תפריט הבר",
     "scaler": "מחשבון באצ׳",
     "inventory": "מלאי",
     "orders": "הזמנות",
@@ -178,8 +179,9 @@
     "searchPlaceholder": "חפש לפי שם או מרכיבים (למשל: וודקה, ליים)...",
     "createButton": "צור קוקטייל",
     "sections": {
-      "classic": "קלאסיים",
       "signature": "סיגנצ׳ר",
+      "classic": "קלאסיים",
+      "spritz": "ספריץ׳",
       "seasonal": "עונתי"
     },
     "actions": {

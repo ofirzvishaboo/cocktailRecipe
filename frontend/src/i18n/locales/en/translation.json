@@ -33,6 +33,7 @@
     "dashboard": "Dashboard",
     "cocktails": "Menus",
     "ingredients": "Ingredients",
+    "barMenu": "Bar Menu",
     "scaler": "Cocktail Scaler",
     "inventory": "Inventory",
     "orders": "Orders",
@@ -178,8 +179,9 @@
     "searchPlaceholder": "Search by name or ingredients (e.g., vodka, lime)...",
     "createButton": "Create Cocktail",
     "sections": {
-      "classic": "Classic",
       "signature": "Signature",
+      "classic": "Classics",
+      "spritz": "Spritz",
       "seasonal": "Seasonal"
     },
     "actions": {

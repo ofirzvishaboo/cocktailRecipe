@@ -24,6 +24,7 @@ import SchedulePage from './pages/SchedulePage'
 import StaffSchedulePage from './pages/StaffSchedulePage'
 import ChecklistPage from './pages/ChecklistPage'
 import ChecklistHistoryPage from './pages/ChecklistHistoryPage'
+import BarMenuPage from './pages/BarMenuPage'
 
 function App() {
   const { isAuthenticated } = useAuth()
@@ -85,6 +86,7 @@ function App() {
             )}
           />
           <Route path="/" element={<CocktailsPage />} />
+          <Route path="/bar-menu" element={<BarMenuPage />} />
           <Route path="/cocktail-scaler" element={<CocktailScaler />} />
           <Route path="/cocktails/:id" element={<CocktailDetailPage />} />
           <Route path="/create-cocktail" element={<CreateCocktailPage />} />

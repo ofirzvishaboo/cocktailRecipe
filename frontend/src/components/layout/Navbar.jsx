@@ -98,6 +98,13 @@ const Navbar = () => {
               {t('nav.cocktails')}
             </Link>
             <Link
+              to="/bar-menu"
+              className={`nav-link ${location.pathname === '/bar-menu' ? 'active' : ''}`}
+              onClick={handleNavClick}
+            >
+              {t('nav.barMenu')}
+            </Link>
+            <Link
               to="/ingredients"
               className={`nav-link ${location.pathname === '/ingredients' ? 'active' : ''}`}
               onClick={handleNavClick}

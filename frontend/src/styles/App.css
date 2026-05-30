@@ -1456,7 +1456,9 @@ html[dir="rtl"] .app-navbar .navbar-user {
   }
 
   .app-navbar .navbar-links.open {
-    max-height: 900px;
+    max-height: calc(100dvh - 4rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     opacity: 1;
     transform: translateY(0);
     margin-top: 0.5rem;

@@ -1,0 +1,377 @@
+/* ══════════════════════════════════════════════════════
+   The Cocktail Factory – Bar Menu Page
+   Vintage craft aesthetic: dark parchment, gold accents
+   ══════════════════════════════════════════════════════ */
+
+/* ── Tokens ── */
+:root {
+  --bm-bg:          #1a1208;
+  --bm-surface:     #231a0c;
+  --bm-surface2:    #2c2112;
+  --bm-border:      #4a3a1a;
+  --bm-gold:        #c9a84c;
+  --bm-gold-light:  #e8c97a;
+  --bm-gold-dim:    #7a6030;
+  --bm-text:        #ede0c4;
+  --bm-text-muted:  #9a8560;
+  --bm-accent:      #8b1a1a;
+  --bm-radius:      6px;
+  --bm-font-serif:  'Georgia', 'Times New Roman', serif;
+  --bm-font-sans:   system-ui, sans-serif;
+  --bm-max-w:       780px;
+}
+
+/* ── Page shell ── */
+.bm-page {
+  min-height: 100vh;
+  background-color: var(--bm-bg);
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(201,168,76,.07) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 100%, rgba(201,168,76,.05) 0%, transparent 55%);
+  color: var(--bm-text);
+  font-family: var(--bm-font-sans);
+  padding-bottom: 3rem;
+}
+
+.bm-page.rtl {
+  direction: rtl;
+}
+
+/* ── Header ── */
+.bm-header {
+  text-align: center;
+  padding: 2.5rem 1.5rem 1.5rem;
+  border-bottom: 1px solid var(--bm-border);
+}
+
+.bm-logo-mark {
+  color: var(--bm-gold);
+  font-size: 1.4rem;
+  letter-spacing: .4em;
+  margin-bottom: .5rem;
+}
+
+.bm-title {
+  font-family: var(--bm-font-serif);
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--bm-gold-light);
+  margin: 0 0 .25rem;
+  line-height: 1.15;
+}
+
+.bm-subtitle {
+  font-size: .8rem;
+  letter-spacing: .25em;
+  text-transform: uppercase;
+  color: var(--bm-text-muted);
+  margin: 0 0 1.25rem;
+}
+
+.bm-divider {
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--bm-gold), transparent);
+  margin: 0 auto;
+}
+
+/* ── Main tabs ── */
+.bm-tabs {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: .4rem;
+  padding: 1.25rem 1rem .75rem;
+  max-width: var(--bm-max-w);
+  margin: 0 auto;
+}
+
+.bm-tab {
+  background: transparent;
+  border: 1px solid var(--bm-gold-dim);
+  border-radius: var(--bm-radius);
+  color: var(--bm-text-muted);
+  font-size: .8rem;
+  font-family: var(--bm-font-sans);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: .45rem 1rem;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+
+.bm-tab:hover {
+  border-color: var(--bm-gold);
+  color: var(--bm-gold-light);
+}
+
+.bm-tab.active {
+  background: var(--bm-gold);
+  border-color: var(--bm-gold);
+  color: var(--bm-bg);
+  font-weight: 600;
+}
+
+/* ── Content ── */
+.bm-content {
+  max-width: var(--bm-max-w);
+  margin: 0 auto;
+  padding: .75rem 1.25rem 1.5rem;
+}
+
+.bm-panel {
+  animation: bm-fade .2s ease;
+}
+
+@keyframes bm-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Sub-tabs (wines / beers) ── */
+.bm-sub-tabs {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--bm-border);
+  padding-bottom: .75rem;
+}
+
+.bm-sub-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--bm-text-muted);
+  font-size: .85rem;
+  letter-spacing: .06em;
+  padding: .3rem .75rem;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+  font-family: var(--bm-font-sans);
+}
+
+.bm-sub-tab:hover {
+  color: var(--bm-gold-light);
+}
+
+.bm-sub-tab.active {
+  color: var(--bm-gold);
+  border-bottom-color: var(--bm-gold);
+  font-weight: 600;
+}
+
+/* ── Menu item row ── */
+.bm-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.bm-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .65rem 0;
+  border-bottom: 1px dotted var(--bm-border);
+}
+
+.bm-item:last-child {
+  border-bottom: none;
+}
+
+.bm-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+  min-width: 0;
+}
+
+.bm-item-name {
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--bm-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bm-item-sub {
+  font-size: .75rem;
+  color: var(--bm-text-muted);
+}
+
+.bm-price {
+  font-family: var(--bm-font-serif);
+  font-size: .9rem;
+  color: var(--bm-gold);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.bm-note {
+  font-size: .72rem;
+  color: var(--bm-text-muted);
+  margin: .75rem 0 0;
+  font-style: italic;
+}
+
+/* ── Cocktail cards ── */
+.bm-cocktails-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.bm-cocktail-card {
+  background: var(--bm-surface);
+  border: 1px solid var(--bm-border);
+  border-top: 2px solid var(--bm-gold-dim);
+  border-radius: var(--bm-radius);
+  padding: 1rem 1.1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  transition: border-top-color .2s;
+}
+
+.bm-cocktail-card:hover {
+  border-top-color: var(--bm-gold);
+}
+
+.bm-cocktail-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .5rem;
+}
+
+.bm-cocktail-name {
+  font-family: var(--bm-font-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--bm-gold-light);
+  margin: 0;
+}
+
+.bm-cocktail-desc {
+  font-size: .8rem;
+  color: var(--bm-gold);
+  margin: 0 0 .45rem;
+  line-height: 1.35;
+  font-style: italic;
+  letter-spacing: .02em;
+  opacity: .85;
+}
+
+.bm-cocktail-ingredients {
+  font-size: .8rem;
+  color: var(--bm-text);
+  line-height: 1.5;
+  padding-top: .3rem;
+  border-top: 1px solid rgba(212, 175, 55, .15);
+}
+
+.bm-cocktail-meta {
+  display: flex;
+  gap: .75rem;
+  flex-wrap: wrap;
+  margin-top: .2rem;
+}
+
+.bm-cocktail-glass,
+.bm-cocktail-garnish {
+  font-size: .72rem;
+  color: var(--bm-text-muted);
+  background: var(--bm-surface2);
+  border: 1px solid var(--bm-border);
+  border-radius: 3px;
+  padding: .15rem .5rem;
+}
+
+/* ── Alcohol panel ── */
+.bm-alcohol-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.5rem 2rem;
+  align-items: start;
+}
+
+.bm-spirit-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.bm-spirit-title {
+  font-family: var(--bm-font-serif);
+  font-size: .9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--bm-gold);
+  margin: 0 0 .5rem;
+  padding-bottom: .35rem;
+  border-bottom: 1px solid var(--bm-border);
+}
+
+/* ── States ── */
+.bm-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+}
+
+.bm-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--bm-border);
+  border-top-color: var(--bm-gold);
+  border-radius: 50%;
+  animation: bm-spin .7s linear infinite;
+}
+
+@keyframes bm-spin {
+  to { transform: rotate(360deg); }
+}
+
+.bm-error-msg,
+.bm-empty-msg {
+  color: var(--bm-text-muted);
+  font-size: .9rem;
+  text-align: center;
+}
+
+/* ── Footer ── */
+.bm-footer {
+  text-align: center;
+  padding: 2rem 1rem 1rem;
+  font-size: .7rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--bm-text-muted);
+  border-top: 1px solid var(--bm-border);
+  max-width: var(--bm-max-w);
+  margin: 0 auto;
+}
+
+/* ── Responsive ── */
+@media (max-width: 540px) {
+  .bm-tabs {
+    gap: .3rem;
+  }
+  .bm-tab {
+    font-size: .72rem;
+    padding: .4rem .7rem;
+  }
+  .bm-cocktails-grid {
+    grid-template-columns: 1fr;
+  }
+  .bm-alcohol-panel {
+    grid-template-columns: 1fr;
+  }
+}
