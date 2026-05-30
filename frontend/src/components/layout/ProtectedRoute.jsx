@@ -2,8 +2,8 @@ import { Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
 
-const ProtectedRoute = ({ children, requireAdmin = false }) => {
-  const { isAuthenticated, isAdmin, loading } = useAuth()
+const ProtectedRoute = ({ children, requireAdmin = false, requireBartender = false }) => {
+  const { isAuthenticated, isAdmin, isBartender, loading } = useAuth()
   const { t } = useTranslation()
 
   if (loading) {
@@ -24,6 +24,10 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   }
 
   if (requireAdmin && !isAdmin) {
+    return <Navigate to="/" replace />
+  }
+
+  if (requireBartender && !isBartender) {
     return <Navigate to="/" replace />
   }
 

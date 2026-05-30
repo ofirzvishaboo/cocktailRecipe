@@ -37,12 +37,24 @@
     "inventory": "Inventory",
     "orders": "Orders",
     "events": "Events",
+    "schedule": "Schedule",
+    "myAvailability": "My availability",
+    "checklists": "Checklists",
+    "checklistHistory": "Checklist history",
+    "mySchedule": "Schedule",
     "welcome": "Welcome, {{name}}",
     "logout": "Logout",
     "login": "Login",
     "signup": "Sign Up",
     "language": "Language",
-    "toggleMenu": "Toggle navigation menu"
+    "toggleMenu": "Toggle navigation menu",
+    "sections": {
+      "tools": "Tools",
+      "staff": "Team",
+      "operations": "Operations",
+      "management": "Management",
+      "account": "Account"
+    }
   },
   "events": {
     "title": "Events",
@@ -540,7 +552,8 @@
       "submit": "Login",
       "submitting": "Logging in...",
       "noAccount": "Don't have an account?",
-      "signupLink": "Sign up"
+      "signupLink": "Sign up",
+      "staffHint": "Bar staff: log in with your work account, then open My availability to send your weekly schedule."
     },
     "signup": {
       "title": "Sign Up",
@@ -562,6 +575,107 @@
       "passwordTooShort": "Password must be at least 8 characters long"
     }
   },
+  "schedule": {
+    "title": "Work schedule",
+    "subtitle": "Weekly staff schedule (admin). Set availability, generate, publish, and share.",
+    "weekOf": "Week starting",
+    "thisWeek": "This week",
+    "rosterTitle": "Staff roster",
+    "availabilityTitle": "Weekly availability",
+    "gridTitle": "Shift assignments",
+    "gapsTitle": "Could not fill all roles",
+    "closedSaturday": "Closed (Saturday)",
+    "noShifts": "No shifts this day",
+    "shareCopiedOpenWhatsApp": "Schedule copied. Open WhatsApp to share?",
+    "days": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    },
+    "roles": {
+      "bartender": "Bartender",
+      "cleaner": "Cleaner",
+      "manager": "Manager"
+    },
+    "status": {
+      "draft": "Draft",
+      "published": "Published"
+    },
+    "gapReasons": {
+      "no_available_staff": "No available staff",
+      "below_minimum_bartenders": "Need at least one bartender"
+    },
+    "fields": {
+      "name": "Name",
+      "role": "Role",
+      "staff": "Staff",
+      "linkUser": "Link to app user",
+      "noLinkedUser": "No login (admin fills availability)",
+      "userIdPlaceholder": "UUID from user account",
+      "submitted": "Sent?"
+    },
+    "actions": {
+      "generate": "Generate schedule",
+      "publish": "Publish",
+      "share": "Share (WhatsApp)",
+      "addStaff": "Add staff",
+      "removeStaff": "Remove {{name}}",
+      "addAssignment": "Assign staff…",
+      "clear": "Remove"
+    },
+    "confirmRemoveStaff": "Remove {{name}} from the staff roster? They will no longer appear on new schedules.",
+    "confirmGenerateMissing": "These staff have not submitted availability by Tuesday: {{names}}. Generate anyway?",
+    "availabilityDeadline": "Staff must submit their own availability by Tuesday {{date}} (before the schedule week).",
+    "availabilitySelfOnly": "Staff with a login must fill availability themselves (My availability). After the deadline, use the override button to set all days available for them.",
+    "noLoginHint": "No login linked — you must enter their availability",
+    "submittedYes": "Sent",
+    "submittedNo": "Missing",
+    "submittedAdmin": "Admin",
+    "forceAvailability": "Set all available",
+    "forceAvailabilityTitle": "Admin override: mark all working days as available for this staff member (bypasses the deadline)",
+    "errors": {
+      "loadFailed": "Failed to load schedule",
+      "saveAvailabilityFailed": "Failed to save availability",
+      "saveStaffFailed": "Failed to save staff",
+      "removeStaffFailed": "Failed to remove staff",
+      "generateFailed": "Failed to generate schedule",
+      "publishFailed": "Failed to publish",
+      "shareFailed": "Failed to build share text",
+      "saveAssignmentFailed": "Failed to update assignment"
+    },
+    "weekly": {
+      "title": "Weekly Schedule",
+      "notPublished": "The schedule for this week hasn't been published yet.",
+      "notCreated": "No schedule created for this week.",
+      "myShift": "My shift",
+      "myShiftsCount": "You have {{count}} shift day(s) this week",
+      "prevWeek": "Previous week",
+      "nextWeek": "Next week",
+      "tabSchedule": "Schedule",
+      "tabAvailability": "My Availability"
+    },
+    "availability": {
+      "title": "My availability",
+      "greeting": "{{name}} ({{role}}) — mark the days you can work and send by Tuesday.",
+      "deadline": "Submit by Tuesday {{date}} (before the schedule week starts Sunday).",
+      "deadlinePassed": "The deadline has passed. Contact your manager if you need changes.",
+      "alreadySubmitted": "You already sent availability for this week. You can update it until Tuesday.",
+      "submit": "Send availability",
+      "bannerTitle": "Weekly availability",
+      "bannerPending": "Submit the days you can work by Tuesday {{date}}.",
+      "bannerSubmitted": "You sent availability for this week. You can still update until Tuesday {{date}}.",
+      "bannerCta": "Submit availability",
+      "bannerUpdate": "Update availability",
+      "noProfile": "Your account is not linked to a staff profile. Ask your manager to link your login on the Schedule page.",
+      "backHome": "Back to home",
+      "saved": "Availability sent.",
+      "notesPlaceholder": "Notes (optional)"
+    }
+  },
   "dashboard": {
     "title": "Dashboard",
     "thisWeekEvents": "This week's events",
@@ -577,8 +691,76 @@
     "createEvent": "Create event",
     "batchCalculator": "Batch calculator",
     "ordersTotal": "Pending orders total",
+    "kpi": {
+      "todayStaff": "Staff today",
+      "checklistsWeek": "Checklists",
+      "availability": "Next week availability",
+      "pendingOrders": "Pending orders"
+    },
+    "todayShifts": {
+      "title": "Today's shifts",
+      "empty": "No shifts today",
+      "noSchedule": "No schedule created for this week"
+    },
+    "checklists": {
+      "title": "Checklists this week",
+      "empty": "No checklists this week",
+      "opening": "Opening",
+      "closing": "Closing",
+      "submitted": "Submitted",
+      "inProgress": "In progress"
+    },
+    "availability": {
+      "title": "Next week availability",
+      "empty": "No staff with login accounts",
+      "targetWeek": "Week of {{date}}",
+      "submitted": "Sent",
+      "missing": "Missing"
+    },
+    "publishSchedule": "Publish schedule",
     "errors": {
       "loadFailed": "Failed to load dashboard"
+    }
+  },
+  "checklists": {
+    "title": "Shift checklists",
+    "opening": "Opening",
+    "closing": "Closing",
+    "date": "Date",
+    "greeting": "{{name}} — complete the checklist for your shift.",
+    "progress": "{{completed}} / {{total}} completed",
+    "submit": "Submit checklist",
+    "saving": "Saving…",
+    "submitted": "Submitted by {{name}} on {{date}}",
+    "todaysTask": "Today's task",
+    "noAccess": "Checklists are available to bartenders only. Ask your manager to link your account with the bartender role.",
+    "backHome": "Back to home",
+    "status": {
+      "in_progress": "In progress",
+      "submitted": "Submitted"
+    },
+    "errors": {
+      "loadFailed": "Failed to load checklist",
+      "saveFailed": "Failed to save checklist",
+      "submitFailed": "Failed to submit checklist",
+      "reopenFailed": "Failed to reopen checklist"
+    },
+    "history": {
+      "title": "Checklist history",
+      "subtitle": "Review opening and closing checklists submitted by bartenders.",
+      "from": "From",
+      "to": "To",
+      "type": "Type",
+      "allTypes": "All",
+      "empty": "No checklists in this date range.",
+      "dateCol": "Date",
+      "typeCol": "Type",
+      "statusCol": "Status",
+      "progressCol": "Progress",
+      "submittedByCol": "Submitted by",
+      "selectRun": "Select a row to view details.",
+      "reopen": "Reopen for editing",
+      "backToChecklists": "Back to checklists"
     }
   }
 }

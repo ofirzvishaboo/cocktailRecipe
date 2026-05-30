@@ -160,6 +160,11 @@ html[dir="rtl"] .app-navbar .navbar-user {
   box-shadow: 0 4px 12px rgba(47, 127, 247, 0.25);
 }
 
+.app-navbar .nav-link--emphasis:not(.active) {
+  font-weight: 600;
+  color: var(--primary);
+}
+
 .app-navbar .navbar-user {
   padding: 0.55rem 0.75rem;
   color: var(--text-muted);
@@ -269,6 +274,113 @@ html[dir="rtl"] .app-navbar .navbar-user {
 .lang-menu-item:focus-visible {
   outline: 3px solid rgba(47, 127, 247, 0.35);
   outline-offset: 2px;
+}
+
+/* ── Navbar: section labels (mobile only) ── */
+.navbar-section-label {
+  display: none;
+  padding: 0.85rem 0.9rem 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-muted);
+  opacity: 0.6;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Navbar: desktop/mobile visibility helpers ── */
+.app-navbar .nav-desktop-only {
+  display: inline-flex;
+  align-items: center;
+}
+
+.app-navbar .nav-mobile-only {
+  display: none;
+}
+
+/* ── Navbar: admin + user dropdowns ── */
+.app-navbar .nav-dropdown,
+.app-navbar .nav-user-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.app-navbar .nav-dropdown-trigger::after,
+.app-navbar .nav-user-trigger::after {
+  content: "▾";
+  font-size: 0.8em;
+  margin-inline-start: 0.3rem;
+  opacity: 0.7;
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.app-navbar .nav-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  inset-inline-start: 0;
+  min-width: 200px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  padding: 0.35rem;
+  z-index: 200;
+}
+
+.app-navbar .nav-user-menu {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  min-width: 160px;
+}
+
+.app-navbar .nav-dropdown-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: start;
+  white-space: nowrap;
+}
+
+.app-navbar .nav-dropdown-item:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.app-navbar .nav-dropdown-item.active {
+  background: var(--primary);
+  color: white;
+}
+
+.app-navbar .nav-dropdown-item--danger {
+  color: var(--danger);
+}
+
+.app-navbar .nav-dropdown-item--danger:hover {
+  background: var(--danger);
+  color: white;
+}
+
+/* ── Navbar: user trigger pill style ── */
+.app-navbar .nav-user-trigger {
+  font-weight: 600;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Main Content */
@@ -1344,7 +1456,7 @@ html[dir="rtl"] .app-navbar .navbar-user {
   }
 
   .app-navbar .navbar-links.open {
-    max-height: 500px;
+    max-height: 900px;
     opacity: 1;
     transform: translateY(0);
     margin-top: 0.5rem;
@@ -1390,6 +1502,28 @@ html[dir="rtl"] .app-navbar .navbar-user {
 
   html[dir="rtl"] .app-navbar .navbar-user {
     justify-content: flex-end;
+  }
+
+  /* Show section labels on mobile */
+  .navbar-section-label {
+    display: block;
+  }
+
+  /* Show/hide desktop vs mobile elements */
+  .app-navbar .nav-desktop-only {
+    display: none !important;
+  }
+
+  .app-navbar .nav-mobile-only {
+    display: flex;
+    width: 100%;
+    text-align: start;
+    justify-content: flex-start;
+  }
+
+  .app-navbar .navbar-user.nav-mobile-only {
+    display: flex;
+    align-items: center;
   }
 
   .main-content {

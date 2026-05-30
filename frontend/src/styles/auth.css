@@ -100,6 +100,13 @@
   text-decoration: underline;
 }
 
+.auth-staff-hint {
+  text-align: center;
+  margin-top: 12px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 @media (max-width: 600px) {
   .auth-container {
     padding: 16px;

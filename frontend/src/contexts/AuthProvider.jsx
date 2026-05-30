@@ -4,15 +4,29 @@ import { AuthContext } from './AuthContext'
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
+  const [staffProfile, setStaffProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [token, setToken] = useState(localStorage.getItem('token'))
+
+  const fetchStaffProfile = async () => {
+    try {
+      const response = await api.get('/schedule/me/staff')
+      setStaffProfile(response.data)
+      return response.data
+    } catch {
+      setStaffProfile(null)
+      return null
+    }
+  }
 
   const fetchCurrentUser = async () => {
     try {
       const response = await api.get('/users/me')
       setUser(response.data)
+      await fetchStaffProfile()
     } catch (error) {
       console.error('Failed to fetch user:', error)
+      setStaffProfile(null)
       // If token is invalid, clear it
       if (error.response?.status === 401) {
         setToken(null)
@@ -34,6 +48,7 @@ const AuthProvider = ({ children }) => {
     } else {
       delete api.defaults.headers.common['Authorization']
       setUser(null)
+      setStaffProfile(null)
       setLoading(false)
     }
   }, [token])
@@ -88,6 +103,7 @@ const AuthProvider = ({ children }) => {
   const logout = () => {
     setToken(null)
     setUser(null)
+    setStaffProfile(null)
     localStorage.removeItem('token')
     delete api.defaults.headers.common['Authorization']
     setLoading(false)
@@ -95,12 +111,16 @@ const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    staffProfile,
+    hasStaffProfile: !!staffProfile,
+    isBartender: staffProfile?.role === 'bartender',
     loading,
     isAuthenticated: !!user,
     isAdmin: user?.is_superuser || false,
     login,
     signup,
     logout,
+    fetchStaffProfile,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

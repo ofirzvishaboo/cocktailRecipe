@@ -71,6 +71,10 @@ engine = create_async_engine(DATABASE_URL)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
 async def create_db_and_tables():
+    # Register schedule models with metadata (avoid circular import at module load).
+    from . import schedule as _schedule  # noqa: F401
+    from . import checklist as _checklist  # noqa: F401
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -90,6 +94,8 @@ async def create_db_and_tables():
         add_orders_if_missing,
         add_order_event_scope_columns_if_missing,
         add_images_table_if_missing,
+        add_schedule_tables_if_missing,
+        add_checklist_tables_if_missing,
     )
     await add_missing_user_columns(engine)
     await add_user_id_column_if_missing(engine)
@@ -105,6 +111,15 @@ async def create_db_and_tables():
     await add_orders_if_missing(engine)
     await add_order_event_scope_columns_if_missing(engine)
     await add_images_table_if_missing(engine)
+    await add_schedule_tables_if_missing(engine)
+    await add_checklist_tables_if_missing(engine)
+
+    from services.schedule_seed import ensure_schedule_defaults
+    from services.checklist_seed import ensure_checklist_defaults
+    async with async_session_maker() as session:
+        await ensure_schedule_defaults(session)
+        await ensure_checklist_defaults(session)
+        await session.commit()
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:

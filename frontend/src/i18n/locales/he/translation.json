@@ -37,12 +37,24 @@
     "inventory": "מלאי",
     "orders": "הזמנות",
     "events": "אירועים",
+    "schedule": "לוח משמרות",
+    "myAvailability": "הזמינות שלי",
+    "checklists": "צ'ק ליסט",
+    "checklistHistory": "היסטוריית צ'ק ליסט",
+    "mySchedule": "לוח שבועי",
     "welcome": "ברוך הבא, {{name}}",
     "logout": "התנתק",
     "login": "התחברות",
     "signup": "הרשמה",
     "language": "שפה",
-    "toggleMenu": "פתח/סגור תפריט"
+    "toggleMenu": "פתח/סגור תפריט",
+    "sections": {
+      "tools": "כלים",
+      "staff": "צוות",
+      "operations": "תפעול",
+      "management": "ניהול",
+      "account": "חשבון"
+    }
   },
   "events": {
     "title": "אירועים",
@@ -541,7 +553,8 @@
       "submit": "התחבר",
       "submitting": "מתחבר...",
       "noAccount": "אין לך חשבון?",
-      "signupLink": "הרשם"
+      "signupLink": "הרשם",
+      "staffHint": "צוות הבר: התחבר/י עם חשבון העבודה, ואז פתח/י ״הזמינות שלי״ לשליחת הזמינות השבועית."
     },
     "signup": {
       "title": "הרשמה",
@@ -563,6 +576,107 @@
       "passwordTooShort": "הסיסמה חייבת להיות לפחות 8 תווים"
     }
   },
+  "schedule": {
+    "title": "לוח משמרות",
+    "subtitle": "לוח שבועי לצוות (אדמין). הזמינות, יצירה אוטומטית, פרסום ושיתוף.",
+    "weekOf": "שבוע שמתחיל ב",
+    "thisWeek": "השבוע",
+    "rosterTitle": "צוות",
+    "availabilityTitle": "זמינות שבועית",
+    "gridTitle": "שיבוצים למשמרות",
+    "gapsTitle": "לא ניתן למלא את כל התפקידים",
+    "closedSaturday": "סגור (שבת)",
+    "noShifts": "אין משמרות ביום זה",
+    "shareCopiedOpenWhatsApp": "הלוח הועתק. לפתוח וואטסאפ לשיתוף?",
+    "days": {
+      "sun": "א׳",
+      "mon": "ב׳",
+      "tue": "ג׳",
+      "wed": "ד׳",
+      "thu": "ה׳",
+      "fri": "ו׳",
+      "sat": "ש׳"
+    },
+    "roles": {
+      "bartender": "ברמן",
+      "cleaner": "ניקיון",
+      "manager": "מנהל משמרת"
+    },
+    "status": {
+      "draft": "טיוטה",
+      "published": "פורסם"
+    },
+    "gapReasons": {
+      "no_available_staff": "אין אנשי צוות זמינים",
+      "below_minimum_bartenders": "נדרש לפחות ברמן אחד"
+    },
+    "fields": {
+      "name": "שם",
+      "role": "תפקיד",
+      "staff": "עובד",
+      "linkUser": "קישור למשתמש",
+      "noLinkedUser": "בלי התחברות (אדמין ממלא זמינות)",
+      "userIdPlaceholder": "UUID מחשבון המשתמש",
+      "submitted": "נשלח?"
+    },
+    "actions": {
+      "generate": "צור לוח אוטומטי",
+      "publish": "פרסם",
+      "share": "שתף (וואטסאפ)",
+      "addStaff": "הוסף עובד",
+      "removeStaff": "הסר את {{name}}",
+      "addAssignment": "שבץ עובד…",
+      "clear": "הסר"
+    },
+    "confirmRemoveStaff": "להסיר את {{name}} מרשימת הצוות? לא יופיע/תעוד בלוחות חדשים.",
+    "confirmGenerateMissing": "העובדים הבאים לא שלחו זמינות עד שלישי: {{names}}. ליצור לוח בכל זאת?",
+    "availabilityDeadline": "כל עובד עם התחברות חייב לשלוח זמינות עצמית עד יום שלישי {{date}} (לפני תחילת השבוע בראשון).",
+    "availabilitySelfOnly": "עובדים עם משתמש נכנסים דרך ״הזמינות שלי״. אחרי המועד האחרון ניתן להשתמש בכפתור העקיפה להגדיר כל ימי עבודה כזמין עבורם.",
+    "noLoginHint": "אין משתמש מקושר — מלא זמינות בשבילם",
+    "submittedYes": "נשלח",
+    "submittedNo": "חסר",
+    "submittedAdmin": "אדמין",
+    "forceAvailability": "הגדר כל ימים זמין",
+    "forceAvailabilityTitle": "עקיפת אדמין: סמן את כל ימי העבודה כזמין עבור עובד זה (עוקף את המועד האחרון)",
+    "errors": {
+      "loadFailed": "טעינת הלוח נכשלה",
+      "saveAvailabilityFailed": "שמירת הזמינות נכשלה",
+      "saveStaffFailed": "שמירת העובד נכשלה",
+      "removeStaffFailed": "הסרת העובד נכשלה",
+      "generateFailed": "יצירת הלוח נכשלה",
+      "publishFailed": "הפרסום נכשל",
+      "shareFailed": "יצירת טקסט לשיתוף נכשלה",
+      "saveAssignmentFailed": "עדכון השיבוץ נכשל"
+    },
+    "weekly": {
+      "title": "לוח המשמרות השבועי",
+      "notPublished": "הלוח לשבוע זה עדיין לא פורסם.",
+      "notCreated": "לא נוצר לוח לשבוע זה.",
+      "myShift": "המשמרת שלי",
+      "myShiftsCount": "יש לך {{count}} יום משמרת השבוע",
+      "prevWeek": "שבוע קודם",
+      "nextWeek": "שבוע הבא",
+      "tabSchedule": "לוח שבועי",
+      "tabAvailability": "הזמינות שלי"
+    },
+    "availability": {
+      "title": "הזמינות שלי",
+      "greeting": "{{name}} ({{role}}) — סמן מתי אתה יכול לעבוד ושלח עד יום שלישי.",
+      "deadline": "לשלוח עד יום שלישי {{date}} (לפני שהשבוע מתחיל ביום ראשון).",
+      "deadlinePassed": "מועד השליחה עבר. פנה למנהל לשינויים.",
+      "alreadySubmitted": "כבר שלחת זמינות לשבוע הזה. אפשר לעדכן עד יום שלישי.",
+      "submit": "שלח זמינות",
+      "bannerTitle": "זמינות שבועית",
+      "bannerPending": "שלח/י את הימים שאת/ה יכול/ה לעבוד עד יום שלישי {{date}}.",
+      "bannerSubmitted": "כבר שלחת זמינות לשבוע הזה. אפשר לעדכן עד יום שלישי {{date}}.",
+      "bannerCta": "שלח זמינות",
+      "bannerUpdate": "עדכן זמינות",
+      "noProfile": "החשבון שלך לא מקושר לעובד. בקש/י מהמנהל לקשר את המשתמש שלך בעמוד לוח המשמרות.",
+      "backHome": "חזרה לדף הבית",
+      "saved": "הזמינות נשלחה.",
+      "notesPlaceholder": "הערות (אופציונלי)"
+    }
+  },
   "dashboard": {
     "title": "לוח בקרה",
     "thisWeekEvents": "אירועים השבוע",
@@ -576,10 +690,78 @@
     "prevWeek": "שבוע קודם",
     "nextWeek": "שבוע הבא",
     "createEvent": "צור אירוע",
-    "batchCalculator": "מחשבון באצי",
+    "batchCalculator": "מחשבון באצ׳",
     "ordersTotal": "סה״כ הזמנות ממתינות",
+    "kpi": {
+      "todayStaff": "עובדים היום",
+      "checklistsWeek": "צ׳ק ליסטים",
+      "availability": "זמינות שבוע הבא",
+      "pendingOrders": "הזמנות ממתינות"
+    },
+    "todayShifts": {
+      "title": "משמרת של היום",
+      "empty": "אין שיבוצים להיום",
+      "noSchedule": "לא נוצר לוח לשבוע הנוכחי"
+    },
+    "checklists": {
+      "title": "צ׳ק ליסטים השבוע",
+      "empty": "אין צ׳ק ליסטים השבוע",
+      "opening": "פתיחה",
+      "closing": "סגירה",
+      "submitted": "נשלח",
+      "inProgress": "בתהליך"
+    },
+    "availability": {
+      "title": "זמינות שבוע הבא",
+      "empty": "אין עובדים עם חשבון",
+      "targetWeek": "שבוע {{date}}",
+      "submitted": "שלח",
+      "missing": "חסר"
+    },
+    "publishSchedule": "פרסם לוח משמרות",
     "errors": {
       "loadFailed": "טעינת לוח הבקרה נכשלה"
+    }
+  },
+  "checklists": {
+    "title": "צ'ק ליסט משמרת",
+    "opening": "פתיחה",
+    "closing": "סגירה",
+    "date": "תאריך",
+    "greeting": "{{name}} — מלא/י את צ'ק הליסט למשמרת.",
+    "progress": "{{completed}} / {{total}} הושלמו",
+    "submit": "שלח צ'ק ליסט",
+    "saving": "שומר…",
+    "submitted": "נשלח על ידי {{name}} ב-{{date}}",
+    "todaysTask": "משימת היום",
+    "noAccess": "צ'ק ליסט זמין לברמנים בלבד. בקש/י מהמנהל לקשר את החשבון שלך עם תפקיד ברמן.",
+    "backHome": "חזרה לדף הבית",
+    "status": {
+      "in_progress": "בתהליך",
+      "submitted": "נשלח"
+    },
+    "errors": {
+      "loadFailed": "טעינת הצ'ק ליסט נכשלה",
+      "saveFailed": "שמירת הצ'ק ליסט נכשלה",
+      "submitFailed": "שליחת הצ'ק ליסט נכשלה",
+      "reopenFailed": "פתיחה מחדש של הצ'ק ליסט נכשלה"
+    },
+    "history": {
+      "title": "היסטוריית צ'ק ליסט",
+      "subtitle": "צפייה בצ'ק ליסט פתיחה וסגירה שנשלחו על ידי ברמנים.",
+      "from": "מ",
+      "to": "עד",
+      "type": "סוג",
+      "allTypes": "הכל",
+      "empty": "אין צ'ק ליסט בטווח התאריכים.",
+      "dateCol": "תאריך",
+      "typeCol": "סוג",
+      "statusCol": "סטטוס",
+      "progressCol": "התקדמות",
+      "submittedByCol": "נשלח על ידי",
+      "selectRun": "בחר/י שורה לצפייה בפרטים.",
+      "reopen": "פתח מחדש לעריכה",
+      "backToChecklists": "חזרה לצ'ק ליסט"
     }
   }
 }

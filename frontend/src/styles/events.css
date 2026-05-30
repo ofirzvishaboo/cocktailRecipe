@@ -445,6 +445,222 @@
 }
 
 /* Dashboard */
+.db-page {
+  padding-top: 1.5rem;
+}
+
+.db-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+/* KPI row */
+.db-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.db-kpi-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 1rem 0.75rem;
+  border-radius: 12px;
+  background: var(--surface-muted, #f5f5f5);
+  border: 1px solid var(--border, #ddd);
+  text-align: center;
+}
+
+.db-kpi-card--warn {
+  border-color: #f0c040;
+  background: #fffbea;
+}
+
+.db-kpi-value {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+
+.db-kpi-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.db-kpi-sub {
+  font-size: 0.75rem;
+  color: var(--danger, #dc3545);
+}
+
+/* Today's shifts */
+.db-shift-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.db-shift-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #eee);
+  font-size: 0.9rem;
+}
+
+.db-shift-time {
+  font-size: 0.8rem;
+  color: var(--text-muted, #888);
+  white-space: nowrap;
+  min-width: 5.5rem;
+}
+
+.db-shift-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.db-shift-staff {
+  font-weight: 600;
+}
+
+.db-role-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 20px;
+}
+
+/* Checklist table */
+.db-cl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.db-cl-table th,
+.db-cl-table td {
+  padding: 0.4rem 0.6rem;
+  text-align: start;
+  border-bottom: 1px solid var(--border, #eee);
+}
+
+.db-cl-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, #888);
+  font-weight: 700;
+}
+
+.db-cl-date {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.db-cl-status {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.db-cl-status--ok {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.db-cl-status--wip {
+  color: #856404;
+}
+
+.db-cl-status--none {
+  color: var(--text-muted, #aaa);
+}
+
+/* Availability section */
+.db-section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.db-section-sub {
+  font-size: 0.82rem;
+  color: var(--text-muted, #888);
+}
+
+.db-av-progress {
+  height: 6px;
+  background: var(--border, #ddd);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.db-av-progress-bar {
+  height: 100%;
+  background: var(--primary, #2f7ff7);
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.db-av-staff-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.db-av-chip {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  border: 1px solid transparent;
+}
+
+.db-av-chip--ok {
+  background: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+  border-color: rgba(40, 167, 69, 0.25);
+}
+
+.db-av-chip--missing {
+  background: rgba(220, 53, 69, 0.08);
+  color: var(--danger, #dc3545);
+  border-color: rgba(220, 53, 69, 0.2);
+}
+
+@media (max-width: 600px) {
+  .db-kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .db-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 .dashboard-quick-actions {
   display: flex;
   flex-wrap: wrap;

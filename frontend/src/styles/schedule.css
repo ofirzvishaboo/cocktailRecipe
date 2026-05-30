@@ -1,0 +1,546 @@
+.schedule-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.schedule-header h2 {
+  margin: 0;
+}
+
+.schedule-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.schedule-week-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.schedule-status {
+  font-size: 0.85rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: var(--color-muted-bg, #eee);
+}
+
+.schedule-status.published {
+  background: #d4edda;
+  color: #155724;
+}
+
+.schedule-gaps {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.schedule-gaps ul {
+  margin: 0.5rem 0 0;
+  padding-inline-start: 1.25rem;
+}
+
+.schedule-section {
+  margin-top: 1.5rem;
+}
+
+.schedule-section h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.schedule-roster-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.schedule-roster-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.schedule-roster-form input,
+.schedule-roster-form select {
+  min-width: 8rem;
+}
+
+.schedule-staff-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.schedule-staff-chip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  background: var(--color-muted-bg, #f0f0f0);
+  font-size: 0.9rem;
+}
+
+.schedule-staff-link-select {
+  max-width: 11rem;
+  font-size: 0.8rem;
+  min-width: 7rem;
+}
+
+.schedule-staff-chip-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.schedule-staff-chip .role {
+  opacity: 0.7;
+  font-size: 0.8rem;
+}
+
+.schedule-staff-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+.schedule-staff-remove:hover,
+.schedule-staff-remove:focus {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.schedule-availability-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.schedule-availability-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.schedule-availability-table th,
+.schedule-availability-table td {
+  border: 1px solid var(--border-color, #ddd);
+  padding: 0.4rem 0.5rem;
+  text-align: center;
+}
+
+.schedule-availability-table th:first-child,
+.schedule-availability-table td:first-child {
+  text-align: start;
+  min-width: 7rem;
+}
+
+.schedule-availability-table input[type='checkbox'] {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.schedule-days-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.schedule-day-card {
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: var(--card-bg, #fff);
+}
+
+.schedule-day-card.closed {
+  opacity: 0.65;
+  background: var(--color-muted-bg, #f5f5f5);
+}
+
+.schedule-day-card h4 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.schedule-shift-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--border-color, #eee);
+}
+
+.schedule-shift-row:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.schedule-shift-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.schedule-shift-assignments {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.schedule-assign-select {
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+.schedule-availability-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.schedule-avail-day-card {
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.schedule-avail-day-card label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.schedule-avail-notes {
+  width: 100%;
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.staff-availability-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  background: #fff8e6;
+  border: 1px solid #f0d78c;
+}
+
+.staff-availability-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.95rem;
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+
+.staff-availability-banner-btn {
+  flex-shrink: 0;
+  text-decoration: none;
+  text-align: center;
+}
+
+.schedule-deadline-banner {
+  background: #e8f4fd;
+  border: 1px solid #b8daff;
+  border-radius: 6px;
+  padding: 0.65rem 0.85rem;
+  margin: 0.75rem 0;
+  font-size: 0.95rem;
+}
+
+.schedule-submitted-badge {
+  color: #155724;
+  font-weight: 500;
+  margin: 0.5rem 0;
+}
+
+.schedule-submitted-ok {
+  color: #155724;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.schedule-submitted-missing {
+  color: #856404;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+}
+
+.schedule-force-avail-btn {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid #856404;
+  background: transparent;
+  color: #856404;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.schedule-force-avail-btn:hover {
+  background: #fff3cd;
+}
+
+/* ── Staff Schedule Page — tabs ── */
+
+.schedule-staff-page {
+  padding-top: 0;
+}
+
+.schedule-staff-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border-color, #ddd);
+  margin-bottom: 0;
+}
+
+.schedule-staff-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.8rem 1.25rem;
+  border: none;
+  background: transparent;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-muted, #888);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.schedule-staff-tab:hover {
+  color: var(--text, #333);
+}
+
+.schedule-staff-tab.active {
+  color: var(--primary, #2f7ff7);
+  border-bottom-color: var(--primary, #2f7ff7);
+  font-weight: 600;
+}
+
+.schedule-staff-tab-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--danger, #dc3545);
+  flex-shrink: 0;
+}
+
+.schedule-staff-tab-content {
+  padding-top: 1.25rem;
+}
+
+/* ── My Schedule (staff view) ── */
+
+.schedule-week-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.schedule-week-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  transition: background 0.15s ease;
+}
+
+.schedule-week-nav-btn:hover {
+  background: var(--primary-soft, #e8f0fe);
+}
+
+.schedule-week-nav-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  min-width: 7rem;
+  text-align: center;
+}
+
+.schedule-week-nav-today {
+  font-size: 0.85rem;
+  padding: 0.3rem 0.65rem;
+}
+
+.schedule-weekly-empty {
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.schedule-my-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  background: var(--primary-soft, #e8f0fe);
+  color: var(--primary, #2f7ff7);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.schedule-day-card-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+}
+
+.schedule-day-date {
+  font-weight: 400;
+  color: var(--text-muted, #888);
+  font-size: 0.85rem;
+}
+
+.schedule-my-shift-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 20px;
+  background: var(--primary, #2f7ff7);
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.schedule-day-card--mine {
+  border-color: var(--primary, #2f7ff7);
+  border-width: 2px;
+  box-shadow: 0 0 0 3px rgba(47, 127, 247, 0.1);
+}
+
+.schedule-public-assignments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.schedule-public-assignment {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  background: var(--surface-muted, #f8f9fa);
+  font-size: 0.88rem;
+}
+
+.schedule-public-assignment--mine {
+  background: rgba(47, 127, 247, 0.08);
+  border: 1px solid rgba(47, 127, 247, 0.25);
+}
+
+.schedule-public-shift-time {
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--text-muted, #888);
+  padding-top: 0.1rem;
+  min-width: 5.5rem;
+}
+
+.schedule-public-shift-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.schedule-public-shift-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.schedule-public-staff-name {
+  font-size: 0.88rem;
+  color: var(--text, #333);
+}
+
+.schedule-public-staff-name--mine {
+  font-weight: 700;
+  color: var(--primary, #2f7ff7);
+}
+
+.schedule-public-role {
+  font-size: 0.75rem;
+  color: var(--text-muted, #888);
+}
+
+@media (max-width: 600px) {
+  .schedule-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .schedule-actions {
+    justify-content: stretch;
+  }
+
+  .schedule-actions .button-primary,
+  .schedule-actions .button-secondary {
+    flex: 1 1 auto;
+  }
+}

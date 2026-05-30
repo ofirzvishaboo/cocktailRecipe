@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from './contexts/AuthContext'
 import './styles/App.css'
 import Navbar from './components/layout/Navbar'
+import StaffAvailabilityBanner from './components/schedule/StaffAvailabilityBanner'
 import LoginPage from './pages/auth/LoginPage'
 import SignupPage from './pages/auth/SignupPage'
 import CocktailsPage from './pages/CocktailsPage'
@@ -19,6 +20,10 @@ import EventDetailPage from './pages/EventDetailPage'
 import EventFormPage from './pages/EventFormPage'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import DashboardPage from './pages/DashboardPage'
+import SchedulePage from './pages/SchedulePage'
+import StaffSchedulePage from './pages/StaffSchedulePage'
+import ChecklistPage from './pages/ChecklistPage'
+import ChecklistHistoryPage from './pages/ChecklistHistoryPage'
 
 function App() {
   const { isAuthenticated } = useAuth()
@@ -63,6 +68,7 @@ function App() {
     <>
       <Navbar />
       <main className="main-content">
+        <StaffAvailabilityBanner />
         <Routes>
           <Route path="/login" element={
             isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
@@ -129,6 +135,46 @@ function App() {
             element={(
               <ProtectedRoute requireAdmin>
                 <EventFormPage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/schedule"
+            element={(
+              <ProtectedRoute requireAdmin>
+                <SchedulePage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/schedule/availability"
+            element={<Navigate to="/my-schedule?tab=availability" replace />}
+          />
+          <Route
+            path="/my-availability"
+            element={<Navigate to="/my-schedule?tab=availability" replace />}
+          />
+          <Route
+            path="/checklists"
+            element={(
+              <ProtectedRoute>
+                <ChecklistPage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/checklists/history"
+            element={(
+              <ProtectedRoute requireAdmin>
+                <ChecklistHistoryPage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/my-schedule"
+            element={(
+              <ProtectedRoute>
+                <StaffSchedulePage />
               </ProtectedRoute>
             )}
           />

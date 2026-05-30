@@ -837,6 +837,136 @@ async def add_order_event_scope_columns_if_missing(engine: AsyncEngine):
         await conn.execute(text("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS used_from_stock_quantity NUMERIC NULL"))
 
 
+async def add_schedule_tables_if_missing(engine: AsyncEngine):
+    """Create staff scheduling tables if missing."""
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS staff (
+                    id UUID PRIMARY KEY,
+                    display_name TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    user_id UUID NULL UNIQUE REFERENCES users(id) ON DELETE SET NULL,
+                    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                    sort_order INTEGER NOT NULL DEFAULT 0
+                )
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_staff_role ON staff(role)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_staff_is_active ON staff(is_active)"))
+
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS shift_templates (
+                    id UUID PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    start_time TIME NOT NULL,
+                    end_time TIME NOT NULL,
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    active BOOLEAN NOT NULL DEFAULT TRUE
+                )
+                """
+            )
+        )
+
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS bar_schedule_settings (
+                    id INTEGER PRIMARY KEY DEFAULT 1,
+                    week_starts_on INTEGER NOT NULL DEFAULT 6,
+                    friday_last_start_hour INTEGER NOT NULL DEFAULT 18,
+                    saturday_closed BOOLEAN NOT NULL DEFAULT TRUE
+                )
+                """
+            )
+        )
+        await conn.execute(
+            text(
+                """
+                INSERT INTO bar_schedule_settings (id, week_starts_on, friday_last_start_hour, saturday_closed)
+                SELECT 1, 6, 18, TRUE
+                WHERE NOT EXISTS (SELECT 1 FROM bar_schedule_settings WHERE id = 1)
+                """
+            )
+        )
+
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS schedule_weeks (
+                    id UUID PRIMARY KEY,
+                    week_start_date DATE NOT NULL UNIQUE,
+                    status TEXT NOT NULL DEFAULT 'draft',
+                    created_by_user_id UUID NULL REFERENCES users(id) ON DELETE SET NULL,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_schedule_weeks_status ON schedule_weeks(status)"))
+
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS staff_availability (
+                    id UUID PRIMARY KEY,
+                    schedule_week_id UUID NOT NULL REFERENCES schedule_weeks(id) ON DELETE CASCADE,
+                    staff_id UUID NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+                    day_of_week INTEGER NOT NULL,
+                    available BOOLEAN NOT NULL DEFAULT FALSE,
+                    notes TEXT NULL,
+                    CONSTRAINT uq_staff_availability_week_staff_day
+                        UNIQUE (schedule_week_id, staff_id, day_of_week)
+                )
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_staff_availability_week ON staff_availability(schedule_week_id)"))
+
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS schedule_assignments (
+                    id UUID PRIMARY KEY,
+                    schedule_week_id UUID NOT NULL REFERENCES schedule_weeks(id) ON DELETE CASCADE,
+                    day_of_week INTEGER NOT NULL,
+                    shift_template_id UUID NOT NULL REFERENCES shift_templates(id) ON DELETE CASCADE,
+                    staff_id UUID NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+                    role TEXT NOT NULL,
+                    CONSTRAINT uq_schedule_assignment_slot
+                        UNIQUE (schedule_week_id, day_of_week, shift_template_id, staff_id)
+                )
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_schedule_assignments_week ON schedule_assignments(schedule_week_id)"))
+
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS staff_availability_submissions (
+                    id UUID PRIMARY KEY,
+                    schedule_week_id UUID NOT NULL REFERENCES schedule_weeks(id) ON DELETE CASCADE,
+                    staff_id UUID NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+                    submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    CONSTRAINT uq_staff_availability_submission_week_staff
+                        UNIQUE (schedule_week_id, staff_id)
+                )
+                """
+            )
+        )
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_staff_availability_submissions_week ON staff_availability_submissions(schedule_week_id)"
+            )
+        )
+
+
 async def add_images_table_if_missing(engine: AsyncEngine):
     """Create images table for binary image storage (replaces ImageKit)."""
     async with engine.begin() as conn:
@@ -1101,4 +1231,114 @@ async def add_normalized_columns_if_missing(engine: AsyncEngine):
 
 
 ## Legacy backfill removed by design (clean break).
+
+
+async def add_checklist_tables_if_missing(engine: AsyncEngine):
+    """Create bartender checklist tables if missing."""
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS checklist_templates (
+                    id UUID PRIMARY KEY,
+                    type TEXT NOT NULL UNIQUE,
+                    name TEXT NOT NULL
+                )
+                """
+            )
+        )
+
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS checklist_sections (
+                    id UUID PRIMARY KEY,
+                    template_id UUID NOT NULL REFERENCES checklist_templates(id) ON DELETE CASCADE,
+                    key TEXT NOT NULL,
+                    title_he TEXT NOT NULL,
+                    title_en TEXT NOT NULL,
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    section_type TEXT NOT NULL DEFAULT 'checkbox',
+                    CONSTRAINT uq_checklist_section_template_key UNIQUE (template_id, key)
+                )
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_checklist_sections_template ON checklist_sections(template_id)"))
+
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS checklist_items (
+                    id UUID PRIMARY KEY,
+                    section_id UUID NOT NULL REFERENCES checklist_sections(id) ON DELETE CASCADE,
+                    key TEXT NOT NULL,
+                    text_he TEXT NOT NULL,
+                    text_en TEXT NOT NULL,
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    day_of_week INTEGER NULL,
+                    CONSTRAINT uq_checklist_item_section_key UNIQUE (section_id, key)
+                )
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_checklist_items_section ON checklist_items(section_id)"))
+
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS checklist_runs (
+                    id UUID PRIMARY KEY,
+                    template_id UUID NOT NULL REFERENCES checklist_templates(id) ON DELETE CASCADE,
+                    run_date DATE NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'in_progress',
+                    submitted_by_staff_id UUID NULL REFERENCES staff(id) ON DELETE SET NULL,
+                    submitted_by_user_id UUID NULL REFERENCES users(id) ON DELETE SET NULL,
+                    submitted_at TIMESTAMPTZ NULL,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    CONSTRAINT uq_checklist_run_date_template UNIQUE (run_date, template_id)
+                )
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_checklist_runs_date ON checklist_runs(run_date)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_checklist_runs_status ON checklist_runs(status)"))
+
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS checklist_run_completions (
+                    id UUID PRIMARY KEY,
+                    run_id UUID NOT NULL REFERENCES checklist_runs(id) ON DELETE CASCADE,
+                    item_id UUID NOT NULL REFERENCES checklist_items(id) ON DELETE CASCADE,
+                    completed BOOLEAN NOT NULL DEFAULT FALSE,
+                    completed_at TIMESTAMPTZ NULL,
+                    CONSTRAINT uq_checklist_run_completion_run_item UNIQUE (run_id, item_id)
+                )
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_checklist_run_completions_run ON checklist_run_completions(run_id)"))
+
+        await conn.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS checklist_run_notes (
+                    id UUID PRIMARY KEY,
+                    run_id UUID NOT NULL REFERENCES checklist_runs(id) ON DELETE CASCADE,
+                    field_key TEXT NOT NULL,
+                    value TEXT NOT NULL DEFAULT '',
+                    CONSTRAINT uq_checklist_run_note_run_field UNIQUE (run_id, field_key)
+                )
+                """
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_checklist_run_notes_run ON checklist_run_notes(run_id)"))
+
+        # Add submitted_by_user_id if the table already existed without it
+        await conn.execute(text(
+            "ALTER TABLE checklist_runs ADD COLUMN IF NOT EXISTS "
+            "submitted_by_user_id UUID NULL REFERENCES users(id) ON DELETE SET NULL"
+        ))
 

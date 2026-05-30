@@ -17,6 +17,8 @@ from routers.suppliers import router as suppliers_router
 from routers.events import router as events_router
 from routers.orders import router as orders_router
 from routers.dashboard import router as dashboard_router
+from routers.schedule import router as schedule_router
+from routers.checklists import router as checklists_router
 from core.auth import fastapi_users, auth_backend
 from contextlib import asynccontextmanager
 from schemas.users import UserRead, UserCreate, UserUpdate
@@ -92,6 +94,8 @@ app.include_router(suppliers_router, prefix="/suppliers", tags=["suppliers"])
 app.include_router(events_router, prefix="/events", tags=["events"])
 app.include_router(orders_router, prefix="/orders", tags=["orders"])
 app.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])
+app.include_router(schedule_router, prefix="/schedule", tags=["schedule"])
+app.include_router(checklists_router, prefix="/checklists", tags=["checklists"])
 
 
 # Global exception handler to ensure CORS headers are sent even on errors

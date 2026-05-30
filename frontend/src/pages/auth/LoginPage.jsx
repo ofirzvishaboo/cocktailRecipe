@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import api from '../../api'
 import { useAuth } from '../../contexts/AuthContext'
 import '../../styles/auth.css'
 
@@ -21,7 +22,12 @@ const LoginPage = () => {
     const result = await login(email, password)
 
     if (result.success) {
-      navigate('/')
+      try {
+        await api.get('/schedule/me/staff')
+        navigate('/my-availability')
+      } catch {
+        navigate('/')
+      }
     } else {
       setError(result.error)
     }
@@ -68,6 +74,7 @@ const LoginPage = () => {
         <p className="auth-link">
           {t('auth.login.noAccount')} <Link to="/signup">{t('auth.login.signupLink')}</Link>
         </p>
+        <p className="auth-staff-hint text-muted">{t('auth.login.staffHint')}</p>
       </div>
     </div>
   )
